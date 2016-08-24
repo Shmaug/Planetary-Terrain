@@ -1,0 +1,25 @@
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.exe.config
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\line.hlsl
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\terrain.hlsl
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Textures\TerrainColor.jpg
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.exe
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.pdb
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.D3DCompiler.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Desktop.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct2D1.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct3D11.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DirectInput.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DXGI.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Mathematics.dll
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.D3DCompiler.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Desktop.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct2D1.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct3D11.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DirectInput.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DXGI.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Mathematics.xml
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\obj\Debug\Planetary Terrain.csprojResolveAssemblyReference.cache
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.exe
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.pdb
