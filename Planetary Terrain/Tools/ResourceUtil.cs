@@ -3,7 +3,7 @@ using SharpDX.DXGI;
 using SharpDX.WIC;
 using D3D11 = SharpDX.Direct3D11;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     class ResourceUtil {
         public static D3D11.Texture2D LoadTexture(D3D11.Device device, string path) {
             ImagingFactory factory = new ImagingFactory2();

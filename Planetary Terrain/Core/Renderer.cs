@@ -5,7 +5,7 @@ using D3D11 = SharpDX.Direct3D11;
 using SharpDX.Direct3D;
 using System.Runtime.InteropServices;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     class Renderer : IDisposable {
         [StructLayout(LayoutKind.Explicit)]
         struct Constants {
@@ -42,11 +42,15 @@ namespace BetterTerrain {
 
         public D3D11.RasterizerState rasterizerStateSolid { get; private set; }
         public D3D11.RasterizerState rasterizerStateWireframe { get; private set; }
+        public D3D11.RasterizerState rasterizerStateSolidNoCull { get; private set; }
+        public D3D11.RasterizerState rasterizerStateWireframeNoCull { get; private set; }
+
+        public D3D11.BlendState blendStateOpaque { get; private set; }
+        public D3D11.BlendState blendStateTransparent { get; private set; }
 
         public Camera camera;
 
         D3D11.Buffer axisBuffer;
-        Shader lineShader;
         D3D11.Buffer axisConsts;
 
         public Vector3 LightDirection = Vector3.ForwardLH;
@@ -76,6 +80,24 @@ namespace BetterTerrain {
             using (D3D11.Texture2D backBuffer = swapChain.GetBackBuffer<D3D11.Texture2D>(0)) {
                 renderTargetView = new D3D11.RenderTargetView(device, backBuffer);
             }
+            #endregion
+
+            #region blend states
+            D3D11.BlendStateDescription opaqueDesc = new D3D11.BlendStateDescription();
+            opaqueDesc.RenderTarget[0].IsBlendEnabled = false;
+            opaqueDesc.RenderTarget[0].RenderTargetWriteMask = D3D11.ColorWriteMaskFlags.All;
+            blendStateOpaque = new D3D11.BlendState(device, opaqueDesc);
+
+            D3D11.BlendStateDescription alphaDesc = new D3D11.BlendStateDescription();
+            alphaDesc.RenderTarget[0].IsBlendEnabled = true;
+            alphaDesc.RenderTarget[0].SourceBlend = D3D11.BlendOption.SourceAlpha;
+            alphaDesc.RenderTarget[0].DestinationBlend = D3D11.BlendOption.InverseSourceAlpha;
+            alphaDesc.RenderTarget[0].BlendOperation = D3D11.BlendOperation.Add;
+            alphaDesc.RenderTarget[0].SourceAlphaBlend = D3D11.BlendOption.One;
+            alphaDesc.RenderTarget[0].DestinationAlphaBlend = D3D11.BlendOption.Zero;
+            alphaDesc.RenderTarget[0].AlphaBlendOperation = D3D11.BlendOperation.Add;
+            alphaDesc.RenderTarget[0].RenderTargetWriteMask = D3D11.ColorWriteMaskFlags.All;
+            blendStateTransparent = new D3D11.BlendState(device, alphaDesc);
             #endregion
 
             #region depth buffer & depth stencil states
@@ -129,6 +151,20 @@ namespace BetterTerrain {
                 IsDepthClipEnabled = false,
                 IsMultisampleEnabled = true
             });
+            rasterizerStateSolidNoCull = new D3D11.RasterizerState(device, new D3D11.RasterizerStateDescription() {
+                FillMode = D3D11.FillMode.Solid,
+                CullMode = D3D11.CullMode.None,
+                IsAntialiasedLineEnabled = true,
+                IsDepthClipEnabled = false,
+                IsMultisampleEnabled = true
+            });
+            rasterizerStateWireframeNoCull = new D3D11.RasterizerState(device, new D3D11.RasterizerStateDescription() {
+                FillMode = D3D11.FillMode.Wireframe,
+                CullMode = D3D11.CullMode.None,
+                IsAntialiasedLineEnabled = true,
+                IsDepthClipEnabled = false,
+                IsMultisampleEnabled = true
+            });
             #endregion
 
             constants = new Constants();
@@ -147,7 +183,6 @@ namespace BetterTerrain {
             });
             Matrix m = Matrix.Identity;
             axisConsts = D3D11.Buffer.Create(device, D3D11.BindFlags.ConstantBuffer, ref m);
-            lineShader = new Shader("Shaders\\line.hlsl", device, context, VertexColor.InputElements);
             #endregion
         }
 
@@ -219,7 +254,7 @@ namespace BetterTerrain {
             Matrix mat = Matrix.Transpose(Matrix.Translation(-camera.Position));
             context.UpdateSubresource(ref mat, axisConsts);
 
-            lineShader.Set(this);
+            Shaders.LineShader.Set(this);
 
             Context.VertexShader.SetConstantBuffer(1, axisConsts);
             Context.PixelShader.SetConstantBuffer(1, axisConsts);
@@ -231,8 +266,13 @@ namespace BetterTerrain {
         }
         
         public void Dispose() {
+            blendStateOpaque.Dispose();
+            blendStateTransparent.Dispose();
+
             rasterizerStateSolid.Dispose();
             rasterizerStateWireframe.Dispose();
+            rasterizerStateSolidNoCull.Dispose();
+            rasterizerStateWireframeNoCull.Dispose();
             depthStencilState.Dispose();
             depthStencilStateNoDepth.Dispose();
             

@@ -23,3 +23,29 @@ C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\
 C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\obj\Debug\Planetary Terrain.csprojResolveAssemblyReference.cache
 C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.exe
 C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.pdb
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.exe.config
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.exe
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.pdb
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\line.hlsl
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\terrain.hlsl
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Textures\TerrainColor.jpg
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.exe
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.pdb
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.D3DCompiler.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Desktop.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct2D1.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct3D11.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DirectInput.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DXGI.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Mathematics.dll
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.D3DCompiler.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Desktop.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct2D1.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Direct3D11.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DirectInput.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DXGI.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Mathematics.xml
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\obj\Debug\Planetary Terrain.csprojResolveAssemblyReference.cache
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\atmosphere.hlsl

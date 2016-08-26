@@ -5,7 +5,7 @@ using System.Threading;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     class QuadTree : IDisposable {
         public const int GridSize = 64;
 
@@ -16,8 +16,11 @@ namespace BetterTerrain {
         public QuadTree Parent;
         public QuadTree[] Children;
 
-        public Vector3d Position;
+        public Vector3d Position; // position on cube
+        public Vector3d RenderPosition; // center of mesh
         public Matrix Orientation;
+
+        Vector3d[] vertexSamples;
 
         VertexNormalTexture[] verticies;
         short[] indicies;
@@ -26,6 +29,8 @@ namespace BetterTerrain {
         struct Constants {
             [FieldOffset(0)]
             public Matrix World;
+            [FieldOffset(64)]
+            public Matrix WorldInverseTranspose;
         }
         private Constants shaderConstants;
 
@@ -53,6 +58,11 @@ namespace BetterTerrain {
             if (generating) return;
             generating = true;
             
+            Vector3d apos = AbsolutePosition();
+
+            Vector3d aposn = Vector3d.Normalize(apos);
+            RenderPosition = aposn * Planet.GetHeight(aposn);
+
             float scale = (float)Size / GridSize;
             ThreadPool.QueueUserWorkItem(new WaitCallback((object o) => {
                 int s = GridSize + 1;
@@ -62,7 +72,7 @@ namespace BetterTerrain {
                 Vector3 p1, p2, p3, n;
                 Vector3d p1d, p2d, p3d;
 
-                Vector3d apos = AbsolutePosition();
+                vertexSamples = new Vector3d[5];
 
                 int i = 0;
                 for (int x = 0; x < s; x++) {
@@ -89,9 +99,20 @@ namespace BetterTerrain {
                         p2d *= Planet.GetHeight(p2d);
                         p3d *= Planet.GetHeight(p3d);
 
-                        p1d -= apos;
-                        p2d -= apos;
-                        p3d -= apos;
+                        if (x == s/2 && z == s / 2)
+                            vertexSamples[0] = p1d;
+                        else if (x == 0 && z == 0)
+                            vertexSamples[1] = p1d;
+                        else if (x == s-1 && z == 0)
+                            vertexSamples[2] = p1d;
+                        else if (x == 0 && z == s-1)
+                            vertexSamples[3] = p1d;
+                        else if (x == s-1 && z == s-1)
+                            vertexSamples[4] = p1d;
+
+                        p1d -= RenderPosition;
+                        p2d -= RenderPosition;
+                        p3d -= RenderPosition;
 
                         n = Vector3.Normalize(Vector3.Cross(p2d - p1d, p3d - p1d));
 
@@ -114,9 +135,23 @@ namespace BetterTerrain {
             }));
         }
 
+        public Vector3d ClosestVertex(Vector3d pos) {
+            Vector3d close = RenderPosition;
+            double dist = double.MaxValue;
+            for (int i = 0; i < vertexSamples.Length; i++) {
+                double d = (pos - vertexSamples[i]).LengthSquared();
+                if (d < dist) {
+                    dist = d;
+                    close = vertexSamples[i];
+                }
+            }
+
+            return close;
+        }
+
         public Vector3d AbsolutePosition() {
             if (Parent == null)
-                return Position;
+                return Position + Planet.Position;
             else
                 return Position + Parent.AbsolutePosition();
         }
@@ -189,8 +224,18 @@ namespace BetterTerrain {
         public bool Ready() {
             return dirty || vertexBuffer != null;
         }
+
+        bool IsAboveHorizon(Vector3d camera) {
+            Vector3d planetToCam = Vector3d.Normalize(camera - Planet.Position);
+            Vector3d planetToMesh = Vector3d.Normalize(ClosestVertex(camera));
+
+            double horizonAngle = Math.Acos(Planet.Radius * .99 / (Planet.Position - camera).Length());
+            double meshAngle = Math.Acos(Vector3.Dot(planetToCam, planetToMesh));
+
+            return horizonAngle > meshAngle;
+        }
         
-        public void Draw(Renderer renderer, Vector3d relativeTo) {
+        public void Draw(Renderer renderer) {
             bool draw = true;
 
             if (Children != null) {
@@ -202,7 +247,7 @@ namespace BetterTerrain {
 
                 if (!draw)
                     for (int i = 0; i < Children.Length; i++)
-                        Children[i].Draw(renderer, relativeTo - Position);
+                        Children[i].Draw(renderer);
             }
 
             if (draw) {
@@ -210,22 +255,29 @@ namespace BetterTerrain {
                     SetData(renderer.Device, renderer.Context);
 
                 if (vertexBuffer != null) {
-                    shaderConstants.World = Matrix.Transpose(
-                        Matrix.Translation(Position - relativeTo)
-                        );
+                    if (IsAboveHorizon(renderer.camera.Position)) {
+                        Vector3d pos;
+                        double scale;
+                        MathTools.AdjustPositionRelative(RenderPosition, renderer.camera, out pos, out scale);
+                        Matrix world = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
 
-                    if (constantBuffer == null)
-                        constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref shaderConstants);
-                    renderer.Context.UpdateSubresource(ref shaderConstants, constantBuffer);
+                        world = Matrix.Transpose(world);
+                        shaderConstants.World = world;
+                        shaderConstants.WorldInverseTranspose = Matrix.Transpose(Matrix.Invert(world));
 
-                    renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
-                    renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
+                        if (constantBuffer == null)
+                            constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref shaderConstants);
+                        renderer.Context.UpdateSubresource(ref shaderConstants, constantBuffer);
 
-                    renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                    renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexNormalTexture>(), 0));
-                    renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+                        renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
+                        renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
 
-                    renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+                        renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexNormalTexture>(), 0));
+                        renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+
+                        renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+                    }
                 }
             }
         }
@@ -236,6 +288,9 @@ namespace BetterTerrain {
             
             if (constantBuffer != null)
                 constantBuffer.Dispose();
+
+            if (indexBuffer != null)
+                indexBuffer.Dispose();
 
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)

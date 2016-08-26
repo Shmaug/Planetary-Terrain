@@ -4,7 +4,7 @@ using D3D11 = SharpDX.Direct3D11;
 using DInput = SharpDX.DirectInput;
 using System;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     class Game : IDisposable {
         private RenderForm renderForm;
         private bool resizePending;
@@ -12,8 +12,6 @@ namespace BetterTerrain {
         public Renderer renderer;
         public D3D11.Device device { get { return renderer?.Device; } }
         public D3D11.DeviceContext context { get {return renderer?.Context; } }
-        
-        public Shader terrainShader;
         
         private Planet planet;
 
@@ -25,6 +23,8 @@ namespace BetterTerrain {
         DInput.KeyboardState ks, lastks;
         DInput.MouseState ms, lastms;
         bool lockMouse;
+
+        double cameraSpeed;
         
         public Game() {
             renderForm = new RenderForm("D3D11 Planets");
@@ -43,9 +43,9 @@ namespace BetterTerrain {
 
             renderer = new Renderer(renderForm);
             
-            terrainShader = new Shader("Shaders\\terrain.hlsl", device, context, VertexNormalTexture.InputElements);
-
             frameTimer = new System.Diagnostics.Stopwatch();
+
+            Shaders.LoadShaders(device, context);
 
             InitializeScene();
         }
@@ -58,7 +58,7 @@ namespace BetterTerrain {
         }
 
         void InitializeScene() {
-            planet = new Planet(device, 1000, 10);
+            planet = new Planet(6371000, 20000);
             planet.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\TerrainColor.jpg"), device);
 
             renderer.LightDirection = new Vector3(.25f, -1, 1);
@@ -98,14 +98,18 @@ namespace BetterTerrain {
                 move += Vector3.Left;
             else if (ks.IsPressed(DInput.Key.D))
                 move += Vector3.Right;
-           
+
             if (!move.IsZero) {
                 move.Normalize();
                 move = Vector3.Transform(-move, renderer.camera.RotationMatrix).ToVector3();
                 Vector3d moved = move.ToDouble();
-                moved *= 2;
+
                 if (ks.IsPressed(DInput.Key.LeftShift))
-                    moved *= 100f;
+                    cameraSpeed += 1000;
+                else
+                    cameraSpeed = 2;
+                moved *= cameraSpeed;
+
                 if (ks.IsPressed(DInput.Key.Space))
                     moved *= Math.Min(Math.Max(renderer.camera.Position.Length() - planet.Radius, 2), 20);
 
@@ -119,7 +123,7 @@ namespace BetterTerrain {
                     renderer.camera.Position = c * (h + 2) + planet.Position;
             }
 
-            if (ks.IsPressed(DInput.Key.Escape) && !lastks.IsPressed(DInput.Key.Escape)) {
+            if (ks.IsPressed(DInput.Key.LeftControl) && !lastks.IsPressed(DInput.Key.LeftControl)) {
                 lockMouse = !lockMouse;
 
                 if (lockMouse)
@@ -138,7 +142,6 @@ namespace BetterTerrain {
                 renderer.camera.Rotation += new Vector3(-delta.Y, delta.X, delta.Z) * .003f;
                 renderer.camera.Rotation = new Vector3(MathUtil.Clamp(renderer.camera.Rotation.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo), renderer.camera.Rotation.Y, renderer.camera.Rotation.Z);
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientSize.Width / 2, renderForm.ClientSize.Height / 2);
-
             }
             #endregion
 
@@ -158,10 +161,7 @@ namespace BetterTerrain {
 
             renderer.Context.Rasterizer.State = ks.IsPressed(DInput.Key.Tab) ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
             
-            terrainShader.Set(renderer);
             planet.Draw(renderer);
-
-            renderer.DrawAxis();
             
             renderer.Present();
         }
@@ -175,7 +175,7 @@ namespace BetterTerrain {
             keyboard.Dispose();
             mouse.Dispose();
 
-            terrainShader.Dispose();
+            Shaders.DisposeShaders();
 
             renderForm.Dispose();
         }
