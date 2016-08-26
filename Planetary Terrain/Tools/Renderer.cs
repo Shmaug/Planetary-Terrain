@@ -3,9 +3,30 @@ using SharpDX;
 using SharpDX.DXGI;
 using D3D11 = SharpDX.Direct3D11;
 using SharpDX.Direct3D;
+using System.Runtime.InteropServices;
 
 namespace BetterTerrain {
     class Renderer : IDisposable {
+        [StructLayout(LayoutKind.Explicit)]
+        struct Constants {
+            [FieldOffset(0)]
+            public Matrix View;
+
+            [FieldOffset(64)]
+            public Matrix Projection;
+
+            [FieldOffset(128)]
+            public Vector3 cameraDirection;
+
+            [FieldOffset(144)]
+            public Vector3 lightDirection;
+
+            [FieldOffset(156)]
+            public float spacer;
+        }
+        Constants constants;
+        public D3D11.Buffer constantBuffer { get; private set; }
+
         public D3D11.DepthStencilView depthStencilView { get; private set; }
         public D3D11.RenderTargetView renderTargetView { get; private set; }
 
@@ -27,6 +48,8 @@ namespace BetterTerrain {
         D3D11.Buffer axisBuffer;
         Shader lineShader;
         D3D11.Buffer axisConsts;
+
+        public Vector3 LightDirection = Vector3.ForwardLH;
 
         public Renderer(SharpDX.Windows.RenderForm renderForm) {
             int width = renderForm.ClientSize.Width, height = renderForm.ClientSize.Height;
@@ -108,16 +131,19 @@ namespace BetterTerrain {
             });
             #endregion
 
+            constants = new Constants();
+            constantBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            
             #region axis lines & line shader
             axisBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, new VertexColor[] {
-                new VertexColor(new Vector3(0, 0,  10000), Color.Blue),
-                new VertexColor(new Vector3(0, 0, -10000), Color.Blue),
+                new VertexColor(new Vector3(0, 0,  1000), Color.Blue),
+                new VertexColor(new Vector3(0, 0, -1000), Color.Blue),
 
-                new VertexColor(new Vector3(-10000, 0, 0), Color.Red),
-                new VertexColor(new Vector3( 10000, 0, 0), Color.Red),
+                new VertexColor(new Vector3(-1000, 0, 0), Color.Red),
+                new VertexColor(new Vector3( 1000, 0, 0), Color.Red),
 
-                new VertexColor(new Vector3(0, -10000, 0), Color.Green),
-                new VertexColor(new Vector3(0,  10000, 0), Color.Green),
+                new VertexColor(new Vector3(0, -1000, 0), Color.Green),
+                new VertexColor(new Vector3(0,  1000, 0), Color.Green),
             });
             Matrix m = Matrix.Identity;
             axisConsts = D3D11.Buffer.Create(device, D3D11.BindFlags.ConstantBuffer, ref m);
@@ -169,7 +195,12 @@ namespace BetterTerrain {
         }
 
         public void PreRender() {
-            camera.UpdateSubresource(context);
+            constants.View = Matrix.Transpose(camera.View);
+            constants.Projection = Matrix.Transpose(camera.Projection);
+            constants.cameraDirection = camera.View.Forward;
+            constants.lightDirection = LightDirection;
+
+            context.UpdateSubresource(ref constants, constantBuffer);
         }
 
         public void Clear(Color color, bool depth = true) {
@@ -185,6 +216,9 @@ namespace BetterTerrain {
         }
 
         public void DrawAxis() {
+            Matrix mat = Matrix.Transpose(Matrix.Translation(-camera.Position));
+            context.UpdateSubresource(ref mat, axisConsts);
+
             lineShader.Set(this);
 
             Context.VertexShader.SetConstantBuffer(1, axisConsts);
@@ -202,8 +236,8 @@ namespace BetterTerrain {
             depthStencilState.Dispose();
             depthStencilStateNoDepth.Dispose();
             
+            constantBuffer.Dispose();
             axisBuffer.Dispose();
-            camera.Dispose();
             depthStencilView.Dispose();
             renderTargetView.Dispose();
             swapChain.Dispose();

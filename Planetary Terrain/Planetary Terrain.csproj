@@ -99,18 +99,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Camera.cs" />
-    <Compile Include="Chunk.cs" />
-    <Compile Include="Game.cs" />
-    <Compile Include="Renderer.cs" />
-    <Compile Include="Noise.cs" />
-    <Compile Include="ResourceUtil.cs" />
-    <Compile Include="Planet.cs" />
-    <Compile Include="MathTools.cs" />
-    <Compile Include="Shader.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="Core\Camera.cs" />
+    <Compile Include="Core\QuadTree.cs" />
+    <Compile Include="Core\Game.cs" />
+    <Compile Include="Tools\Renderer.cs" />
+    <Compile Include="Tools\Noise.cs" />
+    <Compile Include="Tools\ResourceUtil.cs" />
+    <Compile Include="Core\Planet.cs" />
+    <Compile Include="Tools\MathTools.cs" />
+    <Compile Include="Tools\Shader.cs" />
+    <Compile Include="Core\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="VertexStructs.cs" />
+    <Compile Include="Tools\Vector3d.cs" />
+    <Compile Include="Tools\VertexStructs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -139,6 +140,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

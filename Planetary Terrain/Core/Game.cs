@@ -27,7 +27,7 @@ namespace BetterTerrain {
         bool lockMouse;
         
         public Game() {
-            renderForm = new RenderForm("D3D11 Game");
+            renderForm = new RenderForm("D3D11 Planets");
             renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             renderForm.AllowUserResizing = true;
             renderForm.ClientSizeChanged += (object sender, EventArgs e) => {
@@ -58,14 +58,16 @@ namespace BetterTerrain {
         }
 
         void InitializeScene() {
-            planet = new Planet(device, 1000);
+            planet = new Planet(device, 1000, 10);
             planet.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\TerrainColor.jpg"), device);
 
-            renderer.camera = new Camera(device, MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
-            Vector3 v = new Vector3(1.2f, 1f, -1f);
-            v.Normalize();
-            renderer.camera.Position = v * (planet.GetHeight(v) + 100);
-            renderer.camera.Rotation = new Vector3(-.5f, MathUtil.Pi * .75f, 0);
+            renderer.LightDirection = new Vector3(.25f, -1, 1);
+            renderer.LightDirection.Normalize();
+
+            renderer.camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
+            renderer.camera.Position = new Vector3d(0, planet.Radius, -planet.Radius);
+            renderer.camera.Position.Normalize();
+            renderer.camera.Rotation = new Vector3(0, MathUtil.Pi, 0);
         }
 
         int framec = 0;
@@ -100,13 +102,21 @@ namespace BetterTerrain {
             if (!move.IsZero) {
                 move.Normalize();
                 move = Vector3.Transform(-move, renderer.camera.RotationMatrix).ToVector3();
-
+                Vector3d moved = move.ToDouble();
+                moved *= 2;
                 if (ks.IsPressed(DInput.Key.LeftShift))
-                    move *= 100f;
+                    moved *= 100f;
                 if (ks.IsPressed(DInput.Key.Space))
-                    move *= 50f;
+                    moved *= Math.Min(Math.Max(renderer.camera.Position.Length() - planet.Radius, 2), 20);
 
-                renderer.camera.Position += move * deltaTime;
+                renderer.camera.Position += moved * deltaTime;
+
+                Vector3d c = renderer.camera.Position - planet.Position;
+                double a = c.Length();
+                c.Normalize();
+                double h = planet.GetHeight(c);
+                if (h + 2 > a)
+                    renderer.camera.Position = c * (h + 2) + planet.Position;
             }
 
             if (ks.IsPressed(DInput.Key.Escape) && !lastks.IsPressed(DInput.Key.Escape)) {
@@ -122,9 +132,9 @@ namespace BetterTerrain {
             if (lockMouse) {
                 Vector3 delta = new Vector3(ms.X, ms.Y, 0);
                 if (ks.IsPressed(DInput.Key.Q))
-                    delta.Z = 3;
+                    delta.Z = -3;
                 else if (ks.IsPressed(DInput.Key.E))
-                    delta.Z -= 3;
+                    delta.Z = 3;
                 renderer.camera.Rotation += new Vector3(-delta.Y, delta.X, delta.Z) * .003f;
                 renderer.camera.Rotation = new Vector3(MathUtil.Clamp(renderer.camera.Rotation.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo), renderer.camera.Rotation.Y, renderer.camera.Rotation.Z);
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientSize.Width / 2, renderForm.ClientSize.Height / 2);
@@ -144,7 +154,7 @@ namespace BetterTerrain {
             }
 
             renderer.PreRender();
-            renderer.Clear(Color.Black);
+            renderer.Clear(Color.Gray);
 
             renderer.Context.Rasterizer.State = ks.IsPressed(DInput.Key.Tab) ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
             

@@ -14,19 +14,19 @@ namespace BetterTerrain {
         /// </summary>
         /// <param name="x"></param>
         /// <returns></returns>
-        public static float Generate(float x) {
+        public static double Generate(double x) {
             int i0 = FastFloor(x);
             int i1 = i0 + 1;
-            float x0 = x - i0;
-            float x1 = x0 - 1.0f;
+            double x0 = x - i0;
+            double x1 = x0 - 1.0f;
 
-            float n0, n1;
+            double n0, n1;
 
-            float t0 = 1.0f - x0 * x0;
+            double t0 = 1.0f - x0 * x0;
             t0 *= t0;
             n0 = t0 * t0 * grad(perm[i0 & 0xff], x0);
 
-            float t1 = 1.0f - x1 * x1;
+            double t1 = 1.0f - x1 * x1;
             t1 *= t1;
             n1 = t1 * t1 * grad(perm[i1 & 0xff], x1);
             // The maximum value of this noise is 8*(3/4)^4 = 2.53125
@@ -40,24 +40,24 @@ namespace BetterTerrain {
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns></returns>
-        public static float Generate(float x, float y) {
-            const float F2 = 0.366025403f; // F2 = 0.5*(sqrt(3.0)-1.0)
-            const float G2 = 0.211324865f; // G2 = (3.0-Math.sqrt(3.0))/6.0
+        public static double Generate(double x, double y) {
+            const double F2 = 0.366025403f; // F2 = 0.5*(sqrt(3.0)-1.0)
+            const double G2 = 0.211324865f; // G2 = (3.0-Math.sqrt(3.0))/6.0
 
-            float n0, n1, n2; // Noise contributions from the three corners
+            double n0, n1, n2; // Noise contributions from the three corners
 
             // Skew the input space to determine which simplex cell we're in
-            float s = (x + y) * F2; // Hairy factor for 2D
-            float xs = x + s;
-            float ys = y + s;
+            double s = (x + y) * F2; // Hairy factor for 2D
+            double xs = x + s;
+            double ys = y + s;
             int i = FastFloor(xs);
             int j = FastFloor(ys);
 
-            float t = (float)(i + j) * G2;
-            float X0 = i - t; // Unskew the cell origin back to (x,y) space
-            float Y0 = j - t;
-            float x0 = x - X0; // The x,y distances from the cell origin
-            float y0 = y - Y0;
+            double t = (double)(i + j) * G2;
+            double X0 = i - t; // Unskew the cell origin back to (x,y) space
+            double Y0 = j - t;
+            double x0 = x - X0; // The x,y distances from the cell origin
+            double y0 = y - Y0;
 
             // For the 2D case, the simplex shape is an equilateral triangle.
             // Determine which simplex we are in.
@@ -69,31 +69,31 @@ namespace BetterTerrain {
             // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
             // c = (3-sqrt(3))/6
 
-            float x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-            float y1 = y0 - j1 + G2;
-            float x2 = x0 - 1.0f + 2.0f * G2; // Offsets for last corner in (x,y) unskewed coords
-            float y2 = y0 - 1.0f + 2.0f * G2;
+            double x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+            double y1 = y0 - j1 + G2;
+            double x2 = x0 - 1.0f + 2.0f * G2; // Offsets for last corner in (x,y) unskewed coords
+            double y2 = y0 - 1.0f + 2.0f * G2;
 
             // Wrap the integer indices at 256, to avoid indexing perm[] out of bounds
             int ii = i % 256;
             int jj = j % 256;
 
             // Calculate the contribution from the three corners
-            float t0 = 0.5f - x0 * x0 - y0 * y0;
+            double t0 = 0.5f - x0 * x0 - y0 * y0;
             if (t0 < 0.0f) n0 = 0.0f;
             else {
                 t0 *= t0;
                 n0 = t0 * t0 * grad(perm[ii + perm[jj]], x0, y0);
             }
 
-            float t1 = 0.5f - x1 * x1 - y1 * y1;
+            double t1 = 0.5f - x1 * x1 - y1 * y1;
             if (t1 < 0.0f) n1 = 0.0f;
             else {
                 t1 *= t1;
                 n1 = t1 * t1 * grad(perm[ii + i1 + perm[jj + j1]], x1, y1);
             }
 
-            float t2 = 0.5f - x2 * x2 - y2 * y2;
+            double t2 = 0.5f - x2 * x2 - y2 * y2;
             if (t2 < 0.0f) n2 = 0.0f;
             else {
                 t2 *= t2;
@@ -106,29 +106,29 @@ namespace BetterTerrain {
         }
 
 
-        public static float Generate(float x, float y, float z) {
+        public static double Generate(double x, double y, double z) {
             // Simple skewing factors for the 3D case
-            const float F3 = 0.333333333f;
-            const float G3 = 0.166666667f;
+            const double F3 = 0.333333333f;
+            const double G3 = 0.166666667f;
 
-            float n0, n1, n2, n3; // Noise contributions from the four corners
+            double n0, n1, n2, n3; // Noise contributions from the four corners
 
             // Skew the input space to determine which simplex cell we're in
-            float s = (x + y + z) * F3; // Very nice and simple skew factor for 3D
-            float xs = x + s;
-            float ys = y + s;
-            float zs = z + s;
+            double s = (x + y + z) * F3; // Very nice and simple skew factor for 3D
+            double xs = x + s;
+            double ys = y + s;
+            double zs = z + s;
             int i = FastFloor(xs);
             int j = FastFloor(ys);
             int k = FastFloor(zs);
 
-            float t = (float)(i + j + k) * G3;
-            float X0 = i - t; // Unskew the cell origin back to (x,y,z) space
-            float Y0 = j - t;
-            float Z0 = k - t;
-            float x0 = x - X0; // The x,y,z distances from the cell origin
-            float y0 = y - Y0;
-            float z0 = z - Z0;
+            double t = (double)(i + j + k) * G3;
+            double X0 = i - t; // Unskew the cell origin back to (x,y,z) space
+            double Y0 = j - t;
+            double Z0 = k - t;
+            double x0 = x - X0; // The x,y,z distances from the cell origin
+            double y0 = y - Y0;
+            double z0 = z - Z0;
 
             // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
             // Determine which simplex we are in.
@@ -151,15 +151,15 @@ namespace BetterTerrain {
             // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
             // c = 1/6.
 
-            float x1 = x0 - i1 + G3; // Offsets for second corner in (x,y,z) coords
-            float y1 = y0 - j1 + G3;
-            float z1 = z0 - k1 + G3;
-            float x2 = x0 - i2 + 2.0f * G3; // Offsets for third corner in (x,y,z) coords
-            float y2 = y0 - j2 + 2.0f * G3;
-            float z2 = z0 - k2 + 2.0f * G3;
-            float x3 = x0 - 1.0f + 3.0f * G3; // Offsets for last corner in (x,y,z) coords
-            float y3 = y0 - 1.0f + 3.0f * G3;
-            float z3 = z0 - 1.0f + 3.0f * G3;
+            double x1 = x0 - i1 + G3; // Offsets for second corner in (x,y,z) coords
+            double y1 = y0 - j1 + G3;
+            double z1 = z0 - k1 + G3;
+            double x2 = x0 - i2 + 2.0f * G3; // Offsets for third corner in (x,y,z) coords
+            double y2 = y0 - j2 + 2.0f * G3;
+            double z2 = z0 - k2 + 2.0f * G3;
+            double x3 = x0 - 1.0f + 3.0f * G3; // Offsets for last corner in (x,y,z) coords
+            double y3 = y0 - 1.0f + 3.0f * G3;
+            double z3 = z0 - 1.0f + 3.0f * G3;
 
             // Wrap the integer indices at 256, to avoid indexing perm[] out of bounds
             int ii = Mod(i, 256);
@@ -167,28 +167,28 @@ namespace BetterTerrain {
             int kk = Mod(k, 256);
 
             // Calculate the contribution from the four corners
-            float t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0;
+            double t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0;
             if (t0 < 0.0f) n0 = 0.0f;
             else {
                 t0 *= t0;
                 n0 = t0 * t0 * grad(perm[ii + perm[jj + perm[kk]]], x0, y0, z0);
             }
 
-            float t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1;
+            double t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1;
             if (t1 < 0.0f) n1 = 0.0f;
             else {
                 t1 *= t1;
                 n1 = t1 * t1 * grad(perm[ii + i1 + perm[jj + j1 + perm[kk + k1]]], x1, y1, z1);
             }
 
-            float t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2;
+            double t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2;
             if (t2 < 0.0f) n2 = 0.0f;
             else {
                 t2 *= t2;
                 n2 = t2 * t2 * grad(perm[ii + i2 + perm[jj + j2 + perm[kk + k2]]], x2, y2, z2);
             }
 
-            float t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3;
+            double t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3;
             if (t3 < 0.0f) n3 = 0.0f;
             else {
                 t3 *= t3;
@@ -228,7 +228,7 @@ namespace BetterTerrain {
               138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
             };
 
-        private static int FastFloor(float x) {
+        private static int FastFloor(double x) {
             return (x > 0) ? ((int)x) : (((int)x) - 1);
         }
 
@@ -237,46 +237,46 @@ namespace BetterTerrain {
             return a < 0 ? a + m : a;
         }
 
-        private static float grad(int hash, float x) {
+        private static double grad(int hash, double x) {
             int h = hash & 15;
-            float grad = 1.0f + (h & 7);   // Gradient value 1.0, 2.0, ..., 8.0
+            double grad = 1.0f + (h & 7);   // Gradient value 1.0, 2.0, ..., 8.0
             if ((h & 8) != 0) grad = -grad;         // Set a random sign for the gradient
             return (grad * x);           // Multiply the gradient with the distance
         }
 
-        private static float grad(int hash, float x, float y) {
+        private static double grad(int hash, double x, double y) {
             int h = hash & 7;      // Convert low 3 bits of hash code
-            float u = h < 4 ? x : y;  // into 8 simple gradient directions,
-            float v = h < 4 ? y : x;  // and compute the dot product with (x,y).
+            double u = h < 4 ? x : y;  // into 8 simple gradient directions,
+            double v = h < 4 ? y : x;  // and compute the dot product with (x,y).
             return ((h & 1) != 0 ? -u : u) + ((h & 2) != 0 ? -2.0f * v : 2.0f * v);
         }
 
-        private static float grad(int hash, float x, float y, float z) {
+        private static double grad(int hash, double x, double y, double z) {
             int h = hash & 15;     // Convert low 4 bits of hash code into 12 simple
-            float u = h < 8 ? x : y; // gradient directions, and compute dot product.
-            float v = h < 4 ? y : h == 12 || h == 14 ? x : z; // Fix repeats at h = 12 to 15
+            double u = h < 8 ? x : y; // gradient directions, and compute dot product.
+            double v = h < 4 ? y : h == 12 || h == 14 ? x : z; // Fix repeats at h = 12 to 15
             return ((h & 1) != 0 ? -u : u) + ((h & 2) != 0 ? -v : v);
         }
 
-        private static float grad(int hash, float x, float y, float z, float t) {
+        private static double grad(int hash, double x, double y, double z, double t) {
             int h = hash & 31;      // Convert low 5 bits of hash code into 32 simple
-            float u = h < 24 ? x : y; // gradient directions, and compute dot product.
-            float v = h < 16 ? y : z;
-            float w = h < 8 ? z : t;
+            double u = h < 24 ? x : y; // gradient directions, and compute dot product.
+            double v = h < 16 ? y : z;
+            double w = h < 8 ? z : t;
             return ((h & 1) != 0 ? -u : u) + ((h & 2) != 0 ? -v : v) + ((h & 4) != 0 ? -w : w);
         }
     }
     static class Noise {
-        public static float snoise(Vector3 position, float scale = 1f) {
+        public static double snoise(Vector3d position, double scale = 1f) {
             position *= scale;
             return .5f * (Simplex.Generate(position.X, position.Y, position.Z) + 1f);
         }
 
-        public static float noise(Vector3 position, float scale, int octaves, float frequency, float persistence) {
+        public static double noise(Vector3d position, double scale, int octaves, double frequency, double persistence) {
             position *= scale;
-            float total = 0f;
-            float maxAmplifier = 0f;
-            float amplitude = 1f;
+            double total = 0f;
+            double maxAmplifier = 0f;
+            double amplitude = 1f;
             for (int i = 0; i < octaves; i++) {
                 total += snoise(position * frequency * amplitude);
 
@@ -288,11 +288,11 @@ namespace BetterTerrain {
             return total / maxAmplifier;
         }
 
-        public static float ridgenoise(Vector3 position, float scale, int octaves, float frequency, float persistence) {
+        public static double ridgenoise(Vector3d position, double scale, int octaves, double frequency, double persistence) {
             position *= scale;
-            float total = 0f;
-            float maxAmplifier = 0f;
-            float amplitude = 1f;
+            double total = 0f;
+            double maxAmplifier = 0f;
+            double amplitude = 1f;
             for (int i = 0; i < octaves; i++) {
                 total += ((1 + Math.Abs(snoise(position * frequency * amplitude))) * 2 - 1) * amplitude;
 

@@ -16,6 +16,10 @@ namespace BetterTerrain {
             return new Vector2(a.X + b, a.Y + b);
         }
 
+        public static Vector3d ToDouble(this Vector3 v) {
+            return new Vector3d(v.X, v.Y, v.Z);
+        }
+
         public static Vector3 ToVector3(this Vector4 v) {
             return new Vector3(v.X, v.Y, v.Z);
         }
@@ -32,6 +36,10 @@ namespace BetterTerrain {
         }
         public static Matrix RotationXYZ(float x, float y, float z) {
             return Matrix.RotationX(x) * Matrix.RotationY(y) * Matrix.RotationZ(z);
+        }
+
+        public static double Clamp01(double a) {
+            return Math.Max(Math.Min(a, 1), 0);
         }
     }
 }

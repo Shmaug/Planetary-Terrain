@@ -31,8 +31,8 @@ namespace BetterTerrain {
             renderer.Context.VertexShader.Set(VertexShader);
             renderer.Context.PixelShader.Set(PixelShader);
 
-            renderer.Context.VertexShader.SetConstantBuffer(0, renderer.camera.ConstantBuffer);
-            renderer.Context.PixelShader.SetConstantBuffer(0, renderer.camera.ConstantBuffer);
+            renderer.Context.VertexShader.SetConstantBuffer(0, renderer.constantBuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(0, renderer.constantBuffer);
         }
 
         public void Dispose() {
