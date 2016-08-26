@@ -1,7 +1,7 @@
 ﻿using System;
 using SharpDX;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     struct Vector3d {
         public double X, Y, Z;
 
@@ -18,11 +18,18 @@ namespace BetterTerrain {
         public double Length() {
             return Math.Sqrt(X * X + Y * Y + Z * Z);
         }
+        public double LengthSquared() {
+            return X * X + Y * Y + Z * Z;
+        }
         public void Normalize() {
             double l = Length();
             X /= l;
             Y /= l;
             Z /= l;
+        }
+
+        public static Vector3d Normalize(Vector3d a) {
+            return a / a.Length();
         }
 
         public static implicit operator Vector3(Vector3d v) {

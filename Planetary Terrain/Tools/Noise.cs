@@ -2,7 +2,7 @@
 using SharpDX;
 using System.Runtime.CompilerServices;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     /// <summary>
     /// Implementation of the Perlin simplex noise, an improved Perlin noise algorithm.
     /// Based loosely on SimplexNoise1234 by Stefan Gustavson <http://staffwww.itn.liu.se/~stegu/aqsis/aqsis-newnoise/>

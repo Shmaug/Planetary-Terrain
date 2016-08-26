@@ -3,7 +3,7 @@ using SharpDX;
 using SharpDX.D3DCompiler;
 using D3D11 = SharpDX.Direct3D11;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     class Shader : IDisposable {
         public D3D11.VertexShader VertexShader { get; private set; }
         public D3D11.PixelShader PixelShader { get; private set; }

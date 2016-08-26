@@ -3,7 +3,7 @@ using SharpDX.DXGI;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     [StructLayout(LayoutKind.Explicit)]
     struct VertexColor {
         [FieldOffset(0)]

@@ -6,10 +6,10 @@
 };
 cbuffer ChunkConstants : register (b1) {
 	float4x4 world;
-	float3 position;
+	float4x4 worldInverseTranspose;
 }
 cbuffer PlanetConstants : register(b2) {
-	float4x4 planetWorld;
+	float4 placeholder;
 }
 Texture2D colorMapTexture : register(t0);
 SamplerState colorMapSampler : register(s0);
@@ -21,15 +21,15 @@ struct v2f {
 };
 
 v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0) {
-	float4x4 w = mul(world, planetWorld);
 	v2f v;
-	v.position = mul(vertex, mul(w, mul(view, projection)));
+	v.position = mul(vertex, mul(world, mul(view, projection)));
 	v.uv = uv;
-	v.normal = mul(normal, (float3x3)w);
+	v.normal = mul(normal, worldInverseTranspose);
 	return v;
 }
 float4 psmain(v2f i) : SV_TARGET
 {
-	float4 col = colorMapTexture.Sample(colorMapSampler, i.uv);
-	return col * clamp(dot(lightDirection, -i.normal), 0, 1);
+	float3 col = colorMapTexture.Sample(colorMapSampler, i.uv);
+	col *= clamp(dot(lightDirection, -i.normal), 0, 1);
+	return float4(col, 1);
 }

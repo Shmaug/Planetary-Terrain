@@ -3,32 +3,39 @@ using SharpDX;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     class Planet : IDisposable {
         public double Radius;
         public double TerrainHeight;
         public double MaxChunkSize;
         public double MinChunkSize = QuadTree.GridSize / 2;
 
-        public QuadTree[] baseChunks;
         public Vector3d Position;
+        public QuadTree[] baseChunks;
+        public Atmosphere atmosphere;
+        
+        D3D11.Texture2D colorMap;
+        D3D11.ShaderResourceView colorMapView;
+        D3D11.SamplerState colorMapSampler;
 
         [StructLayout(LayoutKind.Explicit)]
         struct Constants {
             [FieldOffset(0)]
-            public Matrix world;
+            public Vector4 placeholder;
         }
         Constants constants;
         D3D11.Buffer constBuffer;
 
-        D3D11.Texture2D colorMap;
-        D3D11.ShaderResourceView colorMapView;
-        D3D11.SamplerState colorMapSampler;
+        INoiseGenerator mountainNoise;
+        INoiseGenerator hillNoise;
         
-        public Planet(D3D11.Device device, double radius, double terrainHeight) {
+        public Planet(double radius, double terrainHeight) {
             Radius = radius;
             TerrainHeight = terrainHeight;
             Position = new Vector3d();
+
+            hillNoise = new SimplexNoiseGenerator();
+            mountainNoise = new RidgedSimplexNoiseGenerator();
 
             double s = 1.41421356237 * Radius;
 
@@ -44,16 +51,17 @@ namespace BetterTerrain {
 
             for (int i = 0; i < baseChunks.Length; i++)
                 baseChunks[i].Generate();
+
+            atmosphere = new Atmosphere(this, Radius * 1.05f);
         }
         
         double height(Vector3d direction) {
-            double hill = Noise.noise(direction, 100, 8, .003, .8);
+            Vector3d p = direction * 50;
 
-            double m = Noise.ridgenoise(direction, Radius, 7, .002f, .7f) * 2;
-            double mountain =
-                MathTools.Clamp01(m * m * m);
+            //double hill = hillNoise.GetNoise(p);
+            double mountain = mountainNoise.GetNoise(p);
 
-            return hill + mountain;
+            return mountain;
         }
 
         public double GetHeight(Vector3d direction) {
@@ -61,8 +69,8 @@ namespace BetterTerrain {
         }
         public Vector2 GetTemp(Vector3d direction) {
             double y = Math.Abs(direction.Y);
-            float temp = (float)(Noise.noise(direction, 172, 6, .0006f, .9f) * (1 - y * y * y));
-            float humid = (float)Noise.noise(direction, 128, 6, .0008f, .9f);
+            float temp = (float)(Noise.noise(direction, 172, 7, .0006f, .8f) * (1 - y * y * y));
+            float humid = (float)Noise.noise(direction, 128, 7, .0008f, .8f);
 
             return new Vector2(temp, humid);
         }
@@ -105,7 +113,8 @@ namespace BetterTerrain {
                 baseChunks[i].SplitDynamic(dir, h, device);
         }
         public void Draw(Renderer renderer) {
-            constants.world = Matrix.Transpose(Matrix.Identity);
+            Shaders.TerrainShader.Set(renderer);
+
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
@@ -117,7 +126,9 @@ namespace BetterTerrain {
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
 
             for (int i = 0; i < baseChunks.Length; i++)
-                baseChunks[i].Draw(renderer, renderer.camera.Position - Position);
+                baseChunks[i].Draw(renderer);
+
+            //atmosphere.Draw(renderer);
         }
 
         public void Dispose() {
@@ -127,6 +138,9 @@ namespace BetterTerrain {
                 colorMap.Dispose();
             if (colorMapView != null)
                 colorMapView.Dispose();
+
+            if (constBuffer != null)
+                constBuffer.Dispose();
 
             for (int i = 0; i < baseChunks.Length; i++)
                 baseChunks[i].Dispose();

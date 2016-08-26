@@ -1,7 +1,7 @@
 ﻿using System;
 using SharpDX;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     static class MathTools {
         public static Vector3 Multiply(this Vector3 a, Vector3 b) {
             return new Vector3(a.X * b.X, a.Y * b.Y, a.Z * b.Z);
@@ -40,6 +40,24 @@ namespace BetterTerrain {
 
         public static double Clamp01(double a) {
             return Math.Max(Math.Min(a, 1), 0);
+        }
+        
+        public static void AdjustPositionRelative(Vector3d position, Camera camera, out Vector3d newPos, out double scale) {
+            var locationRelativeToCamera = position - camera.Position;
+            var distanceFromCamera = locationRelativeToCamera.Length();
+            var unscaledViewSpace = camera.zFar * 0.25;
+
+            if (distanceFromCamera > unscaledViewSpace) {
+                var scaledViewSpace = camera.zFar - unscaledViewSpace;
+                double scaledDistanceFromCamera = unscaledViewSpace + (scaledViewSpace * (1.0 - Math.Exp((scaledViewSpace - distanceFromCamera) / 1000000000)));
+                Vector3d scaledLocationRelativeToCamera = Vector3d.Normalize(locationRelativeToCamera) * scaledDistanceFromCamera;
+            
+                scale = (scaledDistanceFromCamera / distanceFromCamera);
+                newPos = scaledLocationRelativeToCamera;
+            } else {
+                scale = 1;
+                newPos = position;
+            }
         }
     }
 }

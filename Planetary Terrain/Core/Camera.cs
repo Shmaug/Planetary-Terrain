@@ -1,11 +1,11 @@
 ﻿using System;
 using SharpDX;
 
-namespace BetterTerrain {
+namespace Planetary_Terrain {
     class Camera {
         private Vector3d _position;
         private Vector3 _rotation;
-        private float _fov, _aspect, _near = .01f, _far = 1000f;
+        private float _fov, _aspect, _near = 1f, _far = 100000f;
         private Matrix _rotationmat, _view, _proj;
 
         private void buildProjection() {
