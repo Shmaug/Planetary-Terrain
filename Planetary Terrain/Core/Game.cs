@@ -64,10 +64,10 @@ namespace Planetary_Terrain {
             renderer.LightDirection = new Vector3(.25f, -1, 1);
             renderer.LightDirection.Normalize();
 
-            renderer.camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
-            renderer.camera.Position = new Vector3d(0, planet.Radius, -planet.Radius);
-            renderer.camera.Position.Normalize();
-            renderer.camera.Rotation = new Vector3(0, MathUtil.Pi, 0);
+            renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
+            renderer.Camera.Position = Vector3d.Normalize(new Vector3d(0, 1, -1));
+            renderer.Camera.Position *= planet.GetHeight(renderer.Camera.Position) + 100;
+            renderer.Camera.Rotation = new Vector3(0, MathUtil.Pi, 0);
         }
 
         int framec = 0;
@@ -101,7 +101,7 @@ namespace Planetary_Terrain {
 
             if (!move.IsZero) {
                 move.Normalize();
-                move = Vector3.Transform(-move, renderer.camera.RotationMatrix).ToVector3();
+                move = Vector3.Transform(-move, renderer.Camera.RotationMatrix).ToVector3();
                 Vector3d moved = move.ToDouble();
 
                 if (ks.IsPressed(DInput.Key.LeftShift))
@@ -111,16 +111,16 @@ namespace Planetary_Terrain {
                 moved *= cameraSpeed;
 
                 if (ks.IsPressed(DInput.Key.Space))
-                    moved *= Math.Min(Math.Max(renderer.camera.Position.Length() - planet.Radius, 2), 20);
+                    moved *= Math.Min(Math.Max(renderer.Camera.Position.Length() - planet.Radius, 2), 20);
 
-                renderer.camera.Position += moved * deltaTime;
+                renderer.Camera.Position += moved * deltaTime;
 
-                Vector3d c = renderer.camera.Position - planet.Position;
+                Vector3d c = renderer.Camera.Position - planet.Position;
                 double a = c.Length();
                 c.Normalize();
                 double h = planet.GetHeight(c);
                 if (h + 2 > a)
-                    renderer.camera.Position = c * (h + 2) + planet.Position;
+                    renderer.Camera.Position = c * (h + 2) + planet.Position;
             }
 
             if (ks.IsPressed(DInput.Key.LeftControl) && !lastks.IsPressed(DInput.Key.LeftControl)) {
@@ -139,13 +139,13 @@ namespace Planetary_Terrain {
                     delta.Z = -3;
                 else if (ks.IsPressed(DInput.Key.E))
                     delta.Z = 3;
-                renderer.camera.Rotation += new Vector3(-delta.Y, delta.X, delta.Z) * .003f;
-                renderer.camera.Rotation = new Vector3(MathUtil.Clamp(renderer.camera.Rotation.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo), renderer.camera.Rotation.Y, renderer.camera.Rotation.Z);
+                renderer.Camera.Rotation += new Vector3(-delta.Y, delta.X, delta.Z) * .003f;
+                renderer.Camera.Rotation = new Vector3(MathUtil.Clamp(renderer.Camera.Rotation.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo), renderer.Camera.Rotation.Y, renderer.Camera.Rotation.Z);
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientSize.Width / 2, renderForm.ClientSize.Height / 2);
             }
             #endregion
 
-            planet.Update(device, renderer.camera);
+            planet.Update(device, renderer.Camera);
 
             lastks = ks;
             lastms = ms;

@@ -24,7 +24,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 	v2f v;
 	v.position = mul(vertex, mul(world, mul(view, projection)));
 	v.uv = uv;
-	v.normal = mul(normal, worldInverseTranspose);
+	v.normal = mul(normal, (float3x3)worldInverseTranspose);
 	return v;
 }
 float4 psmain(v2f i) : SV_TARGET

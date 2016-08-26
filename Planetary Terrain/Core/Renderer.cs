@@ -48,7 +48,7 @@ namespace Planetary_Terrain {
         public D3D11.BlendState blendStateOpaque { get; private set; }
         public D3D11.BlendState blendStateTransparent { get; private set; }
 
-        public Camera camera;
+        public Camera Camera;
 
         D3D11.Buffer axisBuffer;
         D3D11.Buffer axisConsts;
@@ -102,7 +102,7 @@ namespace Planetary_Terrain {
 
             #region depth buffer & depth stencil states
             D3D11.Texture2DDescription depthDescription = new D3D11.Texture2DDescription() {
-                Format = Format.D16_UNorm,
+                Format = Format.D32_Float,
                 ArraySize = 1,
                 MipLevels = 1,
                 Width = width,
@@ -192,7 +192,7 @@ namespace Planetary_Terrain {
             if (depthStencilView != null)
                 depthStencilView.Dispose();
 
-            camera.AspectRatio = width / (float)height;
+            Camera.AspectRatio = width / (float)height;
 
             swapChain.ResizeBuffers(swapChain.Description.BufferCount, width, height, Format.Unknown, SwapChainFlags.None);
 
@@ -230,9 +230,9 @@ namespace Planetary_Terrain {
         }
 
         public void PreRender() {
-            constants.View = Matrix.Transpose(camera.View);
-            constants.Projection = Matrix.Transpose(camera.Projection);
-            constants.cameraDirection = camera.View.Forward;
+            constants.View = Matrix.Transpose(Camera.View);
+            constants.Projection = Matrix.Transpose(Camera.Projection);
+            constants.cameraDirection = Camera.View.Forward;
             constants.lightDirection = LightDirection;
 
             context.UpdateSubresource(ref constants, constantBuffer);
@@ -251,7 +251,7 @@ namespace Planetary_Terrain {
         }
 
         public void DrawAxis() {
-            Matrix mat = Matrix.Transpose(Matrix.Translation(-camera.Position));
+            Matrix mat = Matrix.Transpose(Matrix.Translation(-Camera.Position));
             context.UpdateSubresource(ref mat, axisConsts);
 
             Shaders.LineShader.Set(this);

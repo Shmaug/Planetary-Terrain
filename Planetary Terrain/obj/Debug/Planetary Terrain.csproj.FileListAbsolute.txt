@@ -49,3 +49,4 @@ E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.DXGI.xm
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Mathematics.xml
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\obj\Debug\Planetary Terrain.csprojResolveAssemblyReference.cache
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\atmosphere.hlsl
+C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\atmosphere.hlsl

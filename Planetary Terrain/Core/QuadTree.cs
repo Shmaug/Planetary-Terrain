@@ -114,7 +114,7 @@ namespace Planetary_Terrain {
                         p2d -= RenderPosition;
                         p3d -= RenderPosition;
 
-                        n = Vector3.Normalize(Vector3.Cross(p2d - p1d, p3d - p1d));
+                        n = Vector3.Cross(Vector3d.Normalize(p2d - p1d), Vector3d.Normalize(p3d - p1d));
 
                         verticies[x * s + z] = new VertexNormalTexture(p1d, n, t);
 
@@ -255,15 +255,17 @@ namespace Planetary_Terrain {
                     SetData(renderer.Device, renderer.Context);
 
                 if (vertexBuffer != null) {
-                    if (IsAboveHorizon(renderer.camera.Position)) {
+                    if (IsAboveHorizon(renderer.Camera.Position)) {
                         Vector3d pos;
                         double scale;
-                        MathTools.AdjustPositionRelative(RenderPosition, renderer.camera, out pos, out scale);
-                        Matrix world = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
+                        renderer.Camera.AdjustPositionRelative(RenderPosition, out pos, out scale);
+                        Matrix world = //Matrix.Translation(RenderPosition - renderer.Camera.Position);
+                            Matrix.Scaling((float)scale) * Matrix.Translation(pos);
 
                         world = Matrix.Transpose(world);
                         shaderConstants.World = world;
-                        shaderConstants.WorldInverseTranspose = Matrix.Transpose(Matrix.Invert(world));
+                        shaderConstants.WorldInverseTranspose = Matrix.Identity;// Matrix.Transpose(Matrix.Invert(world));
+                        // dont have to set worldinversetranspose because the scale-transform matrix never effects the normals
 
                         if (constantBuffer == null)
                             constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref shaderConstants);

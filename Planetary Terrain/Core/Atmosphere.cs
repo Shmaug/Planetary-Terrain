@@ -46,11 +46,11 @@ namespace Planetary_Terrain {
 
             Vector3d pos;
             double scale;
-            MathTools.AdjustPositionRelative(Planet.Position, renderer.camera, out pos, out scale);
+            renderer.Camera.AdjustPositionRelative(Planet.Position, out pos, out scale);
             Matrix world = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
 
             constants.world = Matrix.Transpose(world);
-            constants.center = Planet.Position - renderer.camera.Position;
+            constants.center = Planet.Position - renderer.Camera.Position;
             constants.radius = (float)(Radius * scale);
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
