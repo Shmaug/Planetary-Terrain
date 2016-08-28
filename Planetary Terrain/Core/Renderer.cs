@@ -22,7 +22,7 @@ namespace Planetary_Terrain {
             public Vector3 lightDirection;
 
             [FieldOffset(156)]
-            public float spacer;
+            public float farPlane;
         }
         Constants constants;
         public D3D11.Buffer constantBuffer { get; private set; }
@@ -234,6 +234,7 @@ namespace Planetary_Terrain {
             constants.Projection = Matrix.Transpose(Camera.Projection);
             constants.cameraDirection = Camera.View.Forward;
             constants.lightDirection = LightDirection;
+            constants.farPlane = Camera.zFar;
 
             context.UpdateSubresource(ref constants, constantBuffer);
         }

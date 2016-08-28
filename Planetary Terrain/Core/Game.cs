@@ -13,7 +13,7 @@ namespace Planetary_Terrain {
         public D3D11.Device device { get { return renderer?.Device; } }
         public D3D11.DeviceContext context { get {return renderer?.Context; } }
         
-        private Planet planet;
+        private Planet planet, moon;
 
         private System.Diagnostics.Stopwatch frameTimer;
 
@@ -59,7 +59,11 @@ namespace Planetary_Terrain {
 
         void InitializeScene() {
             planet = new Planet(6371000, 20000);
-            planet.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\TerrainColor.jpg"), device);
+            planet.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\PlanetColor.jpg"), device);
+
+            moon = new Planet(1737000, 6000);
+            moon.Position = new Vector3d(10000000, 0, -10000000);
+            moon.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\MoonColor.jpg"), device);
 
             renderer.LightDirection = new Vector3(.25f, -1, 1);
             renderer.LightDirection.Normalize();
@@ -89,6 +93,11 @@ namespace Planetary_Terrain {
             ms = mouse.GetCurrentState();
 
             #region camera control
+            if (ks.IsPressed(DInput.Key.Space))
+                cameraSpeed += 1500;
+            else
+                cameraSpeed = 2;
+
             Vector3 move = Vector3.Zero;
             if (ks.IsPressed(DInput.Key.W))
                 move += Vector3.ForwardLH;
@@ -102,25 +111,23 @@ namespace Planetary_Terrain {
             if (!move.IsZero) {
                 move.Normalize();
                 move = Vector3.Transform(-move, renderer.Camera.RotationMatrix).ToVector3();
-                Vector3d moved = move.ToDouble();
-
-                if (ks.IsPressed(DInput.Key.LeftShift))
-                    cameraSpeed += 1000;
-                else
-                    cameraSpeed = 2;
+                Vector3d moved = move;
+                
                 moved *= cameraSpeed;
 
-                if (ks.IsPressed(DInput.Key.Space))
-                    moved *= Math.Min(Math.Max(renderer.Camera.Position.Length() - planet.Radius, 2), 20);
+                if (ks.IsPressed(DInput.Key.LeftShift))
+                    moved *= 3;
 
-                renderer.Camera.Position += moved * deltaTime;
+                renderer.Camera.Translate(moved * deltaTime);
 
-                Vector3d c = renderer.Camera.Position - planet.Position;
-                double a = c.Length();
-                c.Normalize();
-                double h = planet.GetHeight(c);
-                if (h + 2 > a)
-                    renderer.Camera.Position = c * (h + 2) + planet.Position;
+                if (!renderer.Camera.Frozen) {
+                    Vector3d c = renderer.Camera.Position - planet.Position;
+                    double a = c.Length();
+                    c.Normalize();
+                    double h = planet.GetHeight(c);
+                    if (h + 2 > a)
+                        renderer.Camera.Position = c * (h + 2) + planet.Position;
+                }
             }
 
             if (ks.IsPressed(DInput.Key.LeftControl) && !lastks.IsPressed(DInput.Key.LeftControl)) {
@@ -130,7 +137,6 @@ namespace Planetary_Terrain {
                     System.Windows.Forms.Cursor.Hide();
                 else
                     System.Windows.Forms.Cursor.Show();
-
             }
 
             if (lockMouse) {
@@ -144,17 +150,28 @@ namespace Planetary_Terrain {
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientSize.Width / 2, renderForm.ClientSize.Height / 2);
             }
             #endregion
+            
+            if (ks.IsPressed(DInput.Key.Up)) {
+                renderer.Camera.zFar *= 1.1f;
+                Console.WriteLine(renderer.Camera.zFar);
+            } else if (ks.IsPressed(DInput.Key.Down)) {
+                renderer.Camera.zFar *= .9f;
+                Console.WriteLine(renderer.Camera.zFar);
+            }
 
+            if (ks.IsPressed(DInput.Key.P) && !lastks.IsPressed(DInput.Key.P))
+                renderer.Camera.Frozen = !renderer.Camera.Frozen;
+            
             planet.Update(device, renderer.Camera);
+            moon.Update(device, renderer.Camera);
 
             lastks = ks;
             lastms = ms;
         }
         
         void Draw() {
-            if (resizePending) {
+            if (resizePending)
                 renderer.Resize(renderForm.ClientSize.Width, renderForm.ClientSize.Height);
-            }
 
             renderer.PreRender();
             renderer.Clear(Color.Gray);
@@ -162,13 +179,16 @@ namespace Planetary_Terrain {
             renderer.Context.Rasterizer.State = ks.IsPressed(DInput.Key.Tab) ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
             
             planet.Draw(renderer);
-            
+            moon.Draw(renderer);
+
             renderer.Present();
         }
 
         public void Dispose() {
             // scene stuff
             planet.Dispose();
+            moon.Dispose();
+
             renderer.Dispose();
             
             // other stuff

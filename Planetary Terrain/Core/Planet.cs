@@ -42,12 +42,12 @@ namespace Planetary_Terrain {
             MaxChunkSize = s;
             
             baseChunks = new QuadTree[6];
-            baseChunks[0] = new QuadTree(this, s, null, s*.5f*Vector3.Up.ToDouble(),         MathTools.RotationXYZ(0, 0, 0));
-            baseChunks[1] = new QuadTree(this, s, null, s*.5f*Vector3.Down.ToDouble(),       MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            baseChunks[2] = new QuadTree(this, s, null, s*.5f*Vector3.Left.ToDouble(),       MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            baseChunks[3] = new QuadTree(this, s, null, s*.5f*Vector3.Right.ToDouble(),      MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            baseChunks[4] = new QuadTree(this, s, null, s*.5f*Vector3.ForwardLH.ToDouble(),  MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            baseChunks[5] = new QuadTree(this, s, null, s*.5f*Vector3.BackwardLH.ToDouble(), MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+            baseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up,         MathTools.RotationXYZ(0, 0, 0));
+            baseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down,       MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            baseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left,       MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            baseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right,      MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            baseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH,  MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            baseChunks[5] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
 
             for (int i = 0; i < baseChunks.Length; i++)
                 baseChunks[i].Generate();
@@ -124,7 +124,7 @@ namespace Planetary_Terrain {
 
             renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
-
+            
             for (int i = 0; i < baseChunks.Length; i++)
                 baseChunks[i].Draw(renderer);
 

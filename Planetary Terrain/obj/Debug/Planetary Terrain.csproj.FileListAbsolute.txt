@@ -28,7 +28,6 @@ E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\obj\Debug\Better Terrain.pdb
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\line.hlsl
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\terrain.hlsl
-E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Textures\TerrainColor.jpg
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.exe
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Better Terrain.pdb
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.D3DCompiler.dll
@@ -50,3 +49,6 @@ E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\SharpDX.Mathema
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\obj\Debug\Planetary Terrain.csprojResolveAssemblyReference.cache
 E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\atmosphere.hlsl
 C:\Users\trevo\Documents\Projects\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\atmosphere.hlsl
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Shaders\constants.hlsl
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Textures\PlanetColor.jpg
+E:\Projects\GitHub\Planetary-Terrain\Planetary Terrain\bin\Debug\Textures\MoonColor.jpg

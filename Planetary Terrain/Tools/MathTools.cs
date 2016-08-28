@@ -15,11 +15,7 @@ namespace Planetary_Terrain {
         public static Vector2 Add(this Vector2 a, float b) {
             return new Vector2(a.X + b, a.Y + b);
         }
-
-        public static Vector3d ToDouble(this Vector3 v) {
-            return new Vector3d(v.X, v.Y, v.Z);
-        }
-
+        
         public static Vector3 ToVector3(this Vector4 v) {
             return new Vector3(v.X, v.Y, v.Z);
         }

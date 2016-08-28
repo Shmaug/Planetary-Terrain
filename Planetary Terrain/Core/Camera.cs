@@ -3,9 +3,12 @@ using SharpDX;
 
 namespace Planetary_Terrain {
     class Camera {
+        private bool _frozen;
+        private Vector3d _freezepos;
         private Vector3d _position;
+
         private Vector3 _rotation;
-        private float _fov, _aspect, _near = 1f, _far = 10000000f;
+        private float _fov, _aspect, _near = 1f, _far = 10000f;
         private Matrix _rotationmat, _view, _proj;
 
         private void buildProjection() {
@@ -13,9 +16,17 @@ namespace Planetary_Terrain {
         }
         private void buildView() {
             Matrix rmat = RotationMatrix;
-            _view = Matrix.LookAtLH(Vector3.Zero, rmat.Forward, rmat.Up);
+            _view = Matrix.LookAtLH(_freezepos, _freezepos + rmat.Forward, rmat.Up);
         }
         
+        public bool Frozen { get { return _frozen; }
+            set
+            {
+                _freezepos = new Vector3d();
+                _frozen = value;
+            }
+        }
+
         public Vector3d Position { get { return _position; }
             set {
                 _position = value;
@@ -68,24 +79,26 @@ namespace Planetary_Terrain {
             buildProjection();
         }
 
-        public void AdjustPositionRelative(Vector3d position, out Vector3d newPos, out double scale) {
-            var locationRelativeToCamera = position - Position;
-            var distanceFromCamera = locationRelativeToCamera.Length();
-            var unscaledViewSpace = zNear + zFar * 0.25;
+        public void Translate(Vector3d delta) {
+            if (Frozen)
+                _freezepos += delta;
+            else
+                _position += delta;
+        }
+        
+        public void AdjustPositionRelative(Vector3d location, out Vector3d pos, out double scale) {
+            scale = 1d;
+            pos = location - Position;
 
-            if (distanceFromCamera > unscaledViewSpace) {
-                var scaledViewSpace = zFar - unscaledViewSpace;
-                double f = 1.0 - Math.Exp((scaledViewSpace - distanceFromCamera) / 10000000000);
-                double scaledDistanceFromCamera = 
-                    unscaledViewSpace + (scaledViewSpace * f);
-                Vector3d dirToCam = Vector3d.Normalize(locationRelativeToCamera);
-                Vector3d scaledLocationRelativeToCamera = dirToCam * scaledDistanceFromCamera;
+            double distance = pos.Length();
+            double scaleSpaceStart = zFar * 0.25d;
+            
+            if (distance > scaleSpaceStart) {
+                double totalScaleSpace = zFar - scaleSpaceStart;
+                double scaledDistanceFromCamera = scaleSpaceStart + (totalScaleSpace * (1d - Math.Exp((totalScaleSpace - distance) / 1000000000d)));
+                pos = Vector3d.Normalize(pos) * scaledDistanceFromCamera;
 
-                scale = (scaledDistanceFromCamera / distanceFromCamera);
-                newPos = scaledLocationRelativeToCamera;
-            } else {
-                scale = 1;
-                newPos = position - Position;
+                scale = scaledDistanceFromCamera / distance;
             }
         }
     }

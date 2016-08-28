@@ -1,9 +1,5 @@
-﻿cbuffer WorldConstants : register(b0) {
-	float4x4 view;
-	float4x4 projection;
-	float3 cameraDirection;
-	float3 lightDirection;
-};
+﻿#include "constants.hlsl"
+
 cbuffer ChunkConstants : register (b1) {
 	float4x4 world;
 	float4x4 worldInverseTranspose;
