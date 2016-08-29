@@ -6,17 +6,30 @@ namespace Planetary_Terrain {
         private bool _frozen;
         private Vector3d _freezepos;
         private Vector3d _position;
-
+        private Planet _planet;
         private Vector3 _rotation;
         private float _fov, _aspect, _near = 1f, _far = 10000f;
-        private Matrix _rotationmat, _view, _proj;
+        private Matrix3x3 _rotationmat;
+        private Matrix _view, _proj;
 
         private void buildProjection() {
             _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
         }
         private void buildView() {
-            Matrix rmat = RotationMatrix;
-            _view = Matrix.LookAtLH(_freezepos, _freezepos + rmat.Forward, rmat.Up);
+            Vector3 fwd = Vector3.Transform(Vector3.ForwardLH, _rotationmat);
+            Vector3 up = Vector3.Transform(Vector3.Up, _rotationmat);
+            _view = Matrix.LookAtLH(_freezepos, _freezepos + fwd, up);
+        }
+        private void buildRotation() {
+            if (_planet != null) {
+                Vector3 vUp = Vector3d.Normalize(Position - _planet.Position);
+                Vector3 vFwd = Vector3d.Normalize(Position - _planet.Position); // TODO: this should face north tangent to the planet's surface
+
+                _rotationmat = Matrix3x3.LookAtLH(Vector3.Zero, vFwd, vUp) *
+                    Matrix3x3.RotationX(_rotation.X) *
+                    Matrix3x3.RotationY(_rotation.Y);
+            } else
+                _rotationmat = Matrix3x3.RotationZ(_rotation.Z) * Matrix3x3.RotationX(_rotation.X) * Matrix3x3.RotationY(_rotation.Y);
         }
         
         public bool Frozen { get { return _frozen; }
@@ -36,7 +49,7 @@ namespace Planetary_Terrain {
         public Vector3 Rotation { get { return _rotation; }
             set {
                 _rotation = value;
-                _rotationmat = Matrix.RotationZ(_rotation.Z) * Matrix.RotationX(_rotation.X) * Matrix.RotationY(_rotation.Y);
+                buildRotation();
                 buildView();
             }
         }
@@ -67,9 +80,17 @@ namespace Planetary_Terrain {
             }
         }
 
-        public Matrix RotationMatrix { get { return _rotationmat; } }
+        public Matrix3x3 RotationMatrix { get { return _rotationmat; } }
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
+
+        public Planet AttachedPlanet { get { return _planet; }
+            set {
+                _planet = value;
+                buildRotation();
+                buildView();
+            }
+        }
 
         public Camera(float fieldOfView, float aspectRatio) {
             _fov = fieldOfView;
@@ -85,7 +106,7 @@ namespace Planetary_Terrain {
             else
                 _position += delta;
         }
-        
+
         public void AdjustPositionRelative(Vector3d location, out Vector3d pos, out double scale) {
             scale = 1d;
             pos = location - Position;

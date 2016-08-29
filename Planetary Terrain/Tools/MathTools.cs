@@ -27,11 +27,11 @@ namespace Planetary_Terrain {
             return new Vector3(x, yz.X, yz.Y);
         }
 
-        public static Matrix RotationXYZ(Vector3 r) {
-            return Matrix.RotationX(r.X) * Matrix.RotationY(r.Y) * Matrix.RotationZ(r.Z);
+        public static Matrix3x3 RotationXYZ(Vector3 r) {
+            return Matrix3x3.RotationX(r.X) * Matrix3x3.RotationY(r.Y) * Matrix3x3.RotationZ(r.Z);
         }
-        public static Matrix RotationXYZ(float x, float y, float z) {
-            return Matrix.RotationX(x) * Matrix.RotationY(y) * Matrix.RotationZ(z);
+        public static Matrix3x3 RotationXYZ(float x, float y, float z) {
+            return Matrix3x3.RotationX(x) * Matrix3x3.RotationY(y) * Matrix3x3.RotationZ(z);
         }
 
         public static double Clamp01(double a) {
