@@ -111,6 +111,9 @@
     <Compile Include="Noise\RidgedSimplexNoiseGenerator.cs" />
     <Compile Include="Noise\SimplexNoiseGenerator.cs" />
     <Compile Include="Noise\TurbulenceSpectralGenerator.cs" />
+    <Content Include="Shaders\constants.hlsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Tools\Icosphere.cs" />
     <Compile Include="Core\QuadTree.cs" />
     <Compile Include="Core\Game.cs" />
@@ -152,7 +155,10 @@
     <Content Include="Shaders\terrain.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\TerrainColor.jpg">
+    <Content Include="Textures\PlanetColor.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\MoonColor.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

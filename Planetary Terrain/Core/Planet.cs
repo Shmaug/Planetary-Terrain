@@ -42,12 +42,12 @@ namespace Planetary_Terrain {
             MaxChunkSize = s;
             
             baseChunks = new QuadTree[6];
-            baseChunks[0] = new QuadTree(this, s, null, s*.5f*Vector3.Up.ToDouble(),         MathTools.RotationXYZ(0, 0, 0));
-            baseChunks[1] = new QuadTree(this, s, null, s*.5f*Vector3.Down.ToDouble(),       MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            baseChunks[2] = new QuadTree(this, s, null, s*.5f*Vector3.Left.ToDouble(),       MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            baseChunks[3] = new QuadTree(this, s, null, s*.5f*Vector3.Right.ToDouble(),      MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            baseChunks[4] = new QuadTree(this, s, null, s*.5f*Vector3.ForwardLH.ToDouble(),  MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            baseChunks[5] = new QuadTree(this, s, null, s*.5f*Vector3.BackwardLH.ToDouble(), MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+            baseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up,         MathTools.RotationXYZ(0, 0, 0));
+            baseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down,       MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            baseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left,       MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            baseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right,      MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            baseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH,  MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            baseChunks[5] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
 
             for (int i = 0; i < baseChunks.Length; i++)
                 baseChunks[i].Generate();
@@ -103,14 +103,8 @@ namespace Planetary_Terrain {
         }
 
         public void Update(D3D11.Device device, Camera camera) {
-            Vector3d dir = camera.Position - Position;
-            double h = dir.Length();
-            dir.Normalize();
-
-            h -= GetHeight(dir);
-
             for (int i = 0; i < baseChunks.Length; i++)
-                baseChunks[i].SplitDynamic(dir, h, device);
+                baseChunks[i].SplitDynamic(camera.Position, device);
         }
         public void Draw(Renderer renderer) {
             Shaders.TerrainShader.Set(renderer);
@@ -125,8 +119,12 @@ namespace Planetary_Terrain {
             renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
 
+            Vector3d pos;
+            double scale;
+            renderer.Camera.AdjustPositionRelative(Position, out pos, out scale);
+
             for (int i = 0; i < baseChunks.Length; i++)
-                baseChunks[i].Draw(renderer);
+                baseChunks[i].Draw(renderer, pos, scale);
 
             //atmosphere.Draw(renderer);
         }
