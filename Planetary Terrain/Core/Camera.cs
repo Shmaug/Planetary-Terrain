@@ -72,7 +72,7 @@ namespace Planetary_Terrain {
             var locationRelativeToCamera = position - Position;
             var distanceFromCamera = locationRelativeToCamera.Length();
             var unscaledViewSpace = zNear + zFar * 0.25;
-
+             
             if (distanceFromCamera > unscaledViewSpace) {
                 var scaledViewSpace = zFar - unscaledViewSpace;
                 double f = 1.0 - Math.Exp((scaledViewSpace - distanceFromCamera) / 10000000000);

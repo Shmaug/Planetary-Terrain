@@ -14,7 +14,6 @@ namespace Planetary_Terrain
                                 new int[] {1, 0, 1}, new int[] {-1, 0, 1}, new int[] {1, 0, -1}, new int[] {-1, 0, -1}, 
                                 new int[] {0, 1, 1}, new int[] {0, -1, 1}, new int[] {0, 1, -1}, new int[] {0, -1, -1}};
 
-        // TODO: generate from seed, and also maybe increase the length and range
         private static byte[] p = new byte[256];
 
         private static byte[] perm = new byte[512];
@@ -37,7 +36,6 @@ namespace Planetary_Terrain
                 p[x] = (byte)x;
             }
 
-            // TODO: configurable seed
             var random = new Random(0);
             for (int source = 0; source < p.Length; source++)
             {

@@ -11,8 +11,6 @@ namespace Planetary_Terrain
         uint[] _numberPool;
         Random _random;
 
-        // TODO: tighten this up
-
         public RandomNoiseGenerator()
         {
             _numberPool = new uint[_poolSize]; 
