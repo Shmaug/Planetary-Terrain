@@ -108,7 +108,7 @@ namespace Planetary_Terrain {
 
             if (!move.IsZero) {
                 move.Normalize();
-                move = Vector3.Transform(move, renderer.Camera.RotationMatrix);
+                move = Vector3.Transform(move, renderer.Camera.RotationQuaternion);
                 Vector3d moved = move;
                 
                 moved *= cameraSpeed;

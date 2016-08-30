@@ -11,6 +11,7 @@ namespace Planetary_Terrain {
         public double MinChunkSize = QuadTree.GridSize / 2;
 
         public Vector3d Position;
+        public Vector3d NorthPole { get { return Position + new Vector3d(0, Radius, 0); } }
         public QuadTree[] baseChunks;
         public Atmosphere atmosphere;
         
@@ -69,10 +70,10 @@ namespace Planetary_Terrain {
         }
         public Vector2 GetTemp(Vector3d direction) {
             double y = Math.Abs(direction.Y);
-            float temp = (float)(Noise.noise(direction, 172, 7, .0006f, .8f) * (1 - y * y * y));
-            float humid = (float)Noise.noise(direction, 128, 7, .0008f, .8f);
+            float temp = (float)Noise.noise(direction, 10, 4, .75f, .8f);
+            float humid = 1;// (float)Noise.noise(direction, 128, 7, .0008f, .8f);
 
-            return new Vector2(temp, humid);
+            return 1 - new Vector2(temp, humid);
         }
         public Vector3d GetPointOnSurface(Vector3d p) {
             p -= Position;
