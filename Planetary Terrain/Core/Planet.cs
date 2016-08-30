@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Planetary_Terrain {
     class Planet : IDisposable {
+        public double SOI;
         public double Radius;
         public double TerrainHeight;
         public double MaxChunkSize;
@@ -12,8 +13,10 @@ namespace Planetary_Terrain {
 
         public Vector3d Position;
         public Vector3d NorthPole { get { return Position + new Vector3d(0, Radius, 0); } }
-        public QuadTree[] baseChunks;
-        public Atmosphere atmosphere;
+        public QuadTree[] BaseChunks;
+        public Atmosphere Atmosphere;
+
+        public bool IsStar;
         
         D3D11.Texture2D colorMap;
         D3D11.ShaderResourceView colorMapView;
@@ -22,18 +25,21 @@ namespace Planetary_Terrain {
         [StructLayout(LayoutKind.Explicit)]
         struct Constants {
             [FieldOffset(0)]
-            public Vector4 placeholder;
+            public Vector3 lightDirection;
+            [FieldOffset(12)]
+            public float spacer;
         }
         Constants constants;
         D3D11.Buffer constBuffer;
 
-        INoiseGenerator mountainNoise;
-        INoiseGenerator hillNoise;
+        INoiseGenerator mountainNoise, hillNoise;
         
-        public Planet(double radius, double terrainHeight) {
+        public Planet(double radius, double terrainHeight, bool isStar = false) {
             Radius = radius;
+            SOI = Radius * 2;
             TerrainHeight = terrainHeight;
             Position = new Vector3d();
+            IsStar = isStar;
 
             hillNoise = new SimplexNoiseGenerator();
             mountainNoise = new RidgedSimplexNoiseGenerator();
@@ -42,18 +48,18 @@ namespace Planetary_Terrain {
 
             MaxChunkSize = s;
             
-            baseChunks = new QuadTree[6];
-            baseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up,         MathTools.RotationXYZ(0, 0, 0));
-            baseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down,       MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            baseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left,       MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            baseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right,      MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            baseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH,  MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            baseChunks[5] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+            BaseChunks = new QuadTree[6];
+            BaseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up,         MathTools.RotationXYZ(0, 0, 0));
+            BaseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down,       MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            BaseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left,       MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            BaseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right,      MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            BaseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH,  MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            BaseChunks[5] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
 
-            for (int i = 0; i < baseChunks.Length; i++)
-                baseChunks[i].Generate();
+            for (int i = 0; i < BaseChunks.Length; i++)
+                BaseChunks[i].Generate();
 
-            atmosphere = new Atmosphere(this, Radius * 1.05f);
+            Atmosphere = new Atmosphere(this, Radius * 1.05f);
         }
         
         double height(Vector3d direction) {
@@ -69,9 +75,9 @@ namespace Planetary_Terrain {
             return Radius + height(direction) * TerrainHeight;
         }
         public Vector2 GetTemp(Vector3d direction) {
-            double y = Math.Abs(direction.Y);
-            float temp = (float)Noise.noise(direction, 10, 4, .75f, .8f);
-            float humid = 1;// (float)Noise.noise(direction, 128, 7, .0008f, .8f);
+            float y = (float)Math.Abs(direction.Y);
+            float temp = (float)Noise.noise(direction, 10, 4, .75f, .8f) + y;
+            float humid = (float)Noise.noise(direction, 128, 7, .0008f, .8f);
 
             return 1 - new Vector2(temp, humid);
         }
@@ -104,11 +110,14 @@ namespace Planetary_Terrain {
         }
 
         public void Update(D3D11.Device device, Camera camera) {
-            for (int i = 0; i < baseChunks.Length; i++)
-                baseChunks[i].SplitDynamic(camera.Position, device);
+            for (int i = 0; i < BaseChunks.Length; i++)
+                BaseChunks[i].SplitDynamic(camera.Position, device);
         }
-        public void Draw(Renderer renderer) {
+
+        public void Draw(Renderer renderer, Planet sun) {
             Shaders.TerrainShader.Set(renderer);
+
+            constants.lightDirection = Vector3d.Normalize(Position - sun.Position);
 
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
@@ -119,13 +128,13 @@ namespace Planetary_Terrain {
 
             renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
-
+            
             Vector3d pos;
             double scale;
             renderer.Camera.AdjustPositionRelative(Position, out pos, out scale);
-
-            for (int i = 0; i < baseChunks.Length; i++)
-                baseChunks[i].Draw(renderer, pos, scale);
+            
+            for (int i = 0; i < BaseChunks.Length; i++)
+                BaseChunks[i].Draw(renderer, pos, scale);
 
             //atmosphere.Draw(renderer);
         }
@@ -141,8 +150,8 @@ namespace Planetary_Terrain {
             if (constBuffer != null)
                 constBuffer.Dispose();
 
-            for (int i = 0; i < baseChunks.Length; i++)
-                baseChunks[i].Dispose();
+            for (int i = 0; i < BaseChunks.Length; i++)
+                BaseChunks[i].Dispose();
         }
     }
 }

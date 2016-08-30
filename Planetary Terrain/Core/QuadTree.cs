@@ -209,7 +209,6 @@ namespace Planetary_Terrain {
             Children = null;
         }
         public void SplitDynamic(Vector3d pos, D3D11.Device device) {
-            // arc length from camera to this chunk
             double d = (ClosestVertex(pos) - pos).LengthSquared();
 
             if (d < Size * Size) {
@@ -239,6 +238,21 @@ namespace Planetary_Terrain {
 
             return horizonAngle > meshAngle;
         }
+
+        public void Draw(Renderer renderer) {
+            if (constantBuffer == null)
+                constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref shaderConstants);
+            renderer.Context.UpdateSubresource(ref shaderConstants, constantBuffer);
+
+            renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
+
+            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexNormalTexture>(), 0));
+            renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+
+            renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+        }
         
         public void Draw(Renderer renderer, Vector3d planetPos, double planetScale) {
             bool draw = true;
@@ -261,28 +275,14 @@ namespace Planetary_Terrain {
 
                 if (vertexBuffer != null) {
                     if (IsAboveHorizon(renderer.Camera.Position)) {
-
-                        Vector3d pos = MeshCenter * planetScale + planetPos;
+                        
                         Matrix world =
                             Matrix.Scaling((float)planetScale) *
-                            Matrix.Translation(pos);
-
-                        world = Matrix.Transpose(world);
-                        shaderConstants.World = world;
+                            Matrix.Translation(MeshCenter * planetScale + planetPos);
+                        
+                        shaderConstants.World = Matrix.Transpose(world);
                         shaderConstants.WorldInverseTranspose = Matrix.Identity;
-
-                        if (constantBuffer == null)
-                            constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref shaderConstants);
-                        renderer.Context.UpdateSubresource(ref shaderConstants, constantBuffer);
-
-                        renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
-                        renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
-
-                        renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexNormalTexture>(), 0));
-                        renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-
-                        renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+                        Draw(renderer);
                     }
                 }
             }

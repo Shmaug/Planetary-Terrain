@@ -18,10 +18,7 @@ namespace Planetary_Terrain {
             [FieldOffset(128)]
             public Vector3 cameraDirection;
 
-            [FieldOffset(144)]
-            public Vector3 lightDirection;
-
-            [FieldOffset(156)]
+            [FieldOffset(140)]
             public float farPlane;
         }
         Constants constants;
@@ -52,8 +49,6 @@ namespace Planetary_Terrain {
 
         D3D11.Buffer axisBuffer;
         D3D11.Buffer axisConsts;
-
-        public Vector3 LightDirection = Vector3.ForwardLH;
 
         public Renderer(SharpDX.Windows.RenderForm renderForm) {
             int width = renderForm.ClientSize.Width, height = renderForm.ClientSize.Height;
@@ -233,7 +228,6 @@ namespace Planetary_Terrain {
             constants.View = Matrix.Transpose(Camera.View);
             constants.Projection = Matrix.Transpose(Camera.Projection);
             constants.cameraDirection = Camera.View.Forward;
-            constants.lightDirection = LightDirection;
             constants.farPlane = Camera.zFar;
 
             context.UpdateSubresource(ref constants, constantBuffer);

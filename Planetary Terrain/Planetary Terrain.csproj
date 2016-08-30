@@ -101,6 +101,7 @@
   <ItemGroup>
     <Compile Include="Core\Atmosphere.cs" />
     <Compile Include="Core\Camera.cs" />
+    <Compile Include="Core\StarSystem.cs" />
     <Compile Include="Noise\FractalBrownianMotionSpectralGenerator.cs" />
     <Compile Include="Noise\INoiseGenerator.cs" />
     <Compile Include="Noise\ISpectralGenerator.cs" />
@@ -155,10 +156,19 @@
     <Content Include="Shaders\terrain.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\PlanetColor.jpg">
+    <Content Include="Textures\Mars.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\MoonColor.jpg">
+    <Content Include="Textures\Venus.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\Mercury.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\Earth.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\Sun.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

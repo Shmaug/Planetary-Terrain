@@ -117,11 +117,13 @@ namespace Planetary_Terrain {
             scale = 1d;
             pos = location - Position;
 
+            double max = zFar * (1 - Math.Cos(_fov * .5));
+
             double distance = pos.Length();
-            double scaleSpaceStart = zFar * 0.25d;
+            double scaleSpaceStart = max * 0.25d;
             
             if (distance > scaleSpaceStart) {
-                double totalScaleSpace = zFar - scaleSpaceStart;
+                double totalScaleSpace = max - scaleSpaceStart;
                 double scaledDistanceFromCamera = scaleSpaceStart + (totalScaleSpace * (1d - Math.Exp((totalScaleSpace - distance) / 1000000000d)));
                 pos = Vector3d.Normalize(pos) * scaledDistanceFromCamera;
 

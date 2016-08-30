@@ -1,5 +1,7 @@
-﻿namespace Planetary_Terrain {
-    class Shaders {
+﻿using System;
+
+namespace Planetary_Terrain {
+    static class Shaders {
         public const string shaderDirectory = "Shaders";
 
         public static Shader LineShader;
@@ -12,7 +14,7 @@
             LineShader = new Shader(shaderDirectory + "\\line.hlsl", device, context, VertexColor.InputElements);
         }
 
-        public static void DisposeShaders() {
+        public static void Dispose() {
             LineShader.Dispose();
             TerrainShader.Dispose();
             AtmosphereShader.Dispose();

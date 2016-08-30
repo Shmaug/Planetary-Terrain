@@ -5,7 +5,7 @@ cbuffer ChunkConstants : register (b1) {
 	float4x4 worldInverseTranspose;
 }
 cbuffer PlanetConstants : register(b2) {
-	float4 placeholder;
+	float3 lightDirection;
 }
 Texture2D colorMapTexture : register(t0);
 SamplerState colorMapSampler : register(s0);
@@ -26,6 +26,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 float4 psmain(v2f i) : SV_TARGET
 {
 	float3 col = colorMapTexture.Sample(colorMapSampler, i.uv);
-	col *= clamp(dot(lightDirection, -i.normal), 0, 1);
+	if (length(lightDirection) > 0)
+		col *= clamp(dot(lightDirection, -i.normal), 0, 1);
 	return float4(col, 1);
 }
