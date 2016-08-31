@@ -26,6 +26,9 @@ namespace Planetary_Terrain {
         /// </summary>
         public double MinChunkSize = QuadTree.GridSize / 2;
 
+
+        public double OceanHeight;
+
         /// <summary>
         /// The planet's position
         /// </summary>
@@ -72,7 +75,7 @@ namespace Planetary_Terrain {
         
         public Planet(double radius, double terrainHeight, bool atmosphere, bool isStar = false) {
             Radius = radius;
-            SOI = Radius * 1.2;
+            SOI = Radius * 1.05f;
             TerrainHeight = terrainHeight;
             Position = new Vector3d();
             IsStar = isStar;
