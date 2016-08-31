@@ -72,7 +72,7 @@ namespace Planetary_Terrain {
         
         public Planet(double radius, double terrainHeight, bool atmosphere, bool isStar = false) {
             Radius = radius;
-            SOI = Radius * 2;
+            SOI = Radius * 1.2;
             TerrainHeight = terrainHeight;
             Position = new Vector3d();
             IsStar = isStar;

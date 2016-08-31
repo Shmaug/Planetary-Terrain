@@ -41,9 +41,9 @@ namespace Planetary_Terrain {
         public static Vector3 ToEuler(this Quaternion q) {
             float sqy = q.Y * q.Y, sqz = q.Z * q.Z, sqw = q.W * q.W;
             return new Vector3(
-                (float)Math.Atan2(2f * q.X * q.W + 2f * q.Y * q.Z, 1 - 2f * (sqz + sqw)),
-                (float)Math.Asin(2f * (q.X * q.Z - q.W * q.Y)),
-                (float)Math.Atan2(2f * q.X * q.Y + 2f * q.Z * q.W, 1 - 2f * (sqy + sqz))
+                (float)Math.Asin(2f * (q.X * q.Z - q.W * q.Y)),                           // Pitch 
+                (float)Math.Atan2(2f * q.X * q.W + 2f * q.Y * q.Z, 1 - 2f * (sqz + sqw)), // Yaw 
+                (float)Math.Atan2(2f * q.X * q.Y + 2f * q.Z * q.W, 1 - 2f * (sqy + sqz))  // Roll
                 );
         }
     }

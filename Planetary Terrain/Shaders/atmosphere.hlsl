@@ -3,113 +3,137 @@
 cbuffer AtmoConstants : register (b1) {
 	float4x4 World;
 
-	int Samples;
+	int NUM_SCATTER;
 
-	float InnerRadius;
-	float OuterRadius;
+	float R_INNER;
+	float R;
 
-	float ScaleH;
-	float ScaleL;
+	float SCALE_H;
+	float SCALE_L;
 
-	float kr;
-	float km;
-	float e;
-	float3 cr;
-	float gm;
+	float K_R;
+	float K_M;
+	float E;
+	float3 C_R;
+	float G_M;
 
 	float3 planetPos;
 }
 cbuffer PlanetConstants : register(b2) {
 	float3 LightDirection;
 }
+static const float MAX = 10000.0;
 
-struct v2f {
-	float4 position : SV_POSITION;
-	float3 ray : TEXCOORD0;
-};
-
-float mie(float g, float c, float cc) {
-	float gg = g*g;
-	float a = (1 - gg) * (1 + cc);
-	float b = 1 + gg - 2 * g * c;
-	b *= sqrt(b);
-	b *= 2 + gg;
-	return 1.5 * a / b;
-}
-float reyleigh(float cc) {
-	return .75 + .75 * cc;
-}
-float2 ray_sphere(float3 p, float3 dir, float r) {
+float2 ray_vs_sphere(float3 p, float3 dir, float r) {
 	float b = dot(p, dir);
 	float c = dot(p, p) - r * r;
 
-	float d = b*b - c;
-	if (d < 0)
-		return float2(0, 0);
-
+	float d = b * b - c;
+	if (d < 0.0) {
+		return float2(MAX, -MAX);
+	}
 	d = sqrt(d);
 
 	return float2(-b - d, -b + d);
 }
 
+// Mie
+// g : ( -0.75, -0.999 )
+//      3 * ( 1 - g^2 )               1 + c^2
+// F = ----------------- * -------------------------------
+//      2 * ( 2 + g^2 )     ( 1 + g^2 - 2 * g * c )^(3/2)
+float phase_mie(float g, float c, float cc) {
+	float gg = g * g;
+
+	float a = (1.0 - gg) * (1.0 + cc);
+
+	float b = 1.0 + gg - 2.0 * g * c;
+	b *= sqrt(b);
+	b *= 2.0 + gg;
+
+	return 1.5 * a / b;
+}
+
+// Reyleigh
+// g : 0
+// F = 3/4 * ( 1 + c^2 )
+float phase_reyleigh(float cc) {
+	return 0.75 * (1.0 + cc);
+}
+
 float density(float3 p) {
-	return exp(-(length(p) - InnerRadius) * ScaleH);
+	return exp(-(length(p) - R_INNER) * SCALE_H);
 }
 
 float optic(float3 p, float3 q) {
-	float3 step = (q - p) / Samples;
-	float3 v = p + step * .5;
+	float3 step = (q - p) / (float)NUM_SCATTER;
+	float3 v = p + step * 0.5;
 
-	float sum = 0;
-	for (int i = 0; i < Samples; i++) {
+	float sum = 0.0;
+	for (int i = 0; i < NUM_SCATTER; i++) {
 		sum += density(v);
 		v += step;
 	}
-	sum *= length(step) * ScaleL;
+	sum *= length(step) * SCALE_L;
+
 	return sum;
 }
-float3 in_scatter(float3 o, float3 dir, float2 i, float3 l) {
-	float len = (i.y - i.x) / Samples;
+
+float3 in_scatter(float3 o, float3 dir, float2 e, float3 l) {
+	float len = (e.y - e.x) / (float)NUM_SCATTER;
 	float3 step = dir * len;
-	float3 p = o + dir * i.x;
-	float3 v = p + dir * (len * .5);
+	float3 p = o + dir * e.x;
+	float3 v = p + dir * (len * 0.5);
 
-	float3 sum = float3(0, 0, 0);
-	for (int i = 0; i < Samples; i++) {
-		float2 f = ray_sphere(v, l, OuterRadius);
+	float3 sum = float3(0,0,0);
+	for (int i = 0; i < NUM_SCATTER; i++) {
+		float2 f = ray_vs_sphere(v, l, R);
 		float3 u = v + l * f.y;
-		
-		float n = (optic(p, v) + optic(v, u)) * PI*4;
 
-		sum += density(v) * exp(-n * kr * cr + km);
+		float n = (optic(p, v) + optic(v, u)) * (PI * 4.0);
+
+		sum += density(v) * exp(-n * (K_R * C_R + K_M));
 
 		v += step;
 	}
-	sum *= len * ScaleL;
+	sum *= len * SCALE_L;
 
 	float c = dot(dir, -l);
 	float cc = c * c;
 
-	return sum * (kr * cr * reyleigh(cc) + km * mie(gm, c, cc)) * e;
+	return sum * (K_R * C_R * phase_reyleigh(cc) + K_M * phase_mie(G_M, c, cc)) * E;
 }
 
+struct v2f {
+	float4 position : SV_POSITION;
+	float3 worldpos : TEXCOORD0;
+};
 v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	v2f v;
 	float4 worldVertex = mul(vertex, World);
 	v.position = mul(worldVertex, mul(View, Projection));
 	
-	v.ray = normalize(worldVertex.xyz);
+	v.worldpos = worldVertex.xyz;
 
 	return v;
 }
 float4 psmain(v2f i) : SV_TARGET
 {
-	float4 col = float4(0, 0, 0, 0);
-	float2 s = ray_sphere(-planetPos, i.ray, OuterRadius);
-	if (length(s) > 0) {
-		col.rgb = in_scatter(-planetPos, i.ray, s, -LightDirection);
-		col.a = 1;
-		return col;
+	float3 ray = normalize(i.worldpos);
+
+	float2 e = ray_vs_sphere(-planetPos, ray, R);
+	if (length(planetPos) < R);
+		e.x = 0;
+	if (e.x > e.y) {
+		discard;
 	}
+
+	float2 f = ray_vs_sphere(-planetPos, ray, R_INNER);
+	e.y = min(e.y, f.x);
+
+	float4 col = float4(0, 0, 0, 0);
+	col.rgb = in_scatter(-planetPos, ray, e, -LightDirection);
+	col.a = length(col.rgb);
 	return col;
 }
+

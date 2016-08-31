@@ -67,7 +67,6 @@ namespace Planetary_Terrain {
             renderer.Camera.Position = Vector3d.Normalize(new Vector3d(0, 1, -1));
             renderer.Camera.Position *= startPlanet.GetHeight(renderer.Camera.Position) * 1.1;
             renderer.Camera.Position += startPlanet.Position;
-            renderer.Camera.Rotation = new Vector3(0, MathUtil.Pi, 0);
         }
 
         int framec = 0;
@@ -118,7 +117,7 @@ namespace Planetary_Terrain {
                 if (ks.IsPressed(DInput.Key.LeftShift))
                     moved *= 3;
                 
-                renderer.Camera.Translate(moved * deltaTime);
+                renderer.Camera.Position += moved * deltaTime;
             }
 
             if (ks.IsPressed(DInput.Key.LeftControl) && !lastks.IsPressed(DInput.Key.LeftControl)) {
@@ -131,32 +130,26 @@ namespace Planetary_Terrain {
             }
 
             if (lockMouse) {
-                Vector3 delta = new Vector3(ms.X, ms.Y, 0);
-                renderer.Camera.Rotation += new Vector3(delta.Y, delta.X, delta.Z) * .003f;
-                renderer.Camera.Rotation = new Vector3(MathUtil.Clamp(renderer.Camera.Rotation.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo), renderer.Camera.Rotation.Y, renderer.Camera.Rotation.Z);
-                
+                Vector3 delta = new Vector3(ms.Y, ms.X, 0) * .003f;
+                renderer.Camera.Rotation += delta;
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientSize.Width / 2, renderForm.ClientSize.Height / 2);
             }
             #endregion
-
-            if (ks.IsPressed(DInput.Key.P) && !lastks.IsPressed(DInput.Key.P))
-                renderer.Camera.Frozen = !renderer.Camera.Frozen;
-
+            
             Planet p = starSystem.GetNearestPlanet(renderer.Camera.Position);
             if ((renderer.Camera.Position - p.Position).Length() < p.SOI) {
                 renderer.Camera.AttachedPlanet = p;
-
-                if (!renderer.Camera.Frozen) {
-                    Vector3d c = renderer.Camera.Position - p.Position;
-                    double a = c.Length();
-                    c.Normalize();
-                    double h = p.GetHeight(c);
-                    if (h + 2 > a)
-                        renderer.Camera.Position = c * (h + 2) + p.Position;
-                }
+                
+                Vector3d c = renderer.Camera.Position - p.Position;
+                double a = c.Length();
+                c.Normalize();
+                double h = p.GetHeight(c);
+                if (h + 2 > a)
+                    renderer.Camera.Position = c * (h + 2) + p.Position;
             } else
                 renderer.Camera.AttachedPlanet = null;
 
+            renderer.Camera.Update(deltaTime);
             starSystem.Update(renderer, device);
 
             lastks = ks;
