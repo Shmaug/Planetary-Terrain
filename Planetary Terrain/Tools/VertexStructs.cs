@@ -5,6 +5,25 @@ using System.Runtime.InteropServices;
 
 namespace Planetary_Terrain {
     [StructLayout(LayoutKind.Explicit)]
+    struct VertexNormal {
+        [FieldOffset(0)]
+        public Vector3 Position;
+        [FieldOffset(12)]
+        public Vector3 Normal;
+
+        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
+        {
+            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+            new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0)
+        };
+
+        public VertexNormal(Vector3 pos, Vector3 norm) {
+            Position = pos;
+            Normal = norm;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     struct VertexColor {
         [FieldOffset(0)]
         public Vector3 Position;

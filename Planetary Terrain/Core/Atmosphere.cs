@@ -6,7 +6,7 @@ using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
     class Atmosphere : IDisposable {
-        public Vector3[] verticies;
+        public VertexNormal[] verticies;
         public short[] indicies;
 
         public Planet Planet;
@@ -15,14 +15,25 @@ namespace Planetary_Terrain {
         D3D11.Buffer vertexBuffer;
         D3D11.Buffer indexBuffer;
 
-        [StructLayout(LayoutKind.Explicit)]
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
         struct Constants {
-            [FieldOffset(0)]
             public Matrix world;
-            [FieldOffset(64)]
-            public Vector3 center;
-            [FieldOffset(76)]
-            public float radius;
+
+            public int Samples;
+
+            public float InnerRadius;
+            public float OuterRadius;
+
+            public float ScaleH;
+            public float ScaleL;
+
+            public float kr;
+            public float km;
+            public float e;
+            public Vector3 cr;
+            public float gm;
+            
+            public Vector3 planetPos;
         }
         Constants constants;
         D3D11.Buffer constBuffer;
@@ -31,36 +42,54 @@ namespace Planetary_Terrain {
             Planet = planet;
             Radius = radius;
 
-            constants.radius = (float)Radius;
+            Icosphere.GenerateIcosphere(6, out verticies, out indicies);
 
-            Icosphere.GenerateIcosphere(4, out verticies, out indicies);
+            constants = new Constants();
         }
 
-        public void Draw(Renderer renderer) {
+        void SetConstants(Vector3d camPos, Vector3d scaledPos, double scale) {
+            constants.Samples = 10;
+
+            constants.InnerRadius = (float)(Planet.Radius * scale);
+            constants.OuterRadius = (float)(Radius * scale);
+
+            constants.ScaleH = 4f / (constants.OuterRadius - constants.InnerRadius);
+            constants.ScaleL = 1f / (constants.OuterRadius - constants.InnerRadius);
+
+            constants.kr = .166f;
+            constants.km = .0025f;
+            constants.e = 14.3f;
+            constants.cr = new Vector3(.3f, .7f, 1f);
+            constants.gm = -.85f;
+
+            constants.planetPos = scaledPos;
+        }
+
+        public void Draw(Renderer renderer, Vector3d pos, double scale) {
             if (vertexBuffer == null)
                 vertexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verticies);
             if (indexBuffer == null)
                 indexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.IndexBuffer, indicies);
 
             Shaders.AtmosphereShader.Set(renderer);
+            
+            Matrix world = Matrix.Scaling((float)(scale * Radius)) * Matrix.Translation(pos);
 
-            Vector3d pos;
-            double scale;
-            renderer.Camera.AdjustPositionRelative(Planet.Position, out pos, out scale);
-            Matrix world = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
+            SetConstants(renderer.Camera.Position, pos, scale);
 
             constants.world = Matrix.Transpose(world);
-            constants.center = Planet.Position - renderer.Camera.Position;
-            constants.radius = (float)(Radius * scale);
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
             
             renderer.Context.VertexShader.SetConstantBuffers(1, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(1, constBuffer);
-            
+
+            renderer.Context.VertexShader.SetConstantBuffers(2, Planet.constBuffer);
+            renderer.Context.PixelShader.SetConstantBuffers(2,  Planet.constBuffer);
+
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<Vector3>(), 0));
+            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
             renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);

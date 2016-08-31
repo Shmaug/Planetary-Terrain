@@ -53,11 +53,12 @@ namespace Planetary_Terrain {
                 }
             }
 
-        public static void GenerateIcosphere(int detail, out Vector3[] verticies, out short[] indicies) {
-            List<Vector3> verts = new List<Vector3>();
+        public static void GenerateIcosphere(int detail, out VertexNormal[] verticies, out short[] indicies) {
+            List<VertexNormal> verts = new List<VertexNormal>();
             List<short> inds = new List<short>();
 
-            verts.AddRange(Verticies);
+            for (int i = 0; i < Verticies.Length; i++)
+                verts.Add(new VertexNormal(Verticies[i], Vector3.Zero));
             inds.AddRange(Indicies);
 
             short i1, i2, i3, i4, i5, i6;
@@ -71,9 +72,9 @@ namespace Planetary_Terrain {
                     i5 = (short)(verts.Count + 1);
                     i6 = (short)(verts.Count + 2);
                     
-                    verts.Add((verts[i1] + verts[i2]) * .5f); // i4
-                    verts.Add((verts[i2] + verts[i3]) * .5f); // i5
-                    verts.Add((verts[i1] + verts[i3]) * .5f); // i6
+                    verts.Add(new VertexNormal((verts[i1].Position + verts[i2].Position) * .5f, Vector3.Zero)); // i4
+                    verts.Add(new VertexNormal((verts[i2].Position + verts[i3].Position) * .5f, Vector3.Zero)); // i5
+                    verts.Add(new VertexNormal((verts[i1].Position + verts[i3].Position) * .5f, Vector3.Zero)); // i6
                     
                     newinds.AddRange(new short[]{
                         i1, i4, i6,
@@ -89,8 +90,10 @@ namespace Planetary_Terrain {
             verticies = verts.ToArray();
             indicies = inds.ToArray();
 
-            for (int i = 0; i < verticies.Length; i++)
-                verticies[i].Normalize();
+            for (int i = 0; i < verticies.Length; i++) {
+                verticies[i].Position.Normalize();
+                verticies[i].Normal = verticies[i].Position;
+            }
         }
     }
 }

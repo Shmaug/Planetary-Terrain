@@ -33,11 +33,9 @@ namespace Planetary_Terrain {
         VertexNormalTexture[] verticies;
         short[] indicies;
 
-        [StructLayout(LayoutKind.Explicit)]
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
         struct Constants {
-            [FieldOffset(0)]
             public Matrix World;
-            [FieldOffset(64)]
             public Matrix WorldInverseTranspose;
         }
         private Constants shaderConstants;

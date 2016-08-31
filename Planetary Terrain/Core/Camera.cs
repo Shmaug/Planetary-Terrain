@@ -10,19 +10,20 @@ namespace Planetary_Terrain {
         private Vector3 _rotation;
         private float _fov, _aspect, _near = 1f, _far = 10000f;
         private Quaternion _rotationQuaternion;
+        private Quaternion _planetQuaternion;
         private Matrix _view, _proj;
 
         private void buildProjection() {
             _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
         }
         private void buildView() {
-            Vector3 fwd = Vector3.Transform(Vector3.ForwardLH, _rotationQuaternion);
-            Vector3 up = Vector3.Transform(Vector3.Up, _rotationQuaternion);
+            Quaternion q = _planetQuaternion * _rotationQuaternion;
+            q.Normalize();
+            Vector3 fwd = Vector3.Transform(Vector3.ForwardLH, q);
+            Vector3 up = Vector3.Transform(Vector3.Up, q);
             _view = Matrix.LookAtLH(_freezepos, _freezepos + fwd, up);
         }
-        private void buildRotation() {
-            _rotationQuaternion = Quaternion.RotationYawPitchRoll(_rotation.Y, _rotation.X, _rotation.Z);// Matrix3x3.RotationZ(_rotation.Z) * Matrix3x3.RotationX(_rotation.X) * Matrix3x3.RotationY(_rotation.Y);
-
+        private void buildPlanetQuaternion() {
             if (_planet != null) {
                 Vector3 pUp = Vector3d.Normalize(Position - _planet.Position);
 
@@ -30,12 +31,14 @@ namespace Planetary_Terrain {
                 if (ang != 0f) {
                     Vector3 orthoRay = Vector3.Cross(Vector3.Up, pUp);
                     orthoRay.Normalize();
-                    Quaternion deltaQ = Quaternion.RotationAxis(orthoRay, ang);
-                    deltaQ.Normalize();
-                    _rotationQuaternion = deltaQ * _rotationQuaternion;
-                    _rotationQuaternion.Normalize();
+                    _planetQuaternion = Quaternion.RotationAxis(orthoRay, ang);
+                    _planetQuaternion.Normalize();
                 }
-            }
+            } else
+                _planetQuaternion = Quaternion.Identity;
+        }
+        private void buildRotation() {
+            _rotationQuaternion = Quaternion.RotationYawPitchRoll(_rotation.Y, _rotation.X, _rotation.Z);
         }
         
         public bool Frozen { get { return _frozen; }
@@ -49,6 +52,7 @@ namespace Planetary_Terrain {
         public Vector3d Position { get { return _position; }
             set {
                 _position = value;
+                buildPlanetQuaternion();
                 buildView();
             }
         }
@@ -86,15 +90,28 @@ namespace Planetary_Terrain {
             }
         }
 
-        public Quaternion RotationQuaternion { get { return _rotationQuaternion; } }
+        public Quaternion RotationQuaternion { get { return _planetQuaternion * _rotationQuaternion; } }
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
 
         public Planet AttachedPlanet { get { return _planet; }
             set {
-                _planet = value;
-                buildRotation();
-                buildView();
+                if (_planet != value) { // switched view spaces
+                    if (value != null) {
+                        _planet = value;
+                        buildPlanetQuaternion();
+                        Quaternion q = _planetQuaternion * _rotationQuaternion;
+                        _rotation = q.ToEuler();
+                    }else {
+                        Quaternion q = _planetQuaternion * _rotationQuaternion;
+                        _rotation = q.ToEuler();
+                        _planet = value;
+
+                        buildPlanetQuaternion();
+                    }
+                    buildRotation();
+                    buildView();
+                }
             }
         }
 

@@ -1,14 +1,14 @@
 ﻿#include "constants.hlsl"
 
 cbuffer ChunkConstants : register (b1) {
-	float4x4 world;
-	float4x4 worldInverseTranspose;
+	float4x4 World;
+	float4x4 WorldInverseTranspose;
 }
 cbuffer PlanetConstants : register(b2) {
-	float3 lightDirection;
+	float3 LightDirection;
 }
-Texture2D colorMapTexture : register(t0);
-SamplerState colorMapSampler : register(s0);
+Texture2D ColorMapTexture : register(t0);
+SamplerState ColorMapSampler : register(s0);
 
 struct v2f {
 	float4 position : SV_POSITION;
@@ -18,15 +18,15 @@ struct v2f {
 
 v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0) {
 	v2f v;
-	v.position = mul(vertex, mul(world, mul(view, projection)));
+	v.position = mul(vertex, mul(World, mul(View, Projection)));
 	v.uv = uv;
-	v.normal = mul(normal, (float3x3)worldInverseTranspose);
+	v.normal = mul(normal, (float3x3)WorldInverseTranspose);
 	return v;
 }
 float4 psmain(v2f i) : SV_TARGET
 {
-	float3 col = colorMapTexture.Sample(colorMapSampler, i.uv);
-	if (length(lightDirection) > 0)
-		col *= clamp(dot(lightDirection, -i.normal), 0, 1);
+	float3 col = ColorMapTexture.Sample(ColorMapSampler, i.uv);
+	if (length(LightDirection) > 0)
+		col *= clamp(dot(LightDirection, -i.normal), 0, 1);
 	return float4(col, 1);
 }

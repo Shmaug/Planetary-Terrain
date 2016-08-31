@@ -10,7 +10,7 @@ namespace Planetary_Terrain {
 
         public static void LoadShaders(SharpDX.Direct3D11.Device device, SharpDX.Direct3D11.DeviceContext context) {
             TerrainShader = new Shader(shaderDirectory + "\\terrain.hlsl", device, context, VertexNormalTexture.InputElements);
-            AtmosphereShader = new Shader(shaderDirectory + "\\atmosphere.hlsl", device, context, new SharpDX.Direct3D11.InputElement("POSITION", 0, SharpDX.DXGI.Format.R32G32B32_Float, 0));
+            AtmosphereShader = new Shader(shaderDirectory + "\\atmosphere.hlsl", device, context, VertexNormal.InputElements);
             LineShader = new Shader(shaderDirectory + "\\line.hlsl", device, context, VertexColor.InputElements);
         }
 

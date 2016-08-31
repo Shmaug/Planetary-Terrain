@@ -87,6 +87,8 @@ namespace Planetary_Terrain {
 
             ks = keyboard.GetCurrentState();
             ms = mouse.GetCurrentState();
+            if (lastks == null) lastks = ks;
+            if (lastms == null) lastms = ms;
 
             #region camera control
             if (ks.IsPressed(DInput.Key.Space))

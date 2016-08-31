@@ -1,6 +1,9 @@
+#define PI 3.14159265359
+
 cbuffer WorldConstants : register(b0) {
-	float4x4 view;
-	float4x4 projection;
-	float3 cameraDirection;
-	float farPlane;
+	float4x4 View;
+	float4x4 Projection;
+	float3 CameraPosition;
+	float3 CameraDirection;
+	float FarPlane;
 };

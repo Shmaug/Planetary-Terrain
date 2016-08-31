@@ -7,18 +7,12 @@ using System.Runtime.InteropServices;
 
 namespace Planetary_Terrain {
     class Renderer : IDisposable {
-        [StructLayout(LayoutKind.Explicit)]
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 144)]
         struct Constants {
-            [FieldOffset(0)]
             public Matrix View;
-
-            [FieldOffset(64)]
             public Matrix Projection;
-
-            [FieldOffset(128)]
             public Vector3 cameraDirection;
-
-            [FieldOffset(140)]
             public float farPlane;
         }
         Constants constants;
