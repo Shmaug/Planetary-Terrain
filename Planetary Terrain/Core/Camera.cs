@@ -100,14 +100,17 @@ namespace Planetary_Terrain {
                     if (value != null) {
                         _planet = value;
                         buildPlanetQuaternion();
-                        Quaternion q = _planetQuaternion * _rotationQuaternion;
-                        _rotation = q.ToEuler();
-                    }else {
-                        Quaternion q = _planetQuaternion * _rotationQuaternion;
-                        _rotation = q.ToEuler();
-                        _planet = value;
 
+                        Quaternion q = _planetQuaternion * Quaternion.Invert(_rotationQuaternion);
+                        _rotation = q.ToEuler();
+                    }else{
                         buildPlanetQuaternion();
+
+                        Quaternion q = _planetQuaternion * _rotationQuaternion;
+                        q.Normalize();
+                        _rotation = q.ToEuler();
+
+                        _planet = value;
                     }
                     buildRotation();
                     buildView();
