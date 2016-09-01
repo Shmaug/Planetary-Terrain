@@ -45,6 +45,8 @@ namespace Planetary_Terrain {
         }
         #endregion
 
+        public double Speed = 3;
+        public double SpeedMultiplier = 1;
         public Vector3d Position { get { return _position; }
             set { _position = value; }
         }

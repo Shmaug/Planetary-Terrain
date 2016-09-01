@@ -112,6 +112,10 @@
     <Compile Include="Noise\RidgedSimplexNoiseGenerator.cs" />
     <Compile Include="Noise\SimplexNoiseGenerator.cs" />
     <Compile Include="Noise\TurbulenceSpectralGenerator.cs" />
+    <Compile Include="UI\Frame.cs" />
+    <Compile Include="UI\TextButton.cs" />
+    <Compile Include="UI\TextLabel.cs" />
+    <Compile Include="UI\UIElement.cs" />
     <Content Include="Shaders\constants.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -126,7 +130,7 @@
     <Compile Include="Core\Planet.cs" />
     <Compile Include="Tools\MathTools.cs" />
     <Compile Include="Tools\Shader.cs" />
-    <Compile Include="Core\Program.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\Shaders.cs" />
     <Compile Include="Tools\Vector3d.cs" />

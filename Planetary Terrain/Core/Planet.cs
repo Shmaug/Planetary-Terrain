@@ -180,8 +180,19 @@ namespace Planetary_Terrain {
                 BaseChunks[i].SplitDynamic(camera.Position, device);
         }
 
+        public void DrawTopLevelChunks(Renderer renderer, Vector3d pos, double scale) {
+            for (int i = 0; i < BaseChunks.Length; i++)
+                BaseChunks[i].Draw(renderer, pos, scale);
+        }
+
         public void Draw(Renderer renderer, Planet sun) {
-            Shaders.TerrainShader.Set(renderer);
+            // Get the entire planet's scale and scaled position
+            // This ensures the planet is always within the clipping planes
+            Vector3d pos;
+            double scale;
+            renderer.Camera.AdjustPositionRelative(Position, out pos, out scale);
+            if (scale * Radius < 1)
+                return;
 
             constants.lightDirection = Vector3d.Normalize(Position - sun.Position);
 
@@ -189,6 +200,8 @@ namespace Planetary_Terrain {
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
+
+            Shaders.TerrainShader.Set(renderer);
             // set constant buffer
             renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
@@ -196,16 +209,13 @@ namespace Planetary_Terrain {
             // color map
             renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
             renderer.Context.PixelShader.SetSampler(0, colorMapSampler);
-            
-            // Get the entire planet's scale and scaled position
-            // This ensures the planet is always within the clipping planes
-            Vector3d pos;
-            double scale;
-            renderer.Camera.AdjustPositionRelative(Position, out pos, out scale);
-            
+
+
+            renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
+
             for (int i = 0; i < BaseChunks.Length; i++)
                 BaseChunks[i].Draw(renderer, pos, scale);
-
+            
             if (Atmosphere != null)
                 Atmosphere.Draw(renderer, pos, scale);
         }
@@ -217,7 +227,13 @@ namespace Planetary_Terrain {
                 renderer.SegoeUI14.WordWrapping = DWrite.WordWrapping.NoWrap;
                 renderer.SegoeUI14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
 
-                DWrite.TextLayout layout = new DWrite.TextLayout(renderer.FontFactory, Label, renderer.SegoeUI14, 100, 100);
+                double dist = (renderer.Camera.Position - Position).Length();
+
+                double seconds = dist / (renderer.Camera.Speed * renderer.Camera.SpeedMultiplier);
+                TimeSpan time = TimeSpan.FromSeconds(seconds);
+                string t = Label + "(Arrive in " + string.Format("{0}:{1}", time.Minutes, time.Seconds) + ")";
+
+                DWrite.TextLayout layout = new DWrite.TextLayout(renderer.FontFactory, t, renderer.SegoeUI14, 100, 100);
 
                 float w = layout.DetermineMinWidth();
 
@@ -225,7 +241,7 @@ namespace Planetary_Terrain {
                     screenPos.Value.X - w, screenPos.Value.Y - 10,
                     screenPos.Value.X + w, screenPos.Value.Y + 10);
 
-                renderer.D2DContext.DrawText(Label, renderer.SegoeUI14, rect, renderer.SolidWhiteBrush);
+                renderer.D2DContext.DrawText(t, renderer.SegoeUI14, rect, renderer.SolidWhiteBrush);
             }
         }
 

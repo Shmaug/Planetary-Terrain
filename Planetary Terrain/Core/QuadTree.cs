@@ -33,6 +33,9 @@ namespace Planetary_Terrain {
         VertexNormalTexture[] verticies;
         short[] indicies;
 
+        public int IndexCount { get; private set; }
+        public int VertexCount { get; private set; }
+
         [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
         struct Constants {
             public Matrix World;
@@ -40,9 +43,9 @@ namespace Planetary_Terrain {
         }
         private Constants shaderConstants;
 
-        D3D11.Buffer vertexBuffer;
-        D3D11.Buffer indexBuffer;
-        D3D11.Buffer constantBuffer;
+        public D3D11.Buffer vertexBuffer { get; private set; }
+        public D3D11.Buffer indexBuffer { get; private set; }
+        public D3D11.Buffer constantBuffer { get; private set; }
 
         bool dirty = false;
 
@@ -149,6 +152,9 @@ namespace Planetary_Terrain {
                 indexBuffer.Dispose();
             indexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies);
 
+            VertexCount = verticies.Length;
+            IndexCount = indicies.Length;
+
             dirty = false;
         }
 
@@ -254,7 +260,7 @@ namespace Planetary_Terrain {
         
         public void Draw(Renderer renderer, Vector3d planetPos, double planetScale) {
             bool draw = true;
-
+            
             if (Children != null) {
                 draw = false;
 

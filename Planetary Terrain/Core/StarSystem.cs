@@ -58,10 +58,12 @@ namespace Planetary_Terrain {
             foreach (Planet p in planets)
                 p.Draw(renderer, planets[0]);
 
-            renderer.D2DContext.BeginDraw();
-            foreach (Planet p in planets)
-                p.DrawHUDIcon(renderer);
-            renderer.D2DContext.EndDraw();
+            if (renderer.DrawGUI) {
+                renderer.D2DContext.BeginDraw();
+                foreach (Planet p in planets)
+                    p.DrawHUDIcon(renderer);
+                renderer.D2DContext.EndDraw();
+            }
         }
 
         public void Dispose() {

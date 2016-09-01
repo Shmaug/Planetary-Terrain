@@ -19,14 +19,17 @@ namespace Planetary_Terrain {
         DInput.Keyboard keyboard;
         DInput.Mouse mouse;
 
-        DInput.KeyboardState ks, lastks;
-        DInput.MouseState ms, lastms;
+        public UI.InputState InputState;
+        Vector2 realMousePos;
         bool lockMouse;
-
-        double cameraSpeed;
+        
+        public UI.Frame NavigatorWindow;
         
         public Game() {
             renderForm = new RenderForm("D3D11 Planets");
+            renderForm.MouseMove += (object sender, System.Windows.Forms.MouseEventArgs e) => {
+                realMousePos = new Vector2(e.Location.X, e.Location.Y);
+            };
             renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             renderForm.AllowUserResizing = true;
             renderForm.ClientSizeChanged += (object sender, EventArgs e) => {
@@ -40,7 +43,7 @@ namespace Planetary_Terrain {
             keyboard.Acquire();
             mouse.Acquire();
 
-            renderer = new Renderer(renderForm);
+            renderer = new Renderer(this, renderForm);
             
             frameTimer = new System.Diagnostics.Stopwatch();
 
@@ -48,7 +51,6 @@ namespace Planetary_Terrain {
 
             InitializeScene();
         }
-
         public void Run() {
             RenderLoop.Run(renderForm, () => {
                 Update();
@@ -56,21 +58,45 @@ namespace Planetary_Terrain {
             });
         }
 
+        public void Exit() {
+            renderForm.Close();
+            Dispose();
+        }
+
         void InitializeScene() {
             starSystem = new StarSystem(renderer.Device);
             
-            Planet startPlanet = starSystem.planets[3];
-
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
-            renderer.Camera.Position = Vector3d.Normalize(new Vector3d(0, 1, -1));
-            renderer.Camera.Position *= startPlanet.GetHeight(renderer.Camera.Position) * 1.1;
-            renderer.Camera.Position += startPlanet.Position;
+            {
+                Planet p = starSystem.planets[3];
+                Vector3d d = new Vector3d(0, 1, -1);
+                d.Normalize();
+                renderer.Camera.Position = p.Position + d * (p.SOI + 1000);
+                renderer.Camera.Rotation = new Vector3(0, 0, 0);
+            }
+            float h = 35;
+            NavigatorWindow = new UI.Frame(null, "Panel1", new RawRectangleF(0, 300, 200, 300 + (starSystem.planets.Count+1) * h), renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
+            NavigatorWindow.Draggable = true;
+
+            new UI.TextLabel(NavigatorWindow, "Title", new RawRectangleF(0, 0, 200, h), "NAVIGATOR", renderer.SegoeUI24, renderer.SolidWhiteBrush);
+            float y = h;
+            foreach (Planet p in starSystem.planets) {
+                new UI.TextButton(NavigatorWindow, p.Label + "Button", new RawRectangleF(0, y, 200, y + h), p.Label, renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
+                    ()=> {
+                        Vector3d d = new Vector3d(0, 1, -1);
+                        d.Normalize();
+                        renderer.Camera.Position = p.Position + d * (p.SOI+1000);
+                        renderer.Camera.Rotation = new Vector3(0, 0, 0);
+                    });
+                y += h;
+            }
         }
 
         int framec = 0;
-        float ftime = 0;
+        double ftime = 0;
         void Update() {
-            float deltaTime = frameTimer.ElapsedMilliseconds / 1000f;
+            #region timing
+            double deltaTime = frameTimer.ElapsedMilliseconds / 1000d;
             frameTimer.Restart();
 
             ftime += deltaTime;
@@ -80,48 +106,51 @@ namespace Planetary_Terrain {
                 Debug.FPS = framec;
                 framec = 0;
             }
+            #endregion
 
-            ks = keyboard.GetCurrentState();
-            ms = mouse.GetCurrentState();
-            if (lastks == null) lastks = ks;
-            if (lastms == null) lastms = ms;
+            #region input state update
+            InputState.ks = keyboard.GetCurrentState();
+            InputState.ms = mouse.GetCurrentState();
+            if (InputState.lastks == null) InputState.lastks = InputState.ks;
+            if (InputState.lastms == null) InputState.lastms = InputState.ms;
+            InputState.mousePos = realMousePos;
+            #endregion
 
             #region camera control
-            Debug.CameraSpeed = 0;
-            if (ks.IsPressed(DInput.Key.Space))
-                cameraSpeed += 10000;
-            else
-                cameraSpeed = 2;
-            if (ks.IsPressed(DInput.Key.RightShift))
-                cameraSpeed = Constants.LIGHT_SPEED;
-
             Vector3 move = Vector3.Zero;
-            if (ks.IsPressed(DInput.Key.W))
+            if (InputState.ks.IsPressed(DInput.Key.W))
                 move += Vector3.ForwardLH;
-            else if (ks.IsPressed(DInput.Key.S))
+            else if (InputState.ks.IsPressed(DInput.Key.S))
                 move += Vector3.BackwardLH;
-            if (ks.IsPressed(DInput.Key.A))
+            if (InputState.ks.IsPressed(DInput.Key.A))
                 move += Vector3.Left;
-            else if (ks.IsPressed(DInput.Key.D))
+            else if (InputState.ks.IsPressed(DInput.Key.D))
                 move += Vector3.Right;
+
+            // Warp speed
+            if (InputState.ks.IsPressed(DInput.Key.Space))
+                renderer.Camera.Speed += Constants.LIGHT_SPEED * deltaTime;
+            else if (move.IsZero)
+                renderer.Camera.Speed = 3;
+
+            // sprint speed
+            if (InputState.ks.IsPressed(DInput.Key.LeftShift))
+                renderer.Camera.SpeedMultiplier = 3;
+            else
+                renderer.Camera.SpeedMultiplier = 1;
 
             if (!move.IsZero) {
                 move.Normalize();
                 move = Vector3.Transform(move, renderer.Camera.RotationQuaternion);
                 Vector3d moved = move;
-
-                double s = cameraSpeed;
-                if (ks.IsPressed(DInput.Key.LeftShift))
-                    s *= 3;
-
-                moved *= s;
-
-                Debug.CameraSpeed = s;
+                
+                moved *= renderer.Camera.Speed * renderer.Camera.SpeedMultiplier;
                 
                 renderer.Camera.Position += moved * deltaTime;
             }
 
-            if (ks.IsPressed(DInput.Key.LeftControl) && !lastks.IsPressed(DInput.Key.LeftControl)) {
+            // Mouse lock
+            if (InputState.ks.IsPressed(DInput.Key.LeftControl) && !InputState.lastks.IsPressed(DInput.Key.LeftControl)) {
                 lockMouse = !lockMouse;
 
                 if (lockMouse)
@@ -130,15 +159,16 @@ namespace Planetary_Terrain {
                     System.Windows.Forms.Cursor.Show();
             }
 
+            // Mouse look
             if (lockMouse) {
-                Vector3 delta = new Vector3(ms.Y, ms.X, 0) * .003f;
+                Vector3 delta = new Vector3(InputState.ms.Y, InputState.ms.X, 0) * .003f;
                 renderer.Camera.Rotation += delta;
-                System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientSize.Width / 2, renderForm.ClientSize.Height / 2);
+                System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
             }
-            #endregion
-            
+
+            #region camera collision & planet attach
             Planet p = starSystem.GetNearestPlanet(renderer.Camera.Position);
-            if ((renderer.Camera.Position - p.Position).Length() < p.SOI) {
+             if ((renderer.Camera.Position - p.Position).Length() < p.SOI) {
                 renderer.Camera.AttachedPlanet = p;
                 
                 Vector3d c = renderer.Camera.Position - p.Position;
@@ -149,12 +179,24 @@ namespace Planetary_Terrain {
                     renderer.Camera.Position = c * (h + 2) + p.Position;
             } else
                 renderer.Camera.AttachedPlanet = null;
+            #endregion
+            #endregion
 
-            renderer.Camera.Update(deltaTime);
+            #region misc keyboard input
+            if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
+                renderer.DrawGUI = !renderer.DrawGUI;
+            #endregion
+
+            renderer.Camera.Update((float)deltaTime);
             starSystem.Update(renderer, renderer.Device);
 
-            lastks = ks;
-            lastms = ms;
+            NavigatorWindow.Update((float)deltaTime, InputState);
+
+            #region input state update
+            InputState.lastks = InputState.ks;
+            InputState.lastms = InputState.ms;
+            InputState.lastMousePos = InputState.mousePos;
+            #endregion
         }
 
         void Draw() {
@@ -166,17 +208,28 @@ namespace Planetary_Terrain {
             renderer.BeginDrawFrame();
             renderer.Clear(Color.Black);
 
-            renderer.Context.Rasterizer.State = ks.IsPressed(DInput.Key.Tab) ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
+            renderer.DrawWireframe = InputState.ks.IsPressed(DInput.Key.F);
+            renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
             
             starSystem.Draw(renderer);
 
+            if (renderer.DrawGUI) {
+                renderer.D2DContext.BeginDraw();
+                NavigatorWindow.Draw(renderer);
+                renderer.D2DContext.EndDraw();
+            }
+
             Debug.EndFrame();
-            Debug.DrawStats(renderer);
+
+            if (renderer.DrawGUI)
+                Debug.DrawStats(renderer);
             
             renderer.EndDrawFrame();
         }
 
         public void Dispose() {
+            NavigatorWindow.Dispose();
+
             // scene stuff
             starSystem.Dispose();
 

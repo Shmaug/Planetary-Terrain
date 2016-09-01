@@ -19,18 +19,25 @@ namespace Planetary_Terrain {
         Constants constants;
         public D3D11.Buffer constantBuffer { get; private set; }
 
+        public int ResolutionX, ResolutionY;
+
         #region 2d vars
         public D2D1.Device D2DDevice { get; private set; }
         public D2D1.DeviceContext D2DContext { get; private set; }
-        public D2D1.Factory1 D2DFactory { get; private set; }
+        public D2D1.Factory D2DFactory { get; private set; }
         public D2D1.Bitmap D2DTarget { get; private set; }
 
         public DWrite.Factory FontFactory { get; private set; }
         public D2D1.Brush SolidWhiteBrush { get; private set; }
         public D2D1.Brush SolidGrayBrush { get; private set; }
+        public D2D1.Brush SolidBlackBrush { get; private set; }
+        public D2D1.Brush SolidGreenBrush { get; private set; }
+        public D2D1.Brush SolidRedBrush { get; private set; }
+        public D2D1.Brush SolidBlueBrush { get; private set; }
         public DWrite.TextFormat SegoeUI24 { get; private set; }
         public DWrite.TextFormat SegoeUI14 { get; private set; }
         public DWrite.TextFormat Consolas14 { get; private set; }
+
         #endregion
 
         #region 3d vars
@@ -40,12 +47,12 @@ namespace Planetary_Terrain {
         #endregion
 
         #region states and views
-        private Viewport viewport;
+        public Viewport Viewport { get; private set; }
 
         public D3D11.DepthStencilView depthStencilView { get; private set; }
         public D3D11.RenderTargetView renderTargetView { get; private set; }
 
-        public D3D11.DepthStencilState depthStencilState { get; private set; }
+        public D3D11.DepthStencilState depthStencilStateDefault { get; private set; }
         public D3D11.DepthStencilState depthStencilStateNoDepth { get; private set; }
 
         public D3D11.RasterizerState rasterizerStateSolid { get; private set; }
@@ -57,13 +64,20 @@ namespace Planetary_Terrain {
         public D3D11.BlendState blendStateTransparent { get; private set; }
         #endregion
 
+        public bool DrawWireframe = false;
+        public bool DrawGUI = true;
+
         public Camera Camera;
 
         D3D11.Buffer axisBuffer;
         D3D11.Buffer axisConsts;
 
-        public Renderer(SharpDX.Windows.RenderForm renderForm) {
+        Game game;
+
+        public Renderer(Game game, SharpDX.Windows.RenderForm renderForm) {
+            this.game = game;
             int width = renderForm.ClientSize.Width, height = renderForm.ClientSize.Height;
+            ResolutionX = width; ResolutionY = height;
 
             #region 3d device & context
             DXGI.SwapChainDescription swapChainDesc = new DXGI.SwapChainDescription() {
@@ -97,7 +111,11 @@ namespace Planetary_Terrain {
             #endregion
 
             #region 2d resources
+            SolidRedBrush = new D2D1.SolidColorBrush(D2DContext, Color.Red);
+            SolidGreenBrush = new D2D1.SolidColorBrush(D2DContext, Color.Green);
+            SolidBlueBrush = new D2D1.SolidColorBrush(D2DContext, Color.Blue);
             SolidWhiteBrush = new D2D1.SolidColorBrush(D2DContext, Color.White);
+            SolidBlackBrush = new D2D1.SolidColorBrush(D2DContext, Color.Black);
             SolidGrayBrush = new D2D1.SolidColorBrush(D2DContext, Color.LightGray);
 
             FontFactory = new DWrite.Factory();
@@ -107,8 +125,8 @@ namespace Planetary_Terrain {
             #endregion
 
             #region viewport & render target
-            viewport = new Viewport(0, 0, width, height);
-            Context.Rasterizer.SetViewport(viewport);
+            Viewport = new Viewport(0, 0, width, height);
+            Context.Rasterizer.SetViewport(Viewport);
 
             using (D3D11.Texture2D backBuffer = swapChain.GetBackBuffer<D3D11.Texture2D>(0)) {
                 renderTargetView = new D3D11.RenderTargetView(Device, backBuffer);
@@ -152,7 +170,7 @@ namespace Planetary_Terrain {
 
             Context.OutputMerger.SetTargets(depthStencilView, renderTargetView);
             
-            depthStencilState = new D3D11.DepthStencilState(Device, new D3D11.DepthStencilStateDescription() {
+            depthStencilStateDefault = new D3D11.DepthStencilState(Device, new D3D11.DepthStencilStateDescription() {
                 IsDepthEnabled = true,
                 IsStencilEnabled = false,
                 DepthComparison = D3D11.Comparison.Less,
@@ -166,7 +184,7 @@ namespace Planetary_Terrain {
                 DepthWriteMask = D3D11.DepthWriteMask.Zero
             });
 
-            Context.OutputMerger.SetDepthStencilState(depthStencilState);
+            Context.OutputMerger.SetDepthStencilState(depthStencilStateDefault);
             #endregion
 
             #region rasterizer states
@@ -219,7 +237,12 @@ namespace Planetary_Terrain {
             #endregion
         }
 
+        public D2D1.Brush CreateBrush(Color color) {
+            return new D2D1.SolidColorBrush(D2DContext, color);
+        }
+
         public void Resize(int width, int height) {
+            ResolutionX = width; ResolutionY = height;
             renderTargetView.Dispose();
             depthStencilView.Dispose();
             D2DTarget.Dispose();
@@ -259,23 +282,18 @@ namespace Planetary_Terrain {
 
             Context.OutputMerger.SetTargets(depthStencilView, renderTargetView);
 
-            viewport = new Viewport(0, 0, width, height);
-            Context.Rasterizer.SetViewport(viewport);
+            Viewport = new Viewport(0, 0, width, height);
+            Context.Rasterizer.SetViewport(Viewport);
         }
         
         public Vector2? WorldToScreen(Vector3d point) {
             point -= Camera.Position;
             point.Normalize();
 
-            Vector3 vec = viewport.Project(point, Camera.Projection, Camera.View, Matrix.Identity);
-            return new Vector2(vec.X, vec.Y);
-        }
-
-        public void DisableDepth() {
-            Context.OutputMerger.SetDepthStencilState(depthStencilStateNoDepth);
-        }
-        public void EnableDepth() {
-            Context.OutputMerger.SetDepthStencilState(depthStencilState);
+            Vector3 vec = Viewport.Project(point, Camera.Projection, Camera.View, Matrix.Identity);
+            if (vec.Z < 0)
+                return new Vector2(vec.X, vec.Y);
+            return null;
         }
 
         public void BeginDrawFrame() {
@@ -286,7 +304,7 @@ namespace Planetary_Terrain {
 
             Context.UpdateSubresource(ref constants, constantBuffer);
         }
-
+        
         public void Clear(Color color, bool depth = true) {
             Context.OutputMerger.SetTargets(depthStencilView, renderTargetView);
 
@@ -315,9 +333,14 @@ namespace Planetary_Terrain {
         }
         
         public void Dispose() {
-            D2DTarget.Dispose();
             SolidWhiteBrush.Dispose();
+            SolidBlackBrush.Dispose();
+            SolidRedBrush.Dispose();
+            SolidGreenBrush.Dispose();
+            SolidBlueBrush.Dispose();
             SolidGrayBrush.Dispose();
+
+            D2DTarget.Dispose();
             D2DDevice.Dispose();
             D2DContext.Dispose();
             D2DFactory.Dispose();
@@ -329,7 +352,7 @@ namespace Planetary_Terrain {
             rasterizerStateWireframe.Dispose();
             rasterizerStateSolidNoCull.Dispose();
             rasterizerStateWireframeNoCull.Dispose();
-            depthStencilState.Dispose();
+            depthStencilStateDefault.Dispose();
             depthStencilStateNoDepth.Dispose();
             
             constantBuffer.Dispose();

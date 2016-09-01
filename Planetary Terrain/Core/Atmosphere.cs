@@ -42,7 +42,7 @@ namespace Planetary_Terrain {
             Planet = planet;
             Radius = radius;
 
-            Icosphere.GenerateIcosphere(6, out verticies, out indicies);
+            Icosphere.GenerateIcosphere(6, false, out verticies, out indicies);
 
             constants = new Constants();
         }
@@ -84,7 +84,8 @@ namespace Planetary_Terrain {
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
-            
+
+            #region prepare device
             renderer.Context.VertexShader.SetConstantBuffers(1, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(1, constBuffer);
 
@@ -92,21 +93,22 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetConstantBuffers(2,  Planet.constBuffer);
 
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+
             renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
             renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
+            // alpha blending
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
-            renderer.Context.Rasterizer.State =
-                renderer.Context.Rasterizer.State.Description.FillMode == D3D11.FillMode.Solid ?
-                renderer.rasterizerStateSolidNoCull : renderer.rasterizerStateWireframeNoCull;
+
+            // no depth buffer (floating point errors too big)s
+            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
+            #endregion
 
             renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
-            renderer.Context.OutputMerger.SetBlendState(renderer.blendStateOpaque);
-
-            renderer.Context.Rasterizer.State =
-                renderer.Context.Rasterizer.State.Description.FillMode == D3D11.FillMode.Solid ?
-                renderer.rasterizerStateSolid : renderer.rasterizerStateWireframe;
+            #region restore device state
+            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateDefault);
+            #endregion
         }
 
         public void Dispose() {

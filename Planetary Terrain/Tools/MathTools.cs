@@ -1,5 +1,6 @@
 ﻿using System;
 using SharpDX;
+using SharpDX.Mathematics.Interop;
 
 namespace Planetary_Terrain {
     static class MathTools {
@@ -47,5 +48,9 @@ namespace Planetary_Terrain {
                 );
         }
 
+
+        public static bool Contains(this RawRectangleF rect, float x, float y) {
+            return x < rect.Right && x > rect.Left && y < rect.Bottom && y > rect.Top;
+        }
     }
 }

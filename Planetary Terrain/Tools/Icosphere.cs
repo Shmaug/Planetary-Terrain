@@ -51,15 +51,49 @@ namespace Planetary_Terrain {
                     8, 6, 7,
                     9, 8, 1 };
                 }
-            }
+        }
+        static short[] ReverseIndicies
+        {
+            get
+            {
+                return new short[] {
+                    0, 5,  11,
+                    0, 1,  5, 
+                    0, 7,  1, 
+                    0, 10, 7, 
+                    0, 11, 10,
 
-        public static void GenerateIcosphere(int detail, out VertexNormal[] verticies, out short[] indicies) {
+                    1,  9, 5, 
+                    5,  4, 11,
+                    11, 2, 10,
+                    10, 6, 7, 
+                    7,  8, 1, 
+
+                    3, 4, 9,
+                    3, 2, 4,
+                    3, 6, 2,
+                    3, 8, 6,
+                    3, 9, 8,
+
+                    4, 5,  9,
+                    2, 11, 4,
+                    6, 10, 2,
+                    8, 7,  6,
+                    9, 1,  8,};
+            }
+        }
+
+        public static void GenerateIcosphere(int detail, bool reverseTriangleDirection, out VertexNormal[] verticies, out short[] indicies) {
             List<VertexNormal> verts = new List<VertexNormal>();
             List<short> inds = new List<short>();
 
             for (int i = 0; i < Verticies.Length; i++)
                 verts.Add(new VertexNormal(Verticies[i], Vector3.Zero));
-            inds.AddRange(Indicies);
+
+            if (reverseTriangleDirection)
+                inds.AddRange(ReverseIndicies);
+            else
+                inds.AddRange(Indicies);
 
             short i1, i2, i3, i4, i5, i6;
             for (int l = 1; l < detail; l++) {
