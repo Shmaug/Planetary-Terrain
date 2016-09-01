@@ -1,5 +1,8 @@
 ﻿using System;
 using SharpDX;
+using SharpDX.Mathematics.Interop;
+using D2D1 = SharpDX.Direct2D1;
+using DWrite = SharpDX.DirectWrite;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
@@ -26,7 +29,8 @@ namespace Planetary_Terrain {
         /// </summary>
         public double MinChunkSize = QuadTree.GridSize / 2;
 
-
+        public string Label;
+        
         public double OceanHeight;
 
         /// <summary>
@@ -72,7 +76,17 @@ namespace Planetary_Terrain {
         public D3D11.Buffer constBuffer { get; private set; }
 
         INoiseGenerator mountainNoise, hillNoise;
-        
+
+        public Planet(string name, double radius, double terrainHeight, bool atmosphere, bool isStar = false) {
+            Label = name;
+            Radius = radius;
+            SOI = Radius * 1.05f;
+            TerrainHeight = terrainHeight;
+            Position = new Vector3d();
+            IsStar = isStar;
+
+            initialize(atmosphere);
+        }
         public Planet(double radius, double terrainHeight, bool atmosphere, bool isStar = false) {
             Radius = radius;
             SOI = Radius * 1.05f;
@@ -80,19 +94,23 @@ namespace Planetary_Terrain {
             Position = new Vector3d();
             IsStar = isStar;
 
+            initialize(atmosphere);
+        }
+
+        void initialize(bool atmosphere) {
             hillNoise = new SimplexNoiseGenerator();
             mountainNoise = new RidgedSimplexNoiseGenerator();
 
             double s = 1.41421356237 * Radius;
 
             MaxChunkSize = s;
-            
+
             BaseChunks = new QuadTree[6];
-            BaseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up,         MathTools.RotationXYZ(0, 0, 0));
-            BaseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down,       MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            BaseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left,       MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            BaseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right,      MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            BaseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH,  MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            BaseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
+            BaseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            BaseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            BaseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            BaseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
             BaseChunks[5] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
 
             for (int i = 0; i < BaseChunks.Length; i++)
@@ -190,6 +208,25 @@ namespace Planetary_Terrain {
 
             if (Atmosphere != null)
                 Atmosphere.Draw(renderer, pos, scale);
+        }
+
+        public void DrawHUDIcon(Renderer renderer) {
+            Vector2? screenPos = renderer.WorldToScreen(Position);
+            if (screenPos.HasValue) {
+                renderer.SegoeUI14.TextAlignment = DWrite.TextAlignment.Center;
+                renderer.SegoeUI14.WordWrapping = DWrite.WordWrapping.NoWrap;
+                renderer.SegoeUI14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
+
+                DWrite.TextLayout layout = new DWrite.TextLayout(renderer.FontFactory, Label, renderer.SegoeUI14, 100, 100);
+
+                float w = layout.DetermineMinWidth();
+
+                RawRectangleF rect = new RawRectangleF(
+                    screenPos.Value.X - w, screenPos.Value.Y - 10,
+                    screenPos.Value.X + w, screenPos.Value.Y + 10);
+
+                renderer.D2DContext.DrawText(Label, renderer.SegoeUI14, rect, renderer.SolidWhiteBrush);
+            }
         }
 
         public void Dispose() {

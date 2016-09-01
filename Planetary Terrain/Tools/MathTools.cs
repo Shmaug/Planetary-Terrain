@@ -46,5 +46,6 @@ namespace Planetary_Terrain {
                 (float)Math.Atan2(2f * q.X * q.Y + 2f * q.Z * q.W, 1 - 2f * (sqy + sqz))  // Roll
                 );
         }
+
     }
 }

@@ -163,7 +163,7 @@ namespace Planetary_Terrain {
 
             Debug.BeginFrame();
 
-            renderer.PreRender();
+            renderer.BeginDrawFrame();
             renderer.Clear(Color.Black);
 
             renderer.Context.Rasterizer.State = ks.IsPressed(DInput.Key.Tab) ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
@@ -173,7 +173,7 @@ namespace Planetary_Terrain {
             Debug.EndFrame();
             Debug.DrawStats(renderer);
             
-            renderer.Present();
+            renderer.EndDrawFrame();
         }
 
         public void Dispose() {
