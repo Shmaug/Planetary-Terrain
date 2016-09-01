@@ -7,8 +7,8 @@
     <ProjectGuid>{0E9A2EBF-D207-4D20-A433-97193C975573}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BetterTerrain</RootNamespace>
-    <AssemblyName>Better Terrain</AssemblyName>
+    <RootNamespace>Planetary_Terrain</RootNamespace>
+    <AssemblyName>Planetary Terrain</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -115,6 +115,8 @@
     <Content Include="Shaders\constants.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Compile Include="Tools\Constants.cs" />
+    <Compile Include="Tools\Debug.cs" />
     <Compile Include="Tools\Icosphere.cs" />
     <Compile Include="Core\QuadTree.cs" />
     <Compile Include="Core\Game.cs" />

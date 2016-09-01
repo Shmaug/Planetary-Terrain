@@ -1,7 +1,9 @@
 ﻿using System;
 using SharpDX;
-using SharpDX.DXGI;
+using DXGI = SharpDX.DXGI;
 using D3D11 = SharpDX.Direct3D11;
+using D2D1 = SharpDX.Direct2D1;
+using DWrite = SharpDX.DirectWrite;
 using SharpDX.Direct3D;
 using System.Runtime.InteropServices;
 
@@ -21,12 +23,26 @@ namespace Planetary_Terrain {
         public D3D11.DepthStencilView depthStencilView { get; private set; }
         public D3D11.RenderTargetView renderTargetView { get; private set; }
 
-        private SwapChain swapChain;
+        private D2D1.Device d2dDevice;
+        private D2D1.DeviceContext d2dContext;
+        private D2D1.Factory1 d2dFactory;
+        private D2D1.Bitmap d2dTarget;
+        private DWrite.Factory fontFactory;
+
+        public D2D1.Brush SolidWhiteBrush { get; private set; }
+        public DWrite.TextFormat SegoeUI24 { get; private set; }
+        public DWrite.TextFormat SegoeUI14 { get; private set; }
+        public DWrite.TextFormat Consolas14 { get; private set; }
+
+        private DXGI.SwapChain swapChain;
         private D3D11.Device device;
         private D3D11.DeviceContext context;
         
         public D3D11.Device Device { get { return device; } }
         public D3D11.DeviceContext Context { get { return context; } }
+
+        public D2D1.Device D2DDevice { get { return d2dDevice; } }
+        public D2D1.DeviceContext D2DContext { get { return d2dContext; } }
 
         public D3D11.DepthStencilState depthStencilState { get; private set; }
         public D3D11.DepthStencilState depthStencilStateNoDepth { get; private set; }
@@ -47,22 +63,44 @@ namespace Planetary_Terrain {
         public Renderer(SharpDX.Windows.RenderForm renderForm) {
             int width = renderForm.ClientSize.Width, height = renderForm.ClientSize.Height;
 
-            #region 3d device creation
-            SwapChainDescription swapChainDesc = new SwapChainDescription() {
-                ModeDescription = new ModeDescription(width, height, new Rational(60, 1), Format.R8G8B8A8_UNorm),
-                SampleDescription = new SampleDescription(1, 0),
-                Usage = Usage.RenderTargetOutput,
+            #region 3d device & context
+            DXGI.SwapChainDescription swapChainDesc = new DXGI.SwapChainDescription() {
+                ModeDescription = new DXGI.ModeDescription(width, height, new DXGI.Rational(60, 1), DXGI.Format.R8G8B8A8_UNorm),
+                SampleDescription = new DXGI.SampleDescription(1, 0),
+                Usage = DXGI.Usage.RenderTargetOutput,
                 BufferCount = 1,
                 OutputHandle = renderForm.Handle,
                 IsWindowed = true
             };
 
-            D3D11.Device.CreateWithSwapChain(DriverType.Hardware, D3D11.DeviceCreationFlags.BgraSupport, swapChainDesc, out device, out swapChain);
+            D3D11.Device.CreateWithSwapChain(DriverType.Hardware, D3D11.DeviceCreationFlags.BgraSupport | D3D11.DeviceCreationFlags.Debug, swapChainDesc, out device, out swapChain);
             context = device.ImmediateContext;
 
-            swapChain.GetParent<Factory>().MakeWindowAssociation(renderForm.Handle, WindowAssociationFlags.IgnoreAll);
+            swapChain.GetParent<DXGI.Factory>().MakeWindowAssociation(renderForm.Handle, DXGI.WindowAssociationFlags.IgnoreAll);
             #endregion
-            
+
+            #region 2d device & context
+            DXGI.Device dxgiDevice = device.QueryInterface<D3D11.Device1>().QueryInterface<DXGI.Device2>();
+            d2dDevice = new D2D1.Device(dxgiDevice);
+            d2dContext = new D2D1.DeviceContext(d2dDevice, D2D1.DeviceContextOptions.None);
+            d2dFactory = new D2D1.Factory1(D2D1.FactoryType.SingleThreaded);
+
+            using (DXGI.Surface surface = swapChain.GetBackBuffer<DXGI.Surface>(0))
+                d2dTarget = new D2D1.Bitmap1(d2dContext, surface,
+                    new D2D1.BitmapProperties1(new D2D1.PixelFormat(DXGI.Format.R8G8B8A8_UNorm, D2D1.AlphaMode.Premultiplied),
+                    d2dFactory.DesktopDpi.Width, d2dFactory.DesktopDpi.Height, D2D1.BitmapOptions.CannotDraw | D2D1.BitmapOptions.Target)
+                );
+            d2dContext.Target = d2dTarget;
+            #endregion
+
+            #region 2d resource
+            SolidWhiteBrush = new D2D1.SolidColorBrush(d2dContext, Color.White);
+            fontFactory = new DWrite.Factory();
+            SegoeUI24 = new DWrite.TextFormat(fontFactory, "Segoe UI", 24f);
+            SegoeUI14 = new DWrite.TextFormat(fontFactory, "Segoe UI", 14f);
+            Consolas14 = new DWrite.TextFormat(fontFactory, "Consolas", 14f);
+            #endregion
+
             #region viewport & render target
             context.Rasterizer.SetViewport(0, 0, width, height);
 
@@ -91,12 +129,12 @@ namespace Planetary_Terrain {
 
             #region depth buffer & depth stencil states
             D3D11.Texture2DDescription depthDescription = new D3D11.Texture2DDescription() {
-                Format = Format.D32_Float,
+                Format = DXGI.Format.D32_Float,
                 ArraySize = 1,
                 MipLevels = 1,
                 Width = width,
                 Height = height,
-                SampleDescription = new SampleDescription(1, 0),
+                SampleDescription = new DXGI.SampleDescription(1, 0),
                 Usage = D3D11.ResourceUsage.Default,
                 BindFlags = D3D11.BindFlags.DepthStencil,
                 CpuAccessFlags = D3D11.CpuAccessFlags.None,
@@ -176,28 +214,35 @@ namespace Planetary_Terrain {
         }
 
         public void Resize(int width, int height) {
-            if (renderTargetView != null)
-                renderTargetView.Dispose();
-            if (depthStencilView != null)
-                depthStencilView.Dispose();
+            renderTargetView.Dispose();
+            depthStencilView.Dispose();
+            d2dTarget.Dispose();
+            d2dContext.Dispose();
 
             Camera.AspectRatio = width / (float)height;
 
-            swapChain.ResizeBuffers(swapChain.Description.BufferCount, width, height, Format.Unknown, SwapChainFlags.None);
+            swapChain.ResizeBuffers(swapChain.Description.BufferCount, width, height, DXGI.Format.Unknown, DXGI.SwapChainFlags.None);
+            
+            d2dContext = new D2D1.DeviceContext(d2dDevice, D2D1.DeviceContextOptions.None);
+            using (DXGI.Surface surface = swapChain.GetBackBuffer<DXGI.Surface>(0))
+                d2dTarget = new D2D1.Bitmap1(d2dContext, surface,
+                    new D2D1.BitmapProperties1(new D2D1.PixelFormat(DXGI.Format.R8G8B8A8_UNorm, D2D1.AlphaMode.Premultiplied),
+                    d2dFactory.DesktopDpi.Height, d2dFactory.DesktopDpi.Width, D2D1.BitmapOptions.CannotDraw | D2D1.BitmapOptions.Target)
+                );
+            d2dContext.Target = d2dTarget;
 
             // render target
-            using (D3D11.Texture2D backBuffer = swapChain.GetBackBuffer<D3D11.Texture2D>(0)) {
+            using (D3D11.Texture2D backBuffer = swapChain.GetBackBuffer<D3D11.Texture2D>(0))
                 renderTargetView = new D3D11.RenderTargetView(device, backBuffer);
-            }
             
             // depth buffer
             D3D11.Texture2DDescription depthDescription = new D3D11.Texture2DDescription() {
-                Format = Format.D16_UNorm,
+                Format = DXGI.Format.D16_UNorm,
                 ArraySize = 1,
                 MipLevels = 1,
                 Width = width,
                 Height = height,
-                SampleDescription = new SampleDescription(1, 0),
+                SampleDescription = new DXGI.SampleDescription(1, 0),
                 Usage = D3D11.ResourceUsage.Default,
                 BindFlags = D3D11.BindFlags.DepthStencil,
                 CpuAccessFlags = D3D11.CpuAccessFlags.None,
@@ -234,9 +279,9 @@ namespace Planetary_Terrain {
             if (depth)
                 context.ClearDepthStencilView(depthStencilView, D3D11.DepthStencilClearFlags.Depth, 1f, 0);
         }
-
+        
         public void Present() {
-            swapChain.Present(1, PresentFlags.None);
+            swapChain.Present(1, DXGI.PresentFlags.None);
         }
 
         public void DrawAxis() {
@@ -255,6 +300,12 @@ namespace Planetary_Terrain {
         }
         
         public void Dispose() {
+            d2dTarget.Dispose();
+            SolidWhiteBrush.Dispose();
+            d2dDevice.Dispose();
+            d2dContext.Dispose();
+            d2dFactory.Dispose();
+
             blendStateOpaque.Dispose();
             blendStateTransparent.Dispose();
 

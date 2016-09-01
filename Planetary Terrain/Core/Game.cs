@@ -1,9 +1,9 @@
-﻿using SharpDX;
+﻿using System;
+using SharpDX;
 using SharpDX.Windows;
 using D3D11 = SharpDX.Direct3D11;
 using DInput = SharpDX.DirectInput;
-using System;
-using System.Collections.Generic;
+using SharpDX.Mathematics.Interop;
 
 namespace Planetary_Terrain {
     class Game : IDisposable {
@@ -11,8 +11,6 @@ namespace Planetary_Terrain {
         private bool resizePending;
 
         public Renderer renderer;
-        public D3D11.Device device { get { return renderer?.Device; } }
-        public D3D11.DeviceContext context { get {return renderer?.Context; } }
 
         private StarSystem starSystem;
 
@@ -46,7 +44,7 @@ namespace Planetary_Terrain {
             
             frameTimer = new System.Diagnostics.Stopwatch();
 
-            Shaders.LoadShaders(device, context);
+            Shaders.LoadShaders(renderer.Device, renderer.Context);
 
             InitializeScene();
         }
@@ -59,7 +57,7 @@ namespace Planetary_Terrain {
         }
 
         void InitializeScene() {
-            starSystem = new StarSystem(device);
+            starSystem = new StarSystem(renderer.Device);
             
             Planet startPlanet = starSystem.planets[3];
 
@@ -70,7 +68,6 @@ namespace Planetary_Terrain {
         }
 
         int framec = 0;
-        int fps;
         float ftime = 0;
         void Update() {
             float deltaTime = frameTimer.ElapsedMilliseconds / 1000f;
@@ -80,7 +77,7 @@ namespace Planetary_Terrain {
             framec++;
             if (ftime > 1) {
                 ftime = 0;
-                fps = framec;
+                Debug.FPS = framec;
                 framec = 0;
             }
 
@@ -90,12 +87,13 @@ namespace Planetary_Terrain {
             if (lastms == null) lastms = ms;
 
             #region camera control
+            Debug.CameraSpeed = 0;
             if (ks.IsPressed(DInput.Key.Space))
                 cameraSpeed += 10000;
             else
                 cameraSpeed = 2;
             if (ks.IsPressed(DInput.Key.RightShift))
-                cameraSpeed = 299792458; // speed of light
+                cameraSpeed = Constants.LIGHT_SPEED;
 
             Vector3 move = Vector3.Zero;
             if (ks.IsPressed(DInput.Key.W))
@@ -111,11 +109,14 @@ namespace Planetary_Terrain {
                 move.Normalize();
                 move = Vector3.Transform(move, renderer.Camera.RotationQuaternion);
                 Vector3d moved = move;
-                
-                moved *= cameraSpeed;
 
+                double s = cameraSpeed;
                 if (ks.IsPressed(DInput.Key.LeftShift))
-                    moved *= 3;
+                    s *= 3;
+
+                moved *= s;
+
+                Debug.CameraSpeed = s;
                 
                 renderer.Camera.Position += moved * deltaTime;
             }
@@ -150,23 +151,28 @@ namespace Planetary_Terrain {
                 renderer.Camera.AttachedPlanet = null;
 
             renderer.Camera.Update(deltaTime);
-            starSystem.Update(renderer, device);
+            starSystem.Update(renderer, renderer.Device);
 
             lastks = ks;
             lastms = ms;
         }
-        
+
         void Draw() {
             if (resizePending)
                 renderer.Resize(renderForm.ClientSize.Width, renderForm.ClientSize.Height);
+
+            Debug.BeginFrame();
 
             renderer.PreRender();
             renderer.Clear(Color.Black);
 
             renderer.Context.Rasterizer.State = ks.IsPressed(DInput.Key.Tab) ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
-
+            
             starSystem.Draw(renderer);
 
+            Debug.EndFrame();
+            Debug.DrawStats(renderer);
+            
             renderer.Present();
         }
 

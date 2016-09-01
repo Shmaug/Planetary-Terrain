@@ -122,11 +122,8 @@ float4 psmain(v2f i) : SV_TARGET
 	float3 ray = normalize(i.worldpos);
 
 	float2 e = ray_vs_sphere(-planetPos, ray, R);
-	if (length(planetPos) < R);
-		e.x = 0;
-	if (e.x > e.y) {
+	if (length(planetPos) < R || e.x > e.y)
 		discard;
-	}
 
 	float2 f = ray_vs_sphere(-planetPos, ray, R_INNER);
 	e.y = min(e.y, f.x);

@@ -66,6 +66,9 @@ namespace Planetary_Terrain {
         }
 
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
+            if ((renderer.Camera.Position - Planet.Position).Length() < Radius)
+                return;
+
             if (vertexBuffer == null)
                 vertexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verticies);
             if (indexBuffer == null)

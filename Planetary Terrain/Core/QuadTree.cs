@@ -281,6 +281,8 @@ namespace Planetary_Terrain {
                         shaderConstants.World = Matrix.Transpose(world);
                         shaderConstants.WorldInverseTranspose = Matrix.Identity;
                         Draw(renderer);
+
+                        Debug.ChunksDrawn++;
                     }
                 }
             }
