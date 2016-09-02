@@ -7,20 +7,7 @@ using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
 namespace Planetary_Terrain {
-    class Planet : Body, IDisposable {
-        /// <summary>
-        /// The total possible terrain displacement, additional to Radius
-        /// </summary>
-        public double TerrainHeight;
-        
-        /// <summary>
-        /// The world-space north pole
-        /// </summary>
-        public Vector3d NorthPole { get { return Position + new Vector3d(0, Radius, 0); } }
-        /// <summary>
-        /// The planet's atmosphere
-        /// </summary>
-        public Atmosphere Atmosphere;
+    class Star : Body, IDisposable {
         
         /// <summary>
         /// The map of temperature-humidity to color
@@ -37,29 +24,19 @@ namespace Planetary_Terrain {
 
         [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 16)]
         struct Constants {
-            public Vector3 lightDirection;
+            public float num;
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
-
-        INoiseGenerator mountainNoise, hillNoise;
-
-        public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null) : base(pos, radius, mass) {
+        
+        public Star(string name, Vector3d pos, double radius, double mass) : base(pos, radius, mass) {
             Label = name;
             Radius = radius;
-            TerrainHeight = terrainHeight;
-            Atmosphere = atmosphere;
-
-            if (atmosphere != null)
-                atmosphere.Planet = this;
-
+            
             initialize();
         }
 
         void initialize() {
-            hillNoise = new SimplexNoiseGenerator();
-            mountainNoise = new RidgedSimplexNoiseGenerator();
-
             double s = 1.41421356237 * Radius;
 
             MaxChunkSize = s;
@@ -76,17 +53,8 @@ namespace Planetary_Terrain {
                 BaseChunks[i].Generate();
         }
         
-        double height(Vector3d direction) {
-            Vector3d p = direction * 50;
-
-            //double hill = hillNoise.GetNoise(p);
-            double mountain = mountainNoise.GetNoise(p);
-
-            return mountain;
-        }
-
         public override double GetHeight(Vector3d direction) {
-            return Radius + height(direction) * TerrainHeight;
+            return Radius;
         }
         public override Vector2 GetTemp(Vector3d direction) {
             float y = (float)Math.Abs(direction.Y);
@@ -128,14 +96,12 @@ namespace Planetary_Terrain {
             if (scale * Radius < 1)
                 return;
 
-            constants.lightDirection = Vector3d.Normalize(Position - sun.Position);
-
             // create/update constant buffer
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
-            Shaders.PlanetShader.Set(renderer);
+            Shaders.StarShader.Set(renderer);
             // set constant buffer
             renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
@@ -148,9 +114,6 @@ namespace Planetary_Terrain {
 
             for (int i = 0; i < BaseChunks.Length; i++)
                 BaseChunks[i].Draw(renderer, pos, scale);
-            
-            if (Atmosphere != null)
-                Atmosphere.Draw(renderer, pos, scale);
         }
 
         public override void Dispose() {
@@ -166,9 +129,6 @@ namespace Planetary_Terrain {
 
             for (int i = 0; i < BaseChunks.Length; i++)
                 BaseChunks[i].Dispose();
-
-            if (Atmosphere != null)
-                Atmosphere.Dispose();
         }
     }
 }

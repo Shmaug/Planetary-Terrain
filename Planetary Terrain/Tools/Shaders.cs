@@ -5,12 +5,16 @@ namespace Planetary_Terrain {
         public const string shaderDirectory = "Shaders\\";
 
         public static Shader LineShader;
-        public static Shader TerrainShader;
+        public static Shader PlanetShader;
+        public static Shader StarShader;
         public static Shader AtmosphereShader;
 
         public static void LoadShaders(SharpDX.Direct3D11.Device device, SharpDX.Direct3D11.DeviceContext context) {
-            TerrainShader = new Shader(
-                shaderDirectory + "terrain",
+            StarShader = new Shader(
+                shaderDirectory + "star",
+                device, context, VertexNormalTexture.InputElements);
+            PlanetShader = new Shader(
+                shaderDirectory + "planet",
                 device, context, VertexNormalTexture.InputElements);
             AtmosphereShader = new Shader(
                 shaderDirectory + "atmosphere",
@@ -22,7 +26,7 @@ namespace Planetary_Terrain {
 
         public static void Dispose() {
             LineShader.Dispose();
-            TerrainShader.Dispose();
+            PlanetShader.Dispose();
             AtmosphereShader.Dispose();
         }
     }

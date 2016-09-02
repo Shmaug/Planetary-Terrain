@@ -32,7 +32,7 @@ namespace Planetary_Terrain {
             public float e;
             public Vector3 cr;
             public float gm;
-            
+
             public Vector3 planetPos;
         }
         Constants constants;
@@ -65,21 +65,18 @@ namespace Planetary_Terrain {
         }
 
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
-            if ((renderer.Camera.Position - Planet.Position).Length() < Radius)
-                return;
-
             if (vertexBuffer == null)
                 vertexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verticies);
             if (indexBuffer == null)
                 indexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.IndexBuffer, indicies);
 
             Shaders.AtmosphereShader.Set(renderer);
-            
-            Matrix world = Matrix.Scaling((float)(scale * Radius)) * Matrix.Translation(pos);
+
+            constants.world = Matrix.Scaling((float)(scale * Radius)) * Matrix.Translation(pos);
+            //constants.invWVP = Matrix.Invert(constants.world * renderer.Camera.View * renderer.Camera.Projection);
 
             SetConstants(renderer.Camera.Position, pos, scale);
 
-            constants.world = Matrix.Transpose(world);
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
@@ -99,14 +96,20 @@ namespace Planetary_Terrain {
             // alpha blending
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
-            // no depth buffer (floating point errors too big)s
-            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
+
+            if ((renderer.Camera.Position - Planet.Position).Length() > Radius) {
+                renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeNoCull : renderer.rasterizerStateSolidNoCull;
+                // no depth buffer if far away (floating point errors too big)s
+                renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
+            } else
+                renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullFront : renderer.rasterizerStateSolidCullFront;
             #endregion
 
             renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
             #region restore device state
             renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateDefault);
+            renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
             #endregion
         }
 

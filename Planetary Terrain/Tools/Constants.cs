@@ -7,5 +7,6 @@ using System.Threading.Tasks;
 namespace Planetary_Terrain {
     class Constants {
         public const double LIGHT_SPEED = 299792458;
+        public const double G = 6.674e-11;
     }
 }

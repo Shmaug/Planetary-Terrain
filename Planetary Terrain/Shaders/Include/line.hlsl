@@ -1,4 +1,4 @@
-#include "constants.h"
+#include "constants.hlsl"
 
 cbuffer ObjectConstants : register(b1) {
 	float4x4 World;

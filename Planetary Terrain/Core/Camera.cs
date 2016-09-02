@@ -4,7 +4,7 @@ using SharpDX;
 namespace Planetary_Terrain {
     class Camera {
         private Vector3d _position;
-        private Planet _planet;
+        private Body _planet;
         private Vector3 _rotation;
         private float _fov, _aspect, _near = 1f, _far = 10000f;
         private Quaternion _rotationQuaternion, _planetQuaternion;
@@ -91,7 +91,7 @@ namespace Planetary_Terrain {
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
 
-        public Planet AttachedPlanet {
+        public Body AttachedBody {
             get { return _planet; }
             set { _planet = value; }
         }

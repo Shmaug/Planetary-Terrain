@@ -55,10 +55,13 @@ namespace Planetary_Terrain {
         public D3D11.DepthStencilState depthStencilStateDefault { get; private set; }
         public D3D11.DepthStencilState depthStencilStateNoDepth { get; private set; }
 
-        public D3D11.RasterizerState rasterizerStateSolid { get; private set; }
-        public D3D11.RasterizerState rasterizerStateWireframe { get; private set; }
+        public D3D11.RasterizerState rasterizerStateSolidCullBack { get; private set; }
+        public D3D11.RasterizerState rasterizerStateWireframeCullBack { get; private set; }
         public D3D11.RasterizerState rasterizerStateSolidNoCull { get; private set; }
         public D3D11.RasterizerState rasterizerStateWireframeNoCull { get; private set; }
+        public D3D11.RasterizerState rasterizerStateSolidCullFront { get; private set; }
+        public D3D11.RasterizerState rasterizerStateWireframeCullFront { get; private set; }
+        
 
         public D3D11.BlendState blendStateOpaque { get; private set; }
         public D3D11.BlendState blendStateTransparent { get; private set; }
@@ -188,14 +191,14 @@ namespace Planetary_Terrain {
             #endregion
 
             #region rasterizer states
-            rasterizerStateSolid = new D3D11.RasterizerState(Device, new D3D11.RasterizerStateDescription() {
+            rasterizerStateSolidCullBack = new D3D11.RasterizerState(Device, new D3D11.RasterizerStateDescription() {
                 FillMode = D3D11.FillMode.Solid,
                 CullMode = D3D11.CullMode.Back,
                 IsAntialiasedLineEnabled = true,
                 IsDepthClipEnabled = false,
                 IsMultisampleEnabled = true
             });
-            rasterizerStateWireframe = new D3D11.RasterizerState(Device, new D3D11.RasterizerStateDescription() {
+            rasterizerStateWireframeCullBack = new D3D11.RasterizerState(Device, new D3D11.RasterizerStateDescription() {
                 FillMode = D3D11.FillMode.Wireframe,
                 CullMode = D3D11.CullMode.Back,
                 IsAntialiasedLineEnabled = true,
@@ -212,6 +215,20 @@ namespace Planetary_Terrain {
             rasterizerStateWireframeNoCull = new D3D11.RasterizerState(Device, new D3D11.RasterizerStateDescription() {
                 FillMode = D3D11.FillMode.Wireframe,
                 CullMode = D3D11.CullMode.None,
+                IsAntialiasedLineEnabled = true,
+                IsDepthClipEnabled = false,
+                IsMultisampleEnabled = true
+            });
+            rasterizerStateSolidCullFront = new D3D11.RasterizerState(Device, new D3D11.RasterizerStateDescription() {
+                FillMode = D3D11.FillMode.Solid,
+                CullMode = D3D11.CullMode.Front,
+                IsAntialiasedLineEnabled = true,
+                IsDepthClipEnabled = false,
+                IsMultisampleEnabled = true
+            });
+            rasterizerStateWireframeCullFront = new D3D11.RasterizerState(Device, new D3D11.RasterizerStateDescription() {
+                FillMode = D3D11.FillMode.Wireframe,
+                CullMode = D3D11.CullMode.Front,
                 IsAntialiasedLineEnabled = true,
                 IsDepthClipEnabled = false,
                 IsMultisampleEnabled = true
@@ -297,8 +314,8 @@ namespace Planetary_Terrain {
         }
 
         public void BeginDrawFrame() {
-            constants.View = Matrix.Transpose(Camera.View);
-            constants.Projection = Matrix.Transpose(Camera.Projection);
+            constants.View = Camera.View;
+            constants.Projection = Camera.Projection;
             constants.cameraDirection = Camera.View.Forward;
             constants.farPlane = Camera.zFar;
 
@@ -318,7 +335,7 @@ namespace Planetary_Terrain {
         }
 
         public void DrawAxis() {
-            Matrix mat = Matrix.Transpose(Matrix.Translation(-Camera.Position));
+            Matrix mat = Matrix.Translation(-Camera.Position);
             Context.UpdateSubresource(ref mat, axisConsts);
 
             Shaders.LineShader.Set(this);
@@ -348,8 +365,8 @@ namespace Planetary_Terrain {
             blendStateOpaque.Dispose();
             blendStateTransparent.Dispose();
 
-            rasterizerStateSolid.Dispose();
-            rasterizerStateWireframe.Dispose();
+            rasterizerStateSolidCullBack.Dispose();
+            rasterizerStateWireframeCullBack.Dispose();
             rasterizerStateSolidNoCull.Dispose();
             rasterizerStateWireframeNoCull.Dispose();
             depthStencilStateDefault.Dispose();

@@ -68,19 +68,19 @@ namespace Planetary_Terrain {
             
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
             {
-                Planet p = starSystem.planets[3];
+                Body p = starSystem.bodies[3];
                 Vector3d d = new Vector3d(0, 1, -1);
                 d.Normalize();
                 renderer.Camera.Position = p.Position + d * (p.SOI + 1000);
                 renderer.Camera.Rotation = new Vector3(0, 0, 0);
             }
             float h = 35;
-            NavigatorWindow = new UI.Frame(null, "Panel1", new RawRectangleF(0, 300, 200, 300 + (starSystem.planets.Count+1) * h), renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
+            NavigatorWindow = new UI.Frame(null, "Panel1", new RawRectangleF(0, 300, 200, 300 + (starSystem.bodies.Count+1) * h), renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
             NavigatorWindow.Draggable = true;
 
             new UI.TextLabel(NavigatorWindow, "Title", new RawRectangleF(0, 0, 200, h), "NAVIGATOR", renderer.SegoeUI24, renderer.SolidWhiteBrush);
             float y = h;
-            foreach (Planet p in starSystem.planets) {
+            foreach (Body p in starSystem.bodies) {
                 new UI.TextButton(NavigatorWindow, p.Label + "Button", new RawRectangleF(0, y, 200, y + h), p.Label, renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
                     ()=> {
                         Vector3d d = new Vector3d(0, 1, -1);
@@ -167,18 +167,18 @@ namespace Planetary_Terrain {
             }
 
             #region camera collision & planet attach
-            Planet p = starSystem.GetNearestPlanet(renderer.Camera.Position);
-             if ((renderer.Camera.Position - p.Position).Length() < p.SOI) {
-                renderer.Camera.AttachedPlanet = p;
+            Body b = starSystem.GetNearestBody(renderer.Camera.Position);
+             if ((renderer.Camera.Position - b.Position).Length() < b.SOI) {
+                renderer.Camera.AttachedBody = b;
                 
-                Vector3d c = renderer.Camera.Position - p.Position;
+                Vector3d c = renderer.Camera.Position - b.Position;
                 double a = c.Length();
                 c.Normalize();
-                double h = p.GetHeight(c);
+                double h = b.GetHeight(c);
                 if (h + 2 > a)
-                    renderer.Camera.Position = c * (h + 2) + p.Position;
+                    renderer.Camera.Position = c * (h + 2) + b.Position;
             } else
-                renderer.Camera.AttachedPlanet = null;
+                renderer.Camera.AttachedBody = null;
             #endregion
             #endregion
 
@@ -188,7 +188,7 @@ namespace Planetary_Terrain {
             #endregion
 
             renderer.Camera.Update((float)deltaTime);
-            starSystem.Update(renderer, renderer.Device);
+            starSystem.Update(renderer, renderer.Device, deltaTime);
 
             NavigatorWindow.Update((float)deltaTime, InputState);
 
@@ -209,7 +209,7 @@ namespace Planetary_Terrain {
             renderer.Clear(Color.Black);
 
             renderer.DrawWireframe = InputState.ks.IsPressed(DInput.Key.F);
-            renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframe : renderer.rasterizerStateSolid;
+            renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
             
             starSystem.Draw(renderer);
 

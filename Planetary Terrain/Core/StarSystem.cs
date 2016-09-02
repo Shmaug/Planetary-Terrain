@@ -5,67 +5,57 @@ using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
     class StarSystem : IDisposable {
-        public List<Planet> planets;
+        public List<Body> bodies;
 
         public StarSystem(D3D11.Device device) {
-            planets = new List<Planet>();
+            bodies = new List<Body>();
             
-            Planet sun = new Planet("Sol", 696000000, 0, null, true);
-            sun.Position = new Vector3d(0, 0, 0);
+            Star sun = new Star("Sol", new Vector3d(), 696000000, 1.989e30);
             sun.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Sun.jpg"), device);
-            planets.Add(sun);
+            bodies.Add(sun);
 
-            Planet mercury = new Planet("Mercury", 2440000, 10000);
-            mercury.Position = new Vector3d(0, 0, 57910000000);
+            Planet mercury = new Planet("Mercury", new Vector3d(0, 0, 57910000000), 2440000, 3.285e23, 10000);
             mercury.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mercury.jpg"), device);
-            planets.Add(mercury);
+            bodies.Add(mercury);
             
-            Planet venus = new Planet("Venus", 6500000, 40000);
-            venus.Position = new Vector3d(0, 0, 108200000000);
+            Planet venus = new Planet("Venus",new Vector3d(0, 0, 108200000000), 6500000, 4.867e24, 40000);
             venus.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Venus.jpg"), device);
-            planets.Add(venus);
+            bodies.Add(venus);
 
-            Planet earth = new Planet("Earth", 6371000, 20000, new Atmosphere(6371000 + 100000));
-            earth.Position = new Vector3d(0, 0, 149600000000);
+            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 20000, new Atmosphere(6371000 + 100000));
             earth.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Earth.jpg"), device);
-            planets.Add(earth);
+            bodies.Add(earth);
 
-            Planet mars = new Planet("Mars", 3397000, 10000);
-            mars.Position = new Vector3d(0, 0, 227940000000);
+            Planet mars = new Planet("Mars", new Vector3d(0, 0, 227940000000), 3397000, 6.39e23, 10000);
             mars.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mars.jpg"), device);
-            planets.Add(mars);
+            bodies.Add(mars);
 
             // Gas giants
-            Planet jupiter = new Planet("Jupiter", 71400000, 0, null);
-            jupiter.Position = new Vector3d(0, 0, 778330000000);
+            Planet jupiter = new Planet("Jupiter", new Vector3d(0, 0, 778330000000), 71400000, 1.898e27, 0, null);
             jupiter.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mars.jpg"), device);
-            planets.Add(jupiter);
+            bodies.Add(jupiter);
 
-            Planet saturn = new Planet("Saturn", 60330000, 0);
-            saturn.Position = new Vector3d(0, 0, 1424600000000);
+            Planet saturn = new Planet("Saturn", new Vector3d(0, 0, 1424600000000), 60330000, 5.683e26, 0);
             saturn.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mars.jpg"), device);
-            planets.Add(saturn);
+            bodies.Add(saturn);
 
-            Planet uranus = new Planet("Uranus", 25900000, 0);
-            uranus.Position = new Vector3d(0, 0, 2873550000000);
+            Planet uranus = new Planet("Uranus", new Vector3d(0, 0, 2873550000000), 25900000, 8.681e25, 0);
             uranus.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mars.jpg"), device);
-            planets.Add(uranus);
+            bodies.Add(uranus);
 
-            Planet neptune = new Planet("Neptune", 24750000, 0);
-            neptune.Position = new Vector3d(0, 0, 4501000000000);
+            Planet neptune = new Planet("Neptune", new Vector3d(0, 0, 4501000000000), 24750000, 1.024e26, 0);
             neptune.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mars.jpg"), device);
-            planets.Add(neptune);
+            bodies.Add(neptune);
 
-            Planet pluto = new Planet("Pluto", 1650000, 100);
-            pluto.Position = new Vector3d(0, 0, 5945900000000);
+            Planet pluto = new Planet("Pluto", new Vector3d(0, 0, 5945900000000), 1650000, 1.309e22, 100);
             pluto.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mars.jpg"), device);
-            planets.Add(pluto);
+            bodies.Add(pluto);
         }
 
-        public Planet GetNearestPlanet(Vector3d pos) {
+        public Body GetNearestBody(Vector3d pos) {
             double near = double.MaxValue;
-            Planet n = null;
-            foreach (Planet p in planets) {
+            Body n = null;
+            foreach (Body p in bodies) {
                 double d = (p.Position - pos).Length();
                 if (d < near) {
                     near = d;
@@ -75,25 +65,31 @@ namespace Planetary_Terrain {
             return n;
         }
 
-        public void Update(Renderer renderer, D3D11.Device device) {
-            foreach (Planet p in planets)
-                p.Update(device, renderer.Camera);
+        public void Update(Renderer renderer, D3D11.Device device, double deltaTime) {
+            foreach (Body b in bodies) {
+                b.Update(device, renderer.Camera);
+
+                //foreach (Body b2 in bodies) {
+                //    if (b != b2)
+                //        b.ApplyGravity(b2, deltaTime);
+                //}
+            }
         }
 
         public void Draw(Renderer renderer) {
-            foreach (Planet p in planets)
-                p.Draw(renderer, planets[0]);
+            foreach (Body b in bodies)
+                b.Draw(renderer, bodies[0]);
 
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
-                foreach (Planet p in planets)
-                    p.DrawHUDIcon(renderer);
+                foreach (Body b in bodies)
+                    b.DrawHUDIcon(renderer);
                 renderer.D2DContext.EndDraw();
             }
         }
 
         public void Dispose() {
-            foreach (Planet p in planets)
+            foreach (Body p in bodies)
                 p.Dispose();
         }
     }

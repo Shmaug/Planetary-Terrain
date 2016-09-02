@@ -1,4 +1,4 @@
-#include "constants.h"
+#include "constants.hlsl"
 
 cbuffer AtmoConstants : register (b1) {
 	float4x4 World;
@@ -106,6 +106,5 @@ float3 in_scatter(float3 o, float3 dir, float2 e, float3 l) {
 
 struct v2f {
 	float4 position : SV_POSITION;
-	float3 worldpos : TEXCOORD0;
+	float3 worldPos : TEXCOORD0;
 };
-
