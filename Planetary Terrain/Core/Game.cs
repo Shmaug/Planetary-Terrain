@@ -129,7 +129,7 @@ namespace Planetary_Terrain {
 
             // Warp speed
             if (InputState.ks.IsPressed(DInput.Key.Space))
-                renderer.Camera.Speed += Constants.LIGHT_SPEED * deltaTime;
+                renderer.Camera.Speed += Constants.LIGHT_SPEED * (deltaTime < 1 ? deltaTime*deltaTime : deltaTime);
             else if (move.IsZero)
                 renderer.Camera.Speed = 3;
 

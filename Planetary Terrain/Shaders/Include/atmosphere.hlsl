@@ -22,7 +22,7 @@ cbuffer AtmoConstants : register (b1) {
 cbuffer PlanetConstants : register(b2) {
 	float3 LightDirection;
 }
-static const float MAX = 10000.0;
+static const float MAX = 1e9;
 
 float2 ray_vs_sphere(float3 p, float3 dir, float r) {
 	float b = dot(p, dir);
