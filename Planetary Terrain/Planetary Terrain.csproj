@@ -116,9 +116,9 @@
     <Compile Include="UI\TextButton.cs" />
     <Compile Include="UI\TextLabel.cs" />
     <Compile Include="UI\UIElement.cs" />
-    <Content Include="Shaders\constants.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Content Include="Shaders\Include\atmosphere.h" />
+    <Content Include="Shaders\atmosphere_ps.hlsl" />
+    <Content Include="Shaders\Include\constants.h" />
     <Compile Include="Tools\Constants.cs" />
     <Compile Include="Tools\Debug.cs" />
     <Compile Include="Tools\Icosphere.cs" />
@@ -153,15 +153,13 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Shaders\line.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Shaders\atmosphere.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Shaders\terrain.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Content Include="Shaders\line_ps.hlsl" />
+    <Content Include="Shaders\line_vs.hlsl" />
+    <Content Include="Shaders\Include\line.h" />
+    <Content Include="Shaders\atmosphere_vs.hlsl" />
+    <Content Include="Shaders\terrain_vs.hlsl" />
+    <Content Include="Shaders\terrain_ps.hlsl" />
+    <Content Include="Shaders\Include\terrain.h" />
     <Content Include="Textures\Mars.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -180,6 +178,28 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>setlocal ENABLEDELAYEDEXPANSION
+
+if exist "Shaders" rmdir /s /q "Shaders"
+mkdir "Shaders"
+
+for /r "$(ProjectDir)Shaders" %25%25G in (*.hlsl) do (
+ set fname=%25%25~nG
+ set end=!fname:~-3!
+ echo !fname!
+ if !end! == _vs (
+  fxc "$(ProjectDir)Shaders"\!fname!.hlsl /I "$(ProjectDir)Shaders"\Include /T vs_5_0 /Fo "Shaders\!fname!.cso"
+ )
+  if !end! == _ps (
+   fxc "$(ProjectDir)Shaders"\!fname!.hlsl /I "$(ProjectDir)Shaders"\Include /T ps_5_0 /Fo "Shaders\!fname!.cso"
+ )
+)</PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

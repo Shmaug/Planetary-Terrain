@@ -233,7 +233,6 @@ namespace Planetary_Terrain {
         }
 
         public bool IsAboveHorizon(Vector3d camera) {
-            return true;
             Vector3d planetToCam = Vector3d.Normalize(camera - Planet.Position);
             Vector3d planetToMesh = Vector3d.Normalize(ClosestVertex(camera) - Planet.Position);
 

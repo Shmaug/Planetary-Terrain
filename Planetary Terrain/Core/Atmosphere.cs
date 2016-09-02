@@ -38,8 +38,7 @@ namespace Planetary_Terrain {
         Constants constants;
         D3D11.Buffer constBuffer;
 
-        public Atmosphere(Planet planet, double radius) {
-            Planet = planet;
+        public Atmosphere(double radius) {
             Radius = radius;
 
             Icosphere.GenerateIcosphere(6, false, out verticies, out indicies);

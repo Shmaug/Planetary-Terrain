@@ -30,8 +30,6 @@ namespace Planetary_Terrain {
         public double MinChunkSize = QuadTree.GridSize / 2;
 
         public string Label;
-        
-        public double OceanHeight;
 
         /// <summary>
         /// The planet's position
@@ -77,27 +75,22 @@ namespace Planetary_Terrain {
 
         INoiseGenerator mountainNoise, hillNoise;
 
-        public Planet(string name, double radius, double terrainHeight, bool atmosphere, bool isStar = false) {
+        public Planet(string name, double radius, double terrainHeight, Atmosphere atmosphere = null, bool isStar = false) {
             Label = name;
             Radius = radius;
             SOI = Radius * 1.05f;
             TerrainHeight = terrainHeight;
             Position = new Vector3d();
             IsStar = isStar;
+            Atmosphere = atmosphere;
 
-            initialize(atmosphere);
-        }
-        public Planet(double radius, double terrainHeight, bool atmosphere, bool isStar = false) {
-            Radius = radius;
-            SOI = Radius * 1.05f;
-            TerrainHeight = terrainHeight;
-            Position = new Vector3d();
-            IsStar = isStar;
+            if (atmosphere != null)
+                atmosphere.Planet = this;
 
-            initialize(atmosphere);
+            initialize();
         }
 
-        void initialize(bool atmosphere) {
+        void initialize() {
             hillNoise = new SimplexNoiseGenerator();
             mountainNoise = new RidgedSimplexNoiseGenerator();
 
@@ -115,9 +108,6 @@ namespace Planetary_Terrain {
 
             for (int i = 0; i < BaseChunks.Length; i++)
                 BaseChunks[i].Generate();
-
-            if (atmosphere)
-                Atmosphere = new Atmosphere(this, Radius * 1.05f);
         }
         
         double height(Vector3d direction) {
@@ -209,8 +199,7 @@ namespace Planetary_Terrain {
             // color map
             renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
             renderer.Context.PixelShader.SetSampler(0, colorMapSampler);
-
-
+            
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
             for (int i = 0; i < BaseChunks.Length; i++)
@@ -229,9 +218,30 @@ namespace Planetary_Terrain {
 
                 double dist = (renderer.Camera.Position - Position).Length();
 
-                double seconds = dist / (renderer.Camera.Speed * renderer.Camera.SpeedMultiplier);
-                TimeSpan time = TimeSpan.FromSeconds(seconds);
-                string t = Label + "(Arrive in " + string.Format("{0}:{1}", time.Minutes, time.Seconds) + ")";
+                ulong totalSeconds = (ulong)(dist / (renderer.Camera.Speed * renderer.Camera.SpeedMultiplier));
+                ulong totalMinutes = totalSeconds / 60L;
+                ulong totalHours = totalMinutes / 60L;
+                ulong totalDays = totalHours / 24L;
+                ulong totalYears = totalDays / 356L;
+
+                ulong seconds = totalSeconds % 60L;
+                ulong minutes = totalMinutes % 60L;
+                ulong hours = totalHours % 60L;
+                ulong days = totalDays % 24L;
+                ulong years = totalYears % 365L;
+
+                string t = Label;
+                if (totalSeconds < 60L)
+                    t += "\nArrive in " + string.Format("{0} seconds", totalSeconds) + "";
+                else if (totalMinutes < 60L)
+                    t += "\nArrive in " + string.Format("{0}m:{1}s", minutes, seconds) + "";
+                else if (totalHours < 24L)
+                    t += "\nArrive in " + string.Format("{0}h:{1}m", hours, minutes) + "";
+                else if (totalDays < 365L)
+                    t += "\nArrive in " + string.Format("{0}d:{1}h", days, hours) + "";
+                else
+                    t += "\nArrive in " + string.Format("{0}y:{0}d", years, days) + "";
+                
 
                 DWrite.TextLayout layout = new DWrite.TextLayout(renderer.FontFactory, t, renderer.SegoeUI14, 100, 100);
 

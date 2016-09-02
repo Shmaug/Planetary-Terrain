@@ -1,4 +1,4 @@
-﻿#include "constants.hlsl"
+#include "constants.h"
 
 cbuffer AtmoConstants : register (b1) {
 	float4x4 World;
@@ -85,7 +85,7 @@ float3 in_scatter(float3 o, float3 dir, float2 e, float3 l) {
 	float3 p = o + dir * e.x;
 	float3 v = p + dir * (len * 0.5);
 
-	float3 sum = float3(0,0,0);
+	float3 sum = float3(0, 0, 0);
 	for (int i = 0; i < NUM_SCATTER; i++) {
 		float2 f = ray_vs_sphere(v, l, R);
 		float3 u = v + l * f.y;
@@ -108,29 +108,4 @@ struct v2f {
 	float4 position : SV_POSITION;
 	float3 worldpos : TEXCOORD0;
 };
-v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
-	v2f v;
-	float4 worldVertex = mul(vertex, World);
-	v.position = mul(worldVertex, mul(View, Projection));
-	
-	v.worldpos = worldVertex.xyz;
-
-	return v;
-}
-float4 psmain(v2f i) : SV_TARGET
-{
-	float3 ray = normalize(i.worldpos);
-
-	float2 e = ray_vs_sphere(-planetPos, ray, R);
-	if (length(planetPos) < R || e.x > e.y)
-		discard;
-
-	float2 f = ray_vs_sphere(-planetPos, ray, R_INNER);
-	e.y = min(e.y, f.x);
-
-	float4 col = float4(0, 0, 0, 0);
-	col.rgb = in_scatter(-planetPos, ray, e, -LightDirection);
-	col.a = length(col.rgb);
-	return col;
-}
 
