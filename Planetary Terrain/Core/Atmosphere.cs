@@ -15,25 +15,31 @@ namespace Planetary_Terrain {
         D3D11.Buffer vertexBuffer;
         D3D11.Buffer indexBuffer;
 
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 144)]
         struct Constants {
-            public Matrix world;
-
-            public int Samples;
-
+            public Matrix World;
+            
             public float InnerRadius;
             public float OuterRadius;
-
-            public float ScaleH;
-            public float ScaleL;
-
-            public float kr;
-            public float km;
-            public float e;
-            public Vector3 cr;
-            public float gm;
-
+            
+            public Vector3 InvWavelength;
+            public float CameraHeight;
+             // TODO not packing right????
+            public float KrESun;
+            public float KmESun;
+            public float Kr4PI;
+            public float Km4PI;
+            
+            public float g;
+            
+            public float Scale;
+            public float ScaleDepth;
+            public float ScaleOverScaleDepth;
+            public float InvScaleDepth;
+            
             public Vector3 planetPos;
+            
+            public int nSamples;
         }
         Constants constants;
         D3D11.Buffer constBuffer;
@@ -47,24 +53,39 @@ namespace Planetary_Terrain {
         }
 
         void SetConstants(Vector3d camPos, Vector3d scaledPos, double scale) {
-            constants.Samples = 10;
+            constants.nSamples = 10;
 
             constants.InnerRadius = (float)(Planet.Radius * scale);
             constants.OuterRadius = (float)(Radius * scale);
 
-            constants.ScaleH = 4f / (constants.OuterRadius - constants.InnerRadius);
-            constants.ScaleL = 1f / (constants.OuterRadius - constants.InnerRadius);
+            constants.CameraHeight = (float)scaledPos.Length();
 
-            constants.kr = .166f;
-            constants.km = .0025f;
-            constants.e = 14.3f;
-            constants.cr = new Vector3(.3f, .7f, 1f);
-            constants.gm = -.85f;
+            float kr = .0025f; // rayleigh scattering constant
+            float km = .0010f; // mie scattering constant
+            float sun = 20f; // sun brightness
+            Vector3 wavelength = new Vector3(.65f, .57f, .475f);// new Vector3(6.5e-7f, 5.7e-7f, 4.75e-7f);
+
+            constants.InvWavelength = 1f / (wavelength * wavelength * wavelength * wavelength);
+
+            constants.KrESun = kr * sun;
+            constants.KmESun = km * sun;
+            constants.Kr4PI = kr * MathUtil.Pi * 4;
+            constants.Km4PI = km * MathUtil.Pi * 4;
+
+            constants.g = -.99f; // mie g constant
+
+            constants.Scale = 1f / (constants.OuterRadius - constants.InnerRadius);
+            constants.ScaleDepth = .25f; // height at which the average density is found
+            constants.ScaleOverScaleDepth = constants.Scale / constants.ScaleDepth;
+            constants.InvScaleDepth = 1f / constants.ScaleDepth;
 
             constants.planetPos = scaledPos;
         }
 
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
+            if ((renderer.Camera.Position - Planet.Position).Length() < Radius)
+                return;
+
             if (vertexBuffer == null)
                 vertexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verticies);
             if (indexBuffer == null)
@@ -72,7 +93,7 @@ namespace Planetary_Terrain {
 
             Shaders.AtmosphereShader.Set(renderer);
 
-            constants.world = Matrix.Scaling((float)(scale * Radius)) * Matrix.Translation(pos);
+            constants.World = Matrix.Scaling((float)(scale * Radius)) * Matrix.Translation(pos);
             //constants.invWVP = Matrix.Invert(constants.world * renderer.Camera.View * renderer.Camera.Projection);
 
             SetConstants(renderer.Camera.Position, pos, scale);
@@ -96,20 +117,15 @@ namespace Planetary_Terrain {
             // alpha blending
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
-
-            if ((renderer.Camera.Position - Planet.Position).Length() > Radius) {
-                renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeNoCull : renderer.rasterizerStateSolidNoCull;
-                // no depth buffer if far away (floating point errors too big)s
-                renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
-            } else
-                renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullFront : renderer.rasterizerStateSolidCullFront;
+            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
+            renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullFront : renderer.rasterizerStateSolidCullFront;
             #endregion
 
             renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
             #region restore device state
-            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateDefault);
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
+            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateDefault);
             #endregion
         }
 
