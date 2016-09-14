@@ -65,12 +65,9 @@ namespace Planetary_Terrain {
         }
 
         public void SetColormap(D3D11.Texture2D map, D3D11.Device device) {
-            if (colorMapSampler != null)
-                colorMapSampler.Dispose();
-            if (colorMap != null)
-                colorMap.Dispose();
-            if (colorMapView != null)
-                colorMapView.Dispose();
+            colorMapSampler?.Dispose();
+            colorMap?.Dispose();
+            colorMapView?.Dispose();
 
             colorMap = map;
             colorMapView = new D3D11.ShaderResourceView(device, colorMap);
@@ -117,15 +114,11 @@ namespace Planetary_Terrain {
         }
 
         public override void Dispose() {
-            if (colorMapSampler != null)
-                colorMapSampler.Dispose();
-            if (colorMap != null)
-                colorMap.Dispose();
-            if (colorMapView != null)
-                colorMapView.Dispose();
+            colorMapSampler?.Dispose();
+            colorMap?.Dispose();
+            colorMapView?.Dispose();
 
-            if (constBuffer != null)
-                constBuffer.Dispose();
+            constBuffer?.Dispose();
 
             for (int i = 0; i < BaseChunks.Length; i++)
                 BaseChunks[i].Dispose();

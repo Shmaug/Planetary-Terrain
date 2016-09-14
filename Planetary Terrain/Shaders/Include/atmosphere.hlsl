@@ -1,12 +1,11 @@
 #include "constants.hlsl"
 
 cbuffer AtmoConstants : register (b1) {
-	float4x4 World;
+	row_major float4x4 World;
 
 	float InnerRadius;
 	float OuterRadius;
 
-	float3 InvWavelength;
 	float CameraHeight;
 
 	float KrESun;
@@ -21,9 +20,11 @@ cbuffer AtmoConstants : register (b1) {
 	float ScaleOverScaleDepth;
 	float InvScaleDepth;
 
-	float3 planetPos;
-
+	float fSamples;
 	int nSamples;
+
+	float3 planetPos;
+	float3 InvWavelength;
 }
 cbuffer PlanetConstants : register(b2) {
 	float3 LightDirection;

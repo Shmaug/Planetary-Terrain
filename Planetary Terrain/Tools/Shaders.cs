@@ -2,7 +2,7 @@
 
 namespace Planetary_Terrain {
     static class Shaders {
-        public const string shaderDirectory = "Shaders\\";
+        public const string shaderDirectory = @"Shaders\";
 
         public static Shader LineShader;
         public static Shader PlanetShader;

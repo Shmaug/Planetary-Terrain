@@ -18,7 +18,7 @@ v2f main(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	float startDepth = exp(-InvScaleDepth);
 	float startOffset = startDepth * scale(startAngle);
 
-	float sampleLength = far / (float)nSamples;
+	float sampleLength = far / fSamples;
 	float scaledLength = sampleLength * Scale;
 	float3 sampleRay = rd * sampleLength;
 	float3 samplePoint = rd * .5;

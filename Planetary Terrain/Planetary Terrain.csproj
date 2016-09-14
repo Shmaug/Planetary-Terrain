@@ -35,7 +35,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>true</UseVSHostingProcess>
@@ -104,16 +104,6 @@
     <Compile Include="Core\Camera.cs" />
     <Compile Include="Core\Star.cs" />
     <Compile Include="Core\StarSystem.cs" />
-    <Compile Include="Noise\FractalBrownianMotionSpectralGenerator.cs" />
-    <Compile Include="Noise\INoiseGenerator.cs" />
-    <Compile Include="Noise\ISpectralGenerator.cs" />
-    <Compile Include="Noise\NoiseFilter.cs" />
-    <Compile Include="Noise\RandomNoiseGenerator.cs" />
-    <Compile Include="Noise\RidgedMultiFractalSpectralGenerator.cs" />
-    <Compile Include="Noise\RidgedMultiFractalSpectralGenerator2.cs" />
-    <Compile Include="Noise\RidgedSimplexNoiseGenerator.cs" />
-    <Compile Include="Noise\SimplexNoiseGenerator.cs" />
-    <Compile Include="Noise\TurbulenceSpectralGenerator.cs" />
     <Compile Include="UI\Frame.cs" />
     <Compile Include="UI\TextButton.cs" />
     <Compile Include="UI\TextLabel.cs" />
@@ -181,12 +171,19 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Noise\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>setlocal ENABLEDELAYEDEXPANSION
+    <PreBuildEvent>SET COMPILE_AT_RUNTIME=1
 
 if not exist "Shaders" mkdir "Shaders"
+
+if %25COMPILE_AT_RUNTIME%25 equ 1 (
+  xcopy /s/y "$(ProjectDir)Shaders" "Shaders"
+) else (
+setlocal ENABLEDELAYEDEXPANSION
 
 for /r "$(ProjectDir)Shaders" %25%25G in (*.hlsl) do (
  set fname=%25%25~nG
@@ -197,6 +194,7 @@ for /r "$(ProjectDir)Shaders" %25%25G in (*.hlsl) do (
  if !end! == _ps (
   fxc "$(ProjectDir)Shaders"\!fname!.hlsl /I "$(ProjectDir)Shaders"\Include /T ps_5_0 /Zpr /nologo /Fo "Shaders\!fname!.cso"
  )
+)
 )</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>

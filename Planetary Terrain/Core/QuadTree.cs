@@ -144,12 +144,10 @@ namespace Planetary_Terrain {
         }
         
         public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
-            if (vertexBuffer != null)
-                vertexBuffer.Dispose();
+            vertexBuffer?.Dispose();
             vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
 
-            if (indexBuffer != null)
-                indexBuffer.Dispose();
+            indexBuffer?.Dispose();
             indexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies);
 
             VertexCount = verticies.Length;
@@ -207,8 +205,7 @@ namespace Planetary_Terrain {
             if (Children == null) return;
 
             for (int i = 0; i < Children.Length; i++)
-                if (Children[i] != null)
-                    Children[i].Dispose();
+                Children[i]?.Dispose();
             
             Children = null;
         }
@@ -290,14 +287,9 @@ namespace Planetary_Terrain {
         }
 
         public void Dispose() {
-            if (vertexBuffer != null)
-                vertexBuffer.Dispose();
-            
-            if (constantBuffer != null)
-                constantBuffer.Dispose();
-
-            if (indexBuffer != null)
-                indexBuffer.Dispose();
+            vertexBuffer?.Dispose();
+            constantBuffer?.Dispose();
+            indexBuffer?.Dispose();
 
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)

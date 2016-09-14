@@ -41,9 +41,7 @@ namespace Planetary_Terrain {
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
-
-        INoiseGenerator mountainNoise, hillNoise;
-
+        
         public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null) : base(pos, radius, mass) {
             Label = name;
             Radius = radius;
@@ -57,9 +55,6 @@ namespace Planetary_Terrain {
         }
 
         void initialize() {
-            hillNoise = new SimplexNoiseGenerator();
-            mountainNoise = new RidgedSimplexNoiseGenerator();
-
             double s = 1.41421356237 * Radius;
 
             MaxChunkSize = s;
@@ -77,10 +72,10 @@ namespace Planetary_Terrain {
         }
         
         double height(Vector3d direction) {
-            Vector3d p = direction * 50;
+            Vector3d p = direction;
 
             //double hill = hillNoise.GetNoise(p);
-            double mountain = mountainNoise.GetNoise(p);
+            double mountain = Noise.noise(direction, -1, 1, .002d, .7d) * Noise.ridgenoise(direction, 150, 5, .3f, .8f);
 
             return mountain;
         }
@@ -89,20 +84,18 @@ namespace Planetary_Terrain {
             return Radius + height(direction) * TerrainHeight;
         }
         public override Vector2 GetTemp(Vector3d direction) {
-            float y = (float)Math.Abs(direction.Y);
-            float temp = (float)Noise.noise(direction, 10, 4, .75f, .8f) + y;
-            float humid = (float)Noise.noise(direction, 128, 7, .0008f, .8f);
+            float y = MathUtil.Clamp((float)Math.Abs(direction.Y - .1f), 0, 1);
+            y = y * y * y;
+            float temp = (float)Noise.noise(direction, 10, 5, .3f, .8f) - y;
+            float humid = (float)Noise.noise(direction, 10, 4, .1f, .8f);
 
-            return 1 - new Vector2(temp, humid);
+            return new Vector2(temp, humid);
         }
 
         public void SetColormap(D3D11.Texture2D map, D3D11.Device device) {
-            if (colorMapSampler != null)
-                colorMapSampler.Dispose();
-            if (colorMap != null)
-                colorMap.Dispose();
-            if (colorMapView != null)
-                colorMapView.Dispose();
+            colorMapSampler?.Dispose();
+            colorMap?.Dispose();
+            colorMapView?.Dispose();
 
             colorMap = map;
             colorMapView = new D3D11.ShaderResourceView(device, colorMap);
@@ -149,26 +142,20 @@ namespace Planetary_Terrain {
             for (int i = 0; i < BaseChunks.Length; i++)
                 BaseChunks[i].Draw(renderer, pos, scale);
             
-            if (Atmosphere != null)
-                Atmosphere.Draw(renderer, pos, scale);
+            Atmosphere?.Draw(renderer, pos, scale);
         }
 
         public override void Dispose() {
-            if (colorMapSampler != null)
-                colorMapSampler.Dispose();
-            if (colorMap != null)
-                colorMap.Dispose();
-            if (colorMapView != null)
-                colorMapView.Dispose();
+            colorMapSampler?.Dispose();
+            colorMap?.Dispose();
+            colorMapView?.Dispose();
 
-            if (constBuffer != null)
-                constBuffer.Dispose();
+            constBuffer?.Dispose();
 
             for (int i = 0; i < BaseChunks.Length; i++)
                 BaseChunks[i].Dispose();
-
-            if (Atmosphere != null)
-                Atmosphere.Dispose();
+            
+            Atmosphere?.Dispose();
         }
     }
 }

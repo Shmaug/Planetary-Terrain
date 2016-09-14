@@ -1,7 +1,7 @@
 #include "constants.hlsl"
 
 cbuffer ObjectConstants : register(b1) {
-	float4x4 World;
+	row_major float4x4 World;
 }
 
 struct v2f {

@@ -1,8 +1,8 @@
 #include "constants.hlsl"
 
 cbuffer ChunkConstants : register (b1) {
-	float4x4 World;
-	float4x4 WorldInverseTranspose;
+	row_major float4x4 World;
+	row_major float4x4 WorldInverseTranspose;
 }
 cbuffer StarConstants : register(b2) {
 	float num;

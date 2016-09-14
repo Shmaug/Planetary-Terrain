@@ -6,7 +6,6 @@ namespace Planetary_Terrain {
     /// <summary>
     /// Implementation of the Perlin simplex noise, an improved Perlin noise algorithm.
     /// Based loosely on SimplexNoise1234 by Stefan Gustavson <http://staffwww.itn.liu.se/~stegu/aqsis/aqsis-newnoise/>
-    /// 
     /// </summary>
     class Simplex {
         /// <summary>
@@ -267,7 +266,7 @@ namespace Planetary_Terrain {
         }
     }
     static class Noise {
-        public static double snoise(Vector3d position, double scale = 1f) {
+        public static double snoise(Vector3d position, double scale = 1) {
             position *= scale;
             return .5f * (Simplex.Generate(position.X, position.Y, position.Z) + 1f);
         }

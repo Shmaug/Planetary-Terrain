@@ -15,31 +15,39 @@ namespace Planetary_Terrain {
         D3D11.Buffer vertexBuffer;
         D3D11.Buffer indexBuffer;
 
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 144)]
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 160)]
         struct Constants {
             public Matrix World;
-            
+            // ----
             public float InnerRadius;
             public float OuterRadius;
             
-            public Vector3 InvWavelength;
             public float CameraHeight;
-             // TODO not packing right????
+
             public float KrESun;
+            // ----
             public float KmESun;
             public float Kr4PI;
             public float Km4PI;
             
             public float g;
-            
+            // ----
             public float Scale;
             public float ScaleDepth;
             public float ScaleOverScaleDepth;
+
             public float InvScaleDepth;
-            
-            public Vector3 planetPos;
-            
+            // ----
+            public float fSamples;
             public int nSamples;
+
+            Vector2 spacer0;
+            // ----
+            public Vector3 planetPos;
+            float spacer1;
+            // ----
+            public Vector3 InvWavelength;
+            float spacer2;
         }
         Constants constants;
         D3D11.Buffer constBuffer;
@@ -54,6 +62,7 @@ namespace Planetary_Terrain {
 
         void SetConstants(Vector3d camPos, Vector3d scaledPos, double scale) {
             constants.nSamples = 10;
+            constants.fSamples = 10f;
 
             constants.InnerRadius = (float)(Planet.Radius * scale);
             constants.OuterRadius = (float)(Radius * scale);
@@ -83,6 +92,7 @@ namespace Planetary_Terrain {
         }
 
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
+            return;
             if ((renderer.Camera.Position - Planet.Position).Length() < Radius)
                 return;
 
@@ -130,12 +140,9 @@ namespace Planetary_Terrain {
         }
 
         public void Dispose() {
-            if (vertexBuffer != null)
-                vertexBuffer.Dispose();
-            if (indexBuffer != null)
-                indexBuffer.Dispose();
-            if (constBuffer != null)
-                constBuffer.Dispose();
+            vertexBuffer?.Dispose();
+            indexBuffer?.Dispose();
+            constBuffer?.Dispose();
         }
     }
 }

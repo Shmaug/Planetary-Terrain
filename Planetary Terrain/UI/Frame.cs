@@ -38,8 +38,7 @@ namespace Planetary_Terrain.UI
         }
 
         public override void Dispose() {
-            if (Brush != null)
-                Brush.Dispose();
+            Brush?.Dispose();
             base.Dispose();
         }
     }
