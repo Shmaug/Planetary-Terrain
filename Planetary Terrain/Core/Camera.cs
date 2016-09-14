@@ -42,6 +42,8 @@ namespace Planetary_Terrain {
         }
         private void makeRotation() {
             _rotationQuaternion = Quaternion.RotationYawPitchRoll(_rotation.Y, _rotation.X, _rotation.Z);
+
+            Debug.Track(_rotation + " ~= " + _rotationQuaternion.ToEuler(), "rotations");
         }
         #endregion
 
@@ -53,6 +55,7 @@ namespace Planetary_Terrain {
         public Vector3 Rotation { get { return _rotation; }
             set {
                 _rotation = value;
+                _rotation.Z = 
                 _rotation.X = MathUtil.Clamp(_rotation.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
 
                 makeRotation();
@@ -92,8 +95,20 @@ namespace Planetary_Terrain {
         public Matrix Projection { get { return _proj; } }
 
         public Body AttachedBody {
-            get { return _planet; }
-            set { _planet = value; }
+            get {
+                return _planet;
+            }
+            set {
+                if (value != _planet) {
+                    if (_planet != null && value == null) {
+                        Quaternion q = _planetQuaternion * _rotationQuaternion;
+                        q.Normalize();
+                        Rotation = q.ToEuler();
+                        Console.WriteLine("flipped view");
+                    }
+                }
+                _planet = value;
+            }
         }
 
         public Camera(float fieldOfView, float aspectRatio) {

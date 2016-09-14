@@ -71,7 +71,7 @@ namespace Planetary_Terrain {
                 float w = 200;
                 RawRectangleF rect = new RawRectangleF(renderer.ResolutionX * .5f - w - 3, y - 3, renderer.ResolutionX * .5f + w + 3, y + h + 3);
 
-                renderer.D2DContext.FillRectangle(rect, renderer.SolidGrayBrush);
+                renderer.D2DContext.FillRectangle(rect, renderer.SolidBlackBrush);
                 renderer.D2DContext.DrawText(l.Value, renderer.Consolas14, rect, renderer.SolidWhiteBrush);
 
                 y += h + 5;
