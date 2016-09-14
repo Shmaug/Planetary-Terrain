@@ -14,10 +14,6 @@ namespace Planetary_Terrain {
         public double TerrainHeight;
         
         /// <summary>
-        /// The world-space north pole
-        /// </summary>
-        public Vector3d NorthPole { get { return Position + new Vector3d(0, Radius, 0); } }
-        /// <summary>
         /// The planet's atmosphere
         /// </summary>
         public Atmosphere Atmosphere;

@@ -168,8 +168,9 @@ namespace Planetary_Terrain {
 
             #region camera collision & planet attach
             Body b = starSystem.GetNearestBody(renderer.Camera.Position);
+            renderer.Camera.NearestBody = b;
              if ((renderer.Camera.Position - b.Position).Length() < b.SOI) {
-                renderer.Camera.AttachedBody = b;
+                renderer.Camera.Mode = Camera.CameraMode.Surface;
                 
                 Vector3d c = renderer.Camera.Position - b.Position;
                 double a = c.Length();
@@ -178,7 +179,7 @@ namespace Planetary_Terrain {
                 if (h + 2 > a)
                     renderer.Camera.Position = c * (h + 2) + b.Position;
             } else
-                renderer.Camera.AttachedBody = null;
+                renderer.Camera.Mode = Camera.CameraMode.Orbital;
             #endregion
             #endregion
 

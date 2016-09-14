@@ -17,6 +17,11 @@ namespace Planetary_Terrain {
         public double MinChunkSize = QuadTree.GridSize / 2;
 
         /// <summary>
+        /// The world-space north pole
+        /// </summary>
+        public Vector3d NorthPole { get { return Position + new Vector3d(0, Radius, 0); } }
+
+        /// <summary>
         /// The 6 base quadtrees composing the planet
         /// </summary>
         public QuadTree[] BaseChunks;

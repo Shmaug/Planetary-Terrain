@@ -3,11 +3,19 @@ using SharpDX;
 
 namespace Planetary_Terrain {
     class Camera {
+        public enum CameraMode {
+            Surface, Orbital
+        }
+
+        private CameraMode _fromMode;
+        private CameraMode _mode;
+        private float transitionTimer;
+
         private Vector3d _position;
         private Body _planet;
         private Vector3 _rotation;
         private float _fov, _aspect, _near = 1f, _far = 10000f;
-        private Quaternion _rotationQuaternion, _planetQuaternion;
+        private Quaternion _rotationQuaternion, _bodyQuaternion;
         private Matrix _view, _proj;
 
         #region make functions
@@ -15,35 +23,38 @@ namespace Planetary_Terrain {
             _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
         }
         private void makeView() {
-            Quaternion q = _planetQuaternion * _rotationQuaternion;
+            Quaternion q =  _bodyQuaternion * _rotationQuaternion;
             q.Normalize();
             Vector3 fwd = Vector3.Transform(Vector3.ForwardLH, q);
             Vector3 up = Vector3.Transform(Vector3.Up, q);
             _view = Matrix.LookAtLH(Vector3.Zero, fwd, up);
         }
-        private void makePlanetQuaternion(float time) {
+        private void makeRotation() {
+            _rotationQuaternion = Quaternion.RotationYawPitchRoll(_rotation.Y, _rotation.X, _rotation.Z);
+        }
+        private Quaternion getQuaternion(CameraMode mode) {
             Quaternion q = Quaternion.Identity;
+            Vector3 pUp = Vector3.Up;
             if (_planet != null) {
-                Vector3 pUp = Vector3d.Normalize(_position - _planet.Position);
-
-                float ang = (float)Math.Acos(Vector3.Dot(pUp, Vector3.Up));
-                if (ang != 0f) {
-                    Vector3 orthoRay = Vector3.Cross(Vector3.Up, pUp);
-                    orthoRay.Normalize();
-                    q = Quaternion.RotationAxis(orthoRay, ang);
-                    q.Normalize();
+                switch (mode) {
+                    case CameraMode.Surface:
+                        pUp = Vector3d.Normalize(_position - _planet.Position);
+                        break;
+                    case CameraMode.Orbital:
+                        pUp = Vector3d.Normalize(_planet.NorthPole - _planet.Position);
+                        break;
                 }
             }
 
-            _planetQuaternion = Quaternion.Lerp(_planetQuaternion, q, .9f);
-            _planetQuaternion.Normalize();
+            float ang = (float)Math.Acos(Vector3.Dot(pUp, Vector3.Up));
+            if (ang != 0f) {
+                Vector3 orthoRay = Vector3.Cross(Vector3.Up, pUp);
+                orthoRay.Normalize();
+                q = Quaternion.RotationAxis(orthoRay, ang);
+            }
+            q.Normalize();
 
-            makeView();
-        }
-        private void makeRotation() {
-            _rotationQuaternion = Quaternion.RotationYawPitchRoll(_rotation.Y, _rotation.X, _rotation.Z);
-
-            Debug.Track(_rotation + " ~= " + _rotationQuaternion.ToEuler(), "rotations");
+            return q;
         }
         #endregion
 
@@ -51,6 +62,22 @@ namespace Planetary_Terrain {
         public double SpeedMultiplier = 1;
         public Vector3d Position { get { return _position; }
             set { _position = value; }
+        }
+
+        public CameraMode Mode
+        {
+            get
+            {
+                return _mode;
+            }
+            set
+            {
+                if (_mode != value) {
+                    transitionTimer = 1f;
+                    _fromMode = _mode;
+                }
+                _mode = value;
+            }
         }
         public Vector3 Rotation { get { return _rotation; }
             set {
@@ -90,26 +117,11 @@ namespace Planetary_Terrain {
         }
         #endregion
 
-        public Quaternion RotationQuaternion { get { return _planetQuaternion * _rotationQuaternion; } }
+        public Quaternion RotationQuaternion { get { return _bodyQuaternion * _rotationQuaternion; } }
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
 
-        public Body AttachedBody {
-            get {
-                return _planet;
-            }
-            set {
-                if (value != _planet) {
-                    if (_planet != null && value == null) {
-                        Quaternion q = _planetQuaternion * _rotationQuaternion;
-                        q.Normalize();
-                        Rotation = q.ToEuler();
-                        Console.WriteLine("flipped view");
-                    }
-                }
-                _planet = value;
-            }
-        }
+        public Body NearestBody { get { return _planet; } set { _planet = value; } }
 
         public Camera(float fieldOfView, float aspectRatio) {
             _fov = fieldOfView;
@@ -120,7 +132,14 @@ namespace Planetary_Terrain {
         }
 
         public void Update(float deltaTime) {
-            makePlanetQuaternion(deltaTime);
+            _bodyQuaternion = Quaternion.Identity;
+            if (transitionTimer > 0) {
+                _bodyQuaternion = Quaternion.Lerp(getQuaternion(_fromMode), getQuaternion(_mode), 1f - transitionTimer);
+                transitionTimer -= deltaTime;
+            }else {
+                _bodyQuaternion = getQuaternion(_mode);
+            }
+            makeView();
         }
         
         public void AdjustPositionRelative(Vector3d location, out Vector3d pos, out double scale) {
