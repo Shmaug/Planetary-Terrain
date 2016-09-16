@@ -22,7 +22,7 @@ namespace Planetary_Terrain {
             venus.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Venus.jpg"), device);
             bodies.Add(venus);
 
-            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 20000, new Atmosphere(6371000 + 200000));
+            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 50000, new Atmosphere(6371000 + 200000));
             earth.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Earth.jpg"), device);
             bodies.Add(earth);
 

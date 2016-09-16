@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace Planetary_Terrain {
     class Planet : Body, IDisposable {
         /// <summary>
-        /// The total possible terrain displacement, additional to Radius
+        /// The total possible terrain displacement is Radius +/- TerrainHeight
         /// </summary>
         public double TerrainHeight;
         
@@ -68,12 +68,15 @@ namespace Planetary_Terrain {
         }
         
         double height(Vector3d direction) {
-            Vector3d p = direction;
+            double total = 0;
 
-            //double hill = hillNoise.GetNoise(p);
-            double mountain = Noise.noise(direction, -1, 1, .002d, .7d) * Noise.ridgenoise(direction, 150, 5, .3f, .8f);
+            double n = Noise.Ridged(direction * 500 + new Vector3(1000), 2, .01f, .3f);
+            n = Noise.Map(n, 0, 1);
+            n = 1 - n * n * n;
 
-            return mountain;
+            total += Noise.Map(Noise.Fractal(direction * 100 + new Vector3(1000), 11, .03f, .5f), 0, 1);
+            
+            return total;
         }
 
         public override double GetHeight(Vector3d direction) {
@@ -82,8 +85,8 @@ namespace Planetary_Terrain {
         public override Vector2 GetTemp(Vector3d direction) {
             float y = MathUtil.Clamp((float)Math.Abs(direction.Y - .1f), 0, 1);
             y = y * y * y;
-            float temp = (float)Noise.noise(direction, 10, 5, .3f, .8f) - y;
-            float humid = (float)Noise.noise(direction, 10, 4, .1f, .8f);
+            float temp = (float)(Noise.SmoothSimplex(direction * 10, 5, .3f, .8f)*.5d+.5d) - y;
+            float humid = (float)(Noise.SmoothSimplex(direction * 10, 4, .1f, .8f)*.5d+.5d);
 
             return new Vector2(temp, humid);
         }

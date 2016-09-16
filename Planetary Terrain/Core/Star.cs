@@ -58,8 +58,8 @@ namespace Planetary_Terrain {
         }
         public override Vector2 GetTemp(Vector3d direction) {
             float y = (float)Math.Abs(direction.Y);
-            float temp = (float)Noise.noise(direction, 10, 4, .75f, .8f) + y;
-            float humid = (float)Noise.noise(direction, 128, 7, .0008f, .8f);
+            float temp = (float)Noise.SmoothSimplex(direction * 10, 4, .75f, .8f) + y;
+            float humid = (float)Noise.SmoothSimplex(direction * 128, 7, .0008f, .8f);
 
             return 1 - new Vector2(temp, humid);
         }

@@ -19,7 +19,9 @@ namespace Planetary_Terrain {
         /// <summary>
         /// The world-space north pole
         /// </summary>
-        public Vector3d NorthPole { get { return Position + new Vector3d(0, Radius, 0); } }
+        public Vector3d North { get { return (Vector3d)Vector3.Transform(Vector3.Up, Rotation); } }
+
+        public Quaternion Rotation;
 
         /// <summary>
         /// The 6 base quadtrees composing the planet

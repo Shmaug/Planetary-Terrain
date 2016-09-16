@@ -30,9 +30,10 @@ namespace Planetary_Terrain {
             _view = Matrix.LookAtLH(Vector3.Zero, fwd, up);
         }
         private void makeRotation() {
-            _rotationQuaternion = Quaternion.RotationYawPitchRoll(_rotation.Y, _rotation.X, _rotation.Z);
+            Matrix3x3 mat = Matrix3x3.RotationX(_rotation.X) * Matrix3x3.RotationY(_rotation.Y);
+            Quaternion.RotationMatrix(ref mat, out _rotationQuaternion);
         }
-        private Quaternion getQuaternion(CameraMode mode) {
+        private Quaternion getBodyQuaternion(CameraMode mode) {
             Quaternion q = Quaternion.Identity;
             Vector3 pUp = Vector3.Up;
             if (_planet != null) {
@@ -41,7 +42,7 @@ namespace Planetary_Terrain {
                         pUp = Vector3d.Normalize(_position - _planet.Position);
                         break;
                     case CameraMode.Orbital:
-                        pUp = Vector3d.Normalize(_planet.NorthPole - _planet.Position);
+                        pUp = _planet.North;
                         break;
                 }
             }
@@ -134,11 +135,11 @@ namespace Planetary_Terrain {
         public void Update(float deltaTime) {
             _bodyQuaternion = Quaternion.Identity;
             if (transitionTimer > 0) {
-                _bodyQuaternion = Quaternion.Lerp(getQuaternion(_fromMode), getQuaternion(_mode), 1f - transitionTimer);
+                _bodyQuaternion = Quaternion.Lerp(getBodyQuaternion(_fromMode), getBodyQuaternion(_mode), 1f - transitionTimer);
                 transitionTimer -= deltaTime;
-            }else {
-                _bodyQuaternion = getQuaternion(_mode);
-            }
+            } else
+                _bodyQuaternion = getBodyQuaternion(_mode);
+            
             makeView();
         }
         
