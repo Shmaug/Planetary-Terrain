@@ -187,8 +187,6 @@ namespace NoiseTests {
 
                 renderer.Context.DrawIndexed(icount, 0, 0);
 
-                //renderer.Context.Draw(vcount, 0);
-
                 renderer.Present();
 
                 redraw = false;
