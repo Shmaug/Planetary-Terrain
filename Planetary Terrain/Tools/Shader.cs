@@ -1,4 +1,4 @@
-﻿#define COMPILE_AT_RUNTIME
+﻿//#define COMPILE_AT_RUNTIME
 
 using System;
 using System.IO;
@@ -41,8 +41,8 @@ namespace Planetary_Terrain {
         public D3D11.InputLayout InputLayout { get; private set; }
         
         public Shader(string file, D3D11.Device device, D3D11.DeviceContext context, params D3D11.InputElement[] inputElements) {
-            HLSLInclude include = new HLSLInclude();
 #if COMPILE_AT_RUNTIME
+            HLSLInclude include = new HLSLInclude();
             using (var byteCode = ShaderBytecode.CompileFromFile(file + "_vs.hlsl", "main", "vs_5_0", ShaderFlags.Debug, EffectFlags.None, null, include)) {
                 if (byteCode.Bytecode == null)
                     throw new CompilationException(byteCode.Message);
@@ -54,6 +54,7 @@ namespace Planetary_Terrain {
                     throw new CompilationException(byteCode.Message);
                 PixelShader = new D3D11.PixelShader(device, byteCode);
             }
+            include.Dispose();
 #else
             using (var byteCode = ShaderBytecode.FromFile(file + "_vs.cso")) {
                 Signature = ShaderSignature.GetInputSignature(byteCode);
@@ -64,7 +65,6 @@ namespace Planetary_Terrain {
             }
 #endif
             InputLayout = new D3D11.InputLayout(device, Signature, inputElements);
-            include.Dispose();
         }
 
         public void Set(Renderer renderer) {

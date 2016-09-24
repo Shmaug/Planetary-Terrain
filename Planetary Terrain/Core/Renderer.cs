@@ -283,7 +283,7 @@ namespace Planetary_Terrain {
             
             // depth buffer
             D3D11.Texture2DDescription depthDescription = new D3D11.Texture2DDescription() {
-                Format = DXGI.Format.D16_UNorm,
+                Format = DXGI.Format.D32_Float,
                 ArraySize = 1,
                 MipLevels = 1,
                 Width = width,
@@ -335,7 +335,7 @@ namespace Planetary_Terrain {
         }
 
         public void DrawAxis() {
-            Matrix mat = Matrix.Translation(-Camera.Position);
+            Matrix mat = Matrix.Identity;
             Context.UpdateSubresource(ref mat, axisConsts);
 
             Shaders.LineShader.Set(this);

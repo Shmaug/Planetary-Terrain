@@ -17,6 +17,8 @@ namespace Planetary_Terrain {
         /// The planet's atmosphere
         /// </summary>
         public Atmosphere Atmosphere;
+
+        public bool Ocean;
         
         /// <summary>
         /// The map of temperature-humidity to color
@@ -38,7 +40,7 @@ namespace Planetary_Terrain {
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
         
-        public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null) : base(pos, radius, mass) {
+        public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null, bool ocean = false) : base(pos, radius, mass) {
             Label = name;
             Radius = radius;
             TerrainHeight = terrainHeight;
@@ -47,35 +49,22 @@ namespace Planetary_Terrain {
             if (atmosphere != null)
                 atmosphere.Planet = this;
 
-            initialize();
+            Ocean = ocean;
         }
 
-        void initialize() {
-            double s = 1.41421356237 * Radius;
-
-            MaxChunkSize = s;
-
-            BaseChunks = new QuadTree[6];
-            BaseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
-            BaseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            BaseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            BaseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            BaseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            BaseChunks[5] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
-
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].Generate();
-        }
         
         double height(Vector3d direction) {
             double total = 0;
 
-            double n = Noise.Ridged(direction * 500 + new Vector3(1000), 2, .01f, .3f);
-            n = Noise.Map(n, 0, 1);
+            double n = Noise.Ridged(direction * 150 + new Vector3(1000), 2, .01f, .3f);
             n = 1 - n * n * n;
 
-            total += Noise.Map(Noise.Fractal(direction * 100 + new Vector3(1000), 11, .03f, .5f), 0, 1);
-            
+            total += n * Noise.Fractal(direction * 100 + new Vector3(1000), 11, .03f, .5f);
+
+            if (Ocean)
+                if (total < 0 || Noise.Ridged(direction * 150 + new Vector3(5000), 2, .01f, .3f) < 0)
+                    total = 0;
+
             return total;
         }
 
@@ -83,10 +72,18 @@ namespace Planetary_Terrain {
             return Radius + height(direction) * TerrainHeight;
         }
         public override Vector2 GetTemp(Vector3d direction) {
-            float y = MathUtil.Clamp((float)Math.Abs(direction.Y - .1f), 0, 1);
-            y = y * y * y;
-            float temp = (float)(Noise.SmoothSimplex(direction * 10, 5, .3f, .8f)*.5d+.5d) - y;
-            float humid = (float)(Noise.SmoothSimplex(direction * 10, 4, .1f, .8f)*.5d+.5d);
+            float y = MathUtil.Clamp((float)Math.Abs(direction.Y) - .3f, 0, 1);
+            y *= y;
+            float temp = (float)(Noise.SmoothSimplex(direction * 5, 5, .3f, .8f)*.5d+.5d) - y;
+            float humid = (float)(Noise.SmoothSimplex(direction * 5, 4, .1f, .8f)*.5d+.5d) - .1f;
+
+            if (Ocean) {
+                double h = height(direction);
+                if (h <= 0)
+                    humid = 1;
+                else
+                    humid += (float)Math.Pow(1.0 - h, 2);
+            }
 
             return new Vector2(temp, humid);
         }
@@ -107,8 +104,8 @@ namespace Planetary_Terrain {
         }
 
         public override void Update(D3D11.Device device, Camera camera) {
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].SplitDynamic(camera.Position, device);
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].SplitDynamic(camera.Position, device);
         }
 
         public override void Draw(Renderer renderer, Body sun) {
@@ -116,7 +113,7 @@ namespace Planetary_Terrain {
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
             double scale;
-            renderer.Camera.AdjustPositionRelative(Position, out pos, out scale);
+            renderer.Camera.GetScaledSpace(Position, out pos, out scale);
             if (scale * Radius < 1)
                 return;
 
@@ -138,10 +135,10 @@ namespace Planetary_Terrain {
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].Draw(renderer, pos, scale);
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Draw(renderer, pos, scale);
             
-            Atmosphere?.Draw(renderer, pos, scale);
+            //Atmosphere?.Draw(renderer, pos, scale);
         }
 
         public override void Dispose() {
@@ -151,8 +148,8 @@ namespace Planetary_Terrain {
 
             constBuffer?.Dispose();
 
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].Dispose();
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Dispose();
             
             Atmosphere?.Dispose();
         }

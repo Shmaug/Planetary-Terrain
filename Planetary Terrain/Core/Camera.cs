@@ -3,6 +3,16 @@ using SharpDX;
 
 namespace Planetary_Terrain {
     class Camera {
+        bool frozen = false;
+        Vector3d freezepos;
+        public bool Frozen { get { return frozen; }
+            set
+            {
+                frozen = value;
+                freezepos = Vector3.Zero;
+            }
+        }
+
         public enum CameraMode {
             Surface, Orbital
         }
@@ -14,7 +24,7 @@ namespace Planetary_Terrain {
         private Vector3d _position;
         private Body _planet;
         private Vector3 _rotation;
-        private float _fov, _aspect, _near = 1f, _far = 10000f;
+        private float _fov, _aspect, _near = 1f, _far = 10000000;
         private Quaternion _rotationQuaternion, _bodyQuaternion;
         private Matrix _view, _proj;
 
@@ -23,11 +33,10 @@ namespace Planetary_Terrain {
             _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
         }
         private void makeView() {
-            Quaternion q =  _bodyQuaternion * _rotationQuaternion;
-            q.Normalize();
+            Quaternion q = RotationQuaternion;
             Vector3 fwd = Vector3.Transform(Vector3.ForwardLH, q);
             Vector3 up = Vector3.Transform(Vector3.Up, q);
-            _view = Matrix.LookAtLH(Vector3.Zero, fwd, up);
+            _view = Matrix.LookAtLH(freezepos, freezepos + fwd, up);
         }
         private void makeRotation() {
             Matrix3x3 mat = Matrix3x3.RotationX(_rotation.X) * Matrix3x3.RotationY(_rotation.Y);
@@ -83,7 +92,6 @@ namespace Planetary_Terrain {
         public Vector3 Rotation { get { return _rotation; }
             set {
                 _rotation = value;
-                _rotation.Z = 
                 _rotation.X = MathUtil.Clamp(_rotation.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
 
                 makeRotation();
@@ -134,6 +142,7 @@ namespace Planetary_Terrain {
 
         public void Update(float deltaTime) {
             _bodyQuaternion = Quaternion.Identity;
+            
             if (transitionTimer > 0) {
                 _bodyQuaternion = Quaternion.Lerp(getBodyQuaternion(_fromMode), getBodyQuaternion(_mode), 1f - transitionTimer);
                 transitionTimer -= deltaTime;
@@ -142,22 +151,29 @@ namespace Planetary_Terrain {
             
             makeView();
         }
+
+        public void Translate(Vector3 delta) {
+            if (frozen)
+                freezepos += delta;
+            else
+                Position += delta;
+        }
         
-        public void AdjustPositionRelative(Vector3d location, out Vector3d pos, out double scale) {
-            scale = 1d;
+        public void GetScaledSpace(Vector3d location, out Vector3d pos, out double scale) {
+            scale = 1.0;
             pos = location - Position;
 
-            double max = zFar * (1 - Math.Cos(_fov * .5));
+            double x = pos.Length();
 
-            double distance = pos.Length();
-            double scaleSpaceStart = max * 0.25d;
+            double f = zFar * (1.0 - Math.Cos(_fov * .5));
+            double p = .5 * f;
             
-            if (distance > scaleSpaceStart) {
-                double totalScaleSpace = max - scaleSpaceStart;
-                double scaledDistanceFromCamera = scaleSpaceStart + (totalScaleSpace * (1d - Math.Exp((totalScaleSpace - distance) / 1000000000d)));
-                pos = Vector3d.Normalize(pos) * scaledDistanceFromCamera;
-
-                scale = scaledDistanceFromCamera / distance;
+            if (x > p) {
+                double s = 1.0 - Math.Exp(-p / (x - p));
+                double dist = p + (f - p) * s;
+                
+                scale = dist / x;
+                pos = Vector3d.Normalize(pos) * dist;
             }
         }
     }

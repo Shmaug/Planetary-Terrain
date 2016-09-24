@@ -4,28 +4,30 @@ using SharpDX.Direct3D;
 using System.Threading;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     class QuadTree : IDisposable {
-        public const int GridSize = 64;
+        public const int GridSize = 16;
 
         public double Size;
         public double ArcSize;
+        public double VertexSpacing; // meters per vertex
 
         public Body Body;
         public QuadTree Parent;
+        public int SiblingIndex;
         public QuadTree[] Children;
 
         /// <summary>
         /// The position on the cube, before being projected into a sphere
         /// </summary>
-        public Vector3d Position;
+        public Vector3d CubePosition;
 
         /// <summary>
         /// The position of the mesh of which it is drawn at, relative to the planet
         /// </summary>
         public Vector3d MeshCenter;
-
         public Matrix3x3 Orientation;
 
         int[] vertexSamples;
@@ -35,7 +37,7 @@ namespace Planetary_Terrain {
 
         public int IndexCount { get; private set; }
         public int VertexCount { get; private set; }
-
+        
         [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
         struct Constants {
             public Matrix World;
@@ -48,36 +50,42 @@ namespace Planetary_Terrain {
         public D3D11.Buffer constantBuffer { get; private set; }
 
         bool dirty = false;
-
-        public QuadTree(Body body, double size, QuadTree parent, Vector3d pos, Matrix3x3 rot) {
+        bool generating = false;
+        
+        public QuadTree(Body body, int siblingIndex, double size, QuadTree parent, Vector3d cubePos, Matrix3x3 rot) {
+            SiblingIndex = siblingIndex;
             Size = size;
             Body = body;
             Parent = parent;
             ArcSize = Body.ArcLength(Size);
 
-            Position = pos;
+            VertexSpacing = Size / GridSize;
+
+            CubePosition = cubePos;
             Orientation = rot;
 
             shaderConstants = new Constants();
             shaderConstants.World = Matrix.Identity;
         }
-
-        bool generating = false;
+        
         public void Generate() {
             if (generating) return;
             generating = true;
-            
-            Vector3d posn = Vector3d.Normalize(Position);
-            MeshCenter = posn * Body.GetHeight(posn);
 
-            float scale = (float)Size / GridSize;
             ThreadPool.QueueUserWorkItem(new WaitCallback((object o) => {
+                Vector3d posn = Vector3d.Normalize(CubePosition);
+                MeshCenter = posn * Body.GetHeight(posn);
+
+                double scale = Size / GridSize;
+                double invScale = 1d / Size;
+
                 int s = GridSize + 1;
                 verticies = new VertexNormalTexture[s * s * 6];
-                indicies = new short[s * s *6];
+                List<short> inds = new List<short>();
 
-                Vector3 p1, p2, p3, n;
+                Vector3 n;
                 Vector3d p1d, p2d, p3d;
+                Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
 
                 int v = s - 1;
                 vertexSamples = new int[] {
@@ -92,28 +100,18 @@ namespace Planetary_Terrain {
                     v * s + v/2,     // 1, .5
                     (v/2) * s + v/2, // .5, .5
                 };
-
-                int i = 0;
+                
                 for (int x = 0; x < s; x++) {
                     for (int z = 0; z < s; z++) {
-                        p1 = scale * (new Vector3(x, 0, z)     - new Vector3(GridSize * .5f, 0, GridSize * .5f));
-                        p2 = scale * (new Vector3(x, 0, z + 1) - new Vector3(GridSize * .5f, 0, GridSize * .5f));
-                        p3 = scale * (new Vector3(x + 1, 0, z) - new Vector3(GridSize * .5f, 0, GridSize * .5f));
+                        if (!generating)
+                            break;
 
-                        p1d = Vector3.Transform(p1, Orientation);
-                        p2d = Vector3.Transform(p2, Orientation);
-                        p3d = Vector3.Transform(p3, Orientation);
-
-                        p1d += Position;
-                        p2d += Position;
-                        p3d += Position;
-
-                        p1d.Normalize();
-                        p2d.Normalize();
-                        p3d.Normalize();
-
-                        Vector2 t = Body.GetTemp(p1d);
+                        p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
+                        p2d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z + 1) - offset), Orientation));
+                        p3d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x + 1, 0, z) - offset), Orientation));
                         
+                        Vector2 t = Body.GetTemp(p1d);
+
                         p1d *= Body.GetHeight(p1d);
                         p2d *= Body.GetHeight(p2d);
                         p3d *= Body.GetHeight(p3d);
@@ -123,26 +121,39 @@ namespace Planetary_Terrain {
                         p3d -= MeshCenter;
 
                         n = Vector3.Cross(Vector3d.Normalize(p2d - p1d), Vector3d.Normalize(p3d - p1d));
-
-                        verticies[x * s + z] = new VertexNormalTexture(p1d, n, t);
+                        
+                        verticies[x * s + z] = new VertexNormalTexture(p1d * invScale, n, t);
 
                         if (x + 1 < s && z + 1 < s) {
-                            indicies[i++] = (short)((x + 1) * s + z);
-                            indicies[i++] = (short)(x * s + z);
-                            indicies[i++] = (short)(x * s + z + 1);
+                            // middle/no border
+                            // TODO: Quad fanning to handle cracks
+                            inds.Add((short)((x + 1) * s + z));
+                            inds.Add((short)(x * s + z));
+                            inds.Add((short)(x * s + z + 1));
 
-                            indicies[i++] = (short)((x + 1) * s + z + 1);
-                            indicies[i++] = (short)((x + 1) * s + z);
-                            indicies[i++] = (short)(x * s + z + 1);
+                            inds.Add((short)((x + 1) * s + z + 1));
+                            inds.Add((short)((x + 1) * s + z));
+                            inds.Add((short)(x * s + z + 1));
                         }
                     }
+
+                    if (!generating)
+                        break;
                 }
-                
+                if (!generating) {
+                    dirty = false;
+                    verticies = null;
+                    vertexSamples = null;
+                    return;
+                }
+
+                indicies = inds.ToArray();
+
                 generating = false;
                 dirty = true;
             }));
         }
-        
+
         public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
             vertexBuffer?.Dispose();
             vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
@@ -176,7 +187,11 @@ namespace Planetary_Terrain {
         public void Split(D3D11.Device device) {
             if (Children != null)
                 return;
-            
+
+            if (generating) {
+                generating = false;
+                dirty = false;
+            }
             double s = Size * .5;
 
             //  | 0 | 1 |
@@ -185,17 +200,17 @@ namespace Planetary_Terrain {
             Vector3d right = Vector3.Transform(Vector3.Right, Orientation);
             Vector3d fwd = Vector3.Transform(Vector3.ForwardLH, Orientation);
 
-            Vector3d p0 = (-right +  fwd);
-            Vector3d p1 = ( right +  fwd);
+            Vector3d p0 = (-right + fwd);
+            Vector3d p1 = (right + fwd);
             Vector3d p2 = (-right + -fwd);
-            Vector3d p3 = ( right + -fwd);
+            Vector3d p3 = (right + -fwd);
 
             Children = new QuadTree[4];
-            Children[0] = new QuadTree(Body, s, this, Position + s * .5 * p0, Orientation);
-            Children[1] = new QuadTree(Body, s, this, Position + s * .5 * p1, Orientation);
-            Children[2] = new QuadTree(Body, s, this, Position + s * .5 * p2, Orientation);
-            Children[3] = new QuadTree(Body, s, this, Position + s * .5 * p3, Orientation);
-            
+            Children[0] = new QuadTree(Body, 0, s, this, CubePosition + s * .5 * p0, Orientation);
+            Children[1] = new QuadTree(Body, 1, s, this, CubePosition + s * .5 * p1, Orientation);
+            Children[2] = new QuadTree(Body, 2, s, this, CubePosition + s * .5 * p2, Orientation);
+            Children[3] = new QuadTree(Body, 3, s, this, CubePosition + s * .5 * p3, Orientation);
+
             Children[0].Generate();
             Children[1].Generate();
             Children[2].Generate();
@@ -206,18 +221,18 @@ namespace Planetary_Terrain {
 
             for (int i = 0; i < Children.Length; i++)
                 Children[i]?.Dispose();
-            
+
             Children = null;
         }
         public void SplitDynamic(Vector3d pos, D3D11.Device device) {
             double d = (ClosestVertex(pos) - pos).LengthSquared();
 
-            if (d < Size * Size) {
+            if (d < Size * Size || VertexSpacing > Body.MaxVertexSpacing) {
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
                         Children[i].SplitDynamic(pos, device);
                 } else {
-                    if (Size * .5f >= Body.MinChunkSize)
+                    if ((Size * .5f) / GridSize > Body.MinVertexSpacing)
                         Split(device);
                 }
             } else
@@ -230,6 +245,8 @@ namespace Planetary_Terrain {
         }
 
         public bool IsAboveHorizon(Vector3d camera) {
+            return true;
+
             Vector3d planetToCam = Vector3d.Normalize(camera - Body.Position);
             Vector3d planetToMesh = Vector3d.Normalize(ClosestVertex(camera) - Body.Position);
 
@@ -261,7 +278,7 @@ namespace Planetary_Terrain {
         
         public void Draw(Renderer renderer, Vector3d planetPos, double planetScale) {
             bool draw = true;
-            
+
             if (Children != null) {
                 draw = false;
 
@@ -280,7 +297,21 @@ namespace Planetary_Terrain {
 
                 if (vertexBuffer != null) {
                     if (IsAboveHorizon(renderer.Camera.Position)) {
-                        Draw(renderer, Matrix.Scaling((float)planetScale) * Matrix.Translation(MeshCenter * planetScale + planetPos));
+                        Vector3d pos = MeshCenter * planetScale + planetPos;
+                        double scale = planetScale;
+
+                        renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
+
+                        scale *= Size;
+
+                        Draw(renderer, Matrix.Scaling((float)scale) * Matrix.Translation(pos));
+
+                        double d = (renderer.Camera.Position - (MeshCenter + Body.Position)).Length();
+                        if (d < Debug.ClosestQuadTreeDistance) {
+                            Debug.ClosestQuadTree = this;
+                            Debug.ClosestQuadTreeDistance = d;
+                            Debug.ClosestQuadTreeScale = scale;
+                        }
                     }
                 }
             }

@@ -7,14 +7,8 @@ using DWrite = SharpDX.DirectWrite;
 
 namespace Planetary_Terrain {
     abstract class Body : IDisposable {
-        /// <summary>
-        /// The biggest size chunks are allowed to be
-        /// </summary>
-        public double MaxChunkSize;
-        /// <summary>
-        /// The smallest size chunks are allowed to be
-        /// </summary>
-        public double MinChunkSize = QuadTree.GridSize / 2;
+        public double MaxVertexSpacing = 1000000; // m/vertex
+        public double MinVertexSpacing = 4;       // m/vertex
 
         /// <summary>
         /// The world-space north pole
@@ -26,7 +20,7 @@ namespace Planetary_Terrain {
         /// <summary>
         /// The 6 base quadtrees composing the planet
         /// </summary>
-        public QuadTree[] BaseChunks;
+        public QuadTree[] BaseQuads;
 
         public Body OrbitalParent;
 
@@ -44,7 +38,25 @@ namespace Planetary_Terrain {
             Position = pos;
             Radius = radius;
             Mass = mass;
-            SOI = Radius * 1.05;
+            SOI = Radius * 1.02;
+
+            MaxVertexSpacing = radius*.5 / QuadTree.GridSize;
+
+            InitializeQuadTree();
+        }
+        void InitializeQuadTree() {
+            double s = 1.41421356237 * Radius;
+
+            BaseQuads = new QuadTree[6];
+            BaseQuads[0] = new QuadTree(this, 0, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
+            BaseQuads[1] = new QuadTree(this, 1, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            BaseQuads[2] = new QuadTree(this, 2, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            BaseQuads[3] = new QuadTree(this, 3, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            BaseQuads[4] = new QuadTree(this, 4, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            BaseQuads[5] = new QuadTree(this, 5, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Generate();
         }
 
         public abstract void Update(D3D11.Device device, Camera camera);

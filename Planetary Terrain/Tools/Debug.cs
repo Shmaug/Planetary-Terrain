@@ -5,6 +5,9 @@ using DWrite = SharpDX.DirectWrite;
 
 namespace Planetary_Terrain {
     static class Debug {
+        public static QuadTree ClosestQuadTree;
+        public static double ClosestQuadTreeDistance;
+        public static double ClosestQuadTreeScale;
         public static int ChunksDrawn;
         public static int FPS;
 
@@ -23,13 +26,14 @@ namespace Planetary_Terrain {
 
         public static void BeginFrame() {
             ChunksDrawn = 0;
+            ClosestQuadTreeDistance = double.MaxValue;
         }
 
         public static void EndFrame() {
 
         }
 
-        public static void DrawStats(Renderer renderer) {
+        public static void Draw(Renderer renderer) {
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
 
@@ -48,7 +52,11 @@ namespace Planetary_Terrain {
                 renderer.Camera.Position.X.ToString("F1") + ", " + renderer.Camera.Position.Y.ToString("F1") + ", " + renderer.Camera.Position.Z.ToString("F1"),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
+            renderer.D2DContext.DrawText(
+                "Closest QuadTree: " + ClosestQuadTreeDistance.ToString("F2") + "  " + ClosestQuadTree.VertexSpacing.ToString("F2") + "m/vertex (Scale: " + ClosestQuadTreeScale + ")",
+                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.SolidWhiteBrush);
 
+            #region logs
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.WordWrapping = DWrite.WordWrapping.NoWrap;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
@@ -76,7 +84,8 @@ namespace Planetary_Terrain {
 
                 y += h + 5;
             }
-            
+            #endregion
+
             renderer.D2DContext.EndDraw();
         }
     }

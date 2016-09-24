@@ -10,7 +10,9 @@ namespace Planetary_Terrain {
         public short[] indicies;
 
         public Planet Planet;
-        public double Radius;
+        public double Height;
+
+        public double MaxPressure;
 
         D3D11.Buffer vertexBuffer;
         D3D11.Buffer indexBuffer;
@@ -52,12 +54,21 @@ namespace Planetary_Terrain {
         Constants constants;
         D3D11.Buffer constBuffer;
 
-        public Atmosphere(double radius) {
-            Radius = radius;
+        public Atmosphere(double height, double pressure) {
+            Height = height;
+            MaxPressure = pressure;
 
             Icosphere.GenerateIcosphere(6, false, out verticies, out indicies);
 
             constants = new Constants();
+        }
+
+        /// <summary>
+        /// Density, in atmospheres
+        /// </summary>
+        public double GetDensity(double altitude) {
+            double t = altitude / Height;
+            return t * MaxPressure;
         }
 
         void SetConstants(Vector3d camPos, Vector3d scaledPos, double scale) {
@@ -65,7 +76,7 @@ namespace Planetary_Terrain {
             constants.fSamples = 10f;
 
             constants.InnerRadius = (float)(Planet.Radius * scale);
-            constants.OuterRadius = (float)(Radius * scale);
+            constants.OuterRadius = (float)((Planet.Radius + Height) * scale);
 
             constants.CameraHeight = (float)scaledPos.Length();
 
@@ -92,8 +103,7 @@ namespace Planetary_Terrain {
         }
 
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
-            return;
-            if ((renderer.Camera.Position - Planet.Position).Length() < Radius)
+            if ((renderer.Camera.Position - Planet.Position).Length() < Planet.Radius + Height)
                 return;
 
             if (vertexBuffer == null)
@@ -103,7 +113,7 @@ namespace Planetary_Terrain {
 
             Shaders.AtmosphereShader.Set(renderer);
 
-            constants.World = Matrix.Scaling((float)(scale * Radius)) * Matrix.Translation(pos);
+            constants.World = Matrix.Scaling((float)(scale * (Planet.Radius + Height))) * Matrix.Translation(pos);
             //constants.invWVP = Matrix.Invert(constants.world * renderer.Camera.View * renderer.Camera.Projection);
 
             SetConstants(renderer.Camera.Position, pos, scale);
