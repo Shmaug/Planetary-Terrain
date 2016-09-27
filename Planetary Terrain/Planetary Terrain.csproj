@@ -174,7 +174,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>SET COMPILE_AT_RUNTIME=1
+    <PreBuildEvent>SET COMPILE_AT_RUNTIME=0
 
 if not exist "Shaders" mkdir "Shaders"
 

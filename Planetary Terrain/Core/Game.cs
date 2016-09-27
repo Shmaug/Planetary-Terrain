@@ -94,6 +94,7 @@ namespace Planetary_Terrain {
 
         int framec = 0;
         double ftime = 0;
+        double accelTime = 0;
         void Update() {
             #region timing
             double deltaTime = frameTimer.ElapsedMilliseconds / 1000d;
@@ -127,17 +128,31 @@ namespace Planetary_Terrain {
             else if (InputState.ks.IsPressed(DInput.Key.D))
                 move += Vector3.Right;
 
-            // Warp speed
-            if (InputState.ks.IsPressed(DInput.Key.Space))
-                renderer.Camera.Speed += Constants.LIGHT_SPEED * (deltaTime < 1 ? deltaTime * deltaTime : deltaTime);
-            else if (move.IsZero)
-                renderer.Camera.Speed = 3;
+            bool accelerating = !move.IsZero;
 
-            // sprint speed
-            if (InputState.ks.IsPressed(DInput.Key.LeftShift))
-                renderer.Camera.SpeedMultiplier = 3;
-            else
-                renderer.Camera.SpeedMultiplier = 1;
+            if (InputState.ks.IsPressed(DInput.Key.LeftShift)) {
+                Body near = renderer.Camera.NearestBody;
+                if (near != null) {
+                    double dist = (renderer.Camera.Position - near.Position).Length();
+                    if (dist < near.SOI) {
+                        double alt = dist - near.Radius; // altitude from sea level
+                        renderer.Camera.Speed = (.5 + alt / (near.SOI - near.Radius)) * 600;
+                        accelerating = true;
+                    }
+                }
+            }
+
+            if (InputState.ks.IsPressed(DInput.Key.Space)) {
+                if (!move.IsZero) {
+                    accelTime += deltaTime;
+                    renderer.Camera.Speed += (accelTime < 10 ? Math.Pow(.1 * accelTime, 4) : accelTime) * Constants.LIGHT_SPEED;
+                }
+                accelerating = true;
+            }
+            if (!accelerating) {
+                renderer.Camera.Speed = 1;
+                accelTime = 0;
+            }
 
             if (!move.IsZero) {
                 move.Normalize();
@@ -146,7 +161,7 @@ namespace Planetary_Terrain {
                 
                 moved *= renderer.Camera.Speed * renderer.Camera.SpeedMultiplier;
                 
-                renderer.Camera.Position += moved * deltaTime;
+                renderer.Camera.Translate(moved * deltaTime);
             }
 
             // Mouse lock
@@ -183,9 +198,12 @@ namespace Planetary_Terrain {
             #endregion
             #endregion
 
-            #region misc keyboard input
+            #region misc keyboard 
             if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
                 renderer.DrawGUI = !renderer.DrawGUI;
+
+            if (InputState.ks.IsPressed(DInput.Key.R) && !InputState.lastks.IsPressed(DInput.Key.R))
+                renderer.Camera.Frozen = !renderer.Camera.Frozen;
             #endregion
 
             renderer.Camera.Update((float)deltaTime);
@@ -214,6 +232,9 @@ namespace Planetary_Terrain {
             
             starSystem.Draw(renderer);
 
+            if (renderer.Camera.Frozen)
+                renderer.DrawAxis();
+
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
                 NavigatorWindow.Draw(renderer);
@@ -223,7 +244,7 @@ namespace Planetary_Terrain {
             Debug.EndFrame();
 
             if (renderer.DrawGUI)
-                Debug.DrawStats(renderer);
+                Debug.Draw(renderer);
             
             renderer.EndDrawFrame();
         }

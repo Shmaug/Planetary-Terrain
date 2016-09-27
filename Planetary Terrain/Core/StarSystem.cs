@@ -22,11 +22,11 @@ namespace Planetary_Terrain {
             venus.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Venus.jpg"), device);
             bodies.Add(venus);
 
-            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 50000, new Atmosphere(6371000 + 200000));
+            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 50000, new Atmosphere(20000, 101325), true);
             earth.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Earth.jpg"), device);
             bodies.Add(earth);
 
-            Planet mars = new Planet("Mars", new Vector3d(0, 0, 227940000000), 3397000, 6.39e23, 10000);
+            Planet mars = new Planet("Mars", new Vector3d(0, 0, 227940000000), 3397000, 6.39e23, 10000, new Atmosphere(10000, 600));
             mars.SetColormap(ResourceUtil.LoadTexture(device, "Textures\\Mars.jpg"), device);
             bodies.Add(mars);
 

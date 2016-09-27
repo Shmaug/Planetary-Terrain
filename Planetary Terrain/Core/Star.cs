@@ -32,25 +32,6 @@ namespace Planetary_Terrain {
         public Star(string name, Vector3d pos, double radius, double mass) : base(pos, radius, mass) {
             Label = name;
             Radius = radius;
-            
-            initialize();
-        }
-
-        void initialize() {
-            double s = 1.41421356237 * Radius;
-
-            MaxChunkSize = s;
-
-            BaseChunks = new QuadTree[6];
-            BaseChunks[0] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
-            BaseChunks[1] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            BaseChunks[2] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            BaseChunks[3] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            BaseChunks[4] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            BaseChunks[5] = new QuadTree(this, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
-
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].Generate();
         }
         
         public override double GetHeight(Vector3d direction) {
@@ -80,8 +61,8 @@ namespace Planetary_Terrain {
         }
 
         public override void Update(D3D11.Device device, Camera camera) {
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].SplitDynamic(camera.Position, device);
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].SplitDynamic(camera.Position, device);
         }
 
         public override void Draw(Renderer renderer, Body sun) {
@@ -89,7 +70,7 @@ namespace Planetary_Terrain {
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
             double scale;
-            renderer.Camera.AdjustPositionRelative(Position, out pos, out scale);
+            renderer.Camera.GetScaledSpace(Position, out pos, out scale);
             if (scale * Radius < 1)
                 return;
 
@@ -109,8 +90,8 @@ namespace Planetary_Terrain {
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].Draw(renderer, pos, scale);
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Draw(renderer, pos, scale);
         }
 
         public override void Dispose() {
@@ -120,8 +101,8 @@ namespace Planetary_Terrain {
 
             constBuffer?.Dispose();
 
-            for (int i = 0; i < BaseChunks.Length; i++)
-                BaseChunks[i].Dispose();
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Dispose();
         }
     }
 }
