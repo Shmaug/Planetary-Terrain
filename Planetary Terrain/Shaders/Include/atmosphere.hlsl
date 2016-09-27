@@ -53,7 +53,6 @@ float getMiePhase(float fCos, float fCos2, float g, float g2)
 // Calculates the Rayleigh phase function
 float getRayleighPhase(float fCos2)
 {
-	//return 1.0;
 	return 0.75 + 0.75*fCos2;
 }
 

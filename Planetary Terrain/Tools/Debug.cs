@@ -2,6 +2,7 @@
 using SharpDX.Mathematics.Interop;
 using D2D1 = SharpDX.Direct2D1;
 using DWrite = SharpDX.DirectWrite;
+using SharpDX;
 
 namespace Planetary_Terrain {
     static class Debug {
@@ -52,10 +53,11 @@ namespace Planetary_Terrain {
                 renderer.Camera.Position.X.ToString("F1") + ", " + renderer.Camera.Position.Y.ToString("F1") + ", " + renderer.Camera.Position.Z.ToString("F1"),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
-            renderer.D2DContext.DrawText(
-                "Closest QuadTree: " + ClosestQuadTreeDistance.ToString("F2") + "  " + ClosestQuadTree.VertexSpacing.ToString("F2") + "m/vertex (Scale: " + ClosestQuadTreeScale + ")",
-                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.SolidWhiteBrush);
-
+            if (ClosestQuadTree != null) {
+                renderer.D2DContext.DrawText(
+                    "Closest QuadTree: " + ClosestQuadTreeDistance.ToString("F2") + "  " + ClosestQuadTree.VertexSpacing.ToString("F2") + "m/vertex (Scale: " + ClosestQuadTreeScale + ")",
+                    renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.SolidWhiteBrush);
+            }
             #region logs
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.WordWrapping = DWrite.WordWrapping.NoWrap;

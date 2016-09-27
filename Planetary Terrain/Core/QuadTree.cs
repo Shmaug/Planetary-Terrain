@@ -30,7 +30,7 @@ namespace Planetary_Terrain {
         public Vector3d MeshCenter;
         public Matrix3x3 Orientation;
 
-        int[] vertexSamples;
+        public Vector3d[] VertexSamples;
 
         VertexNormalTexture[] verticies;
         short[] indicies;
@@ -66,16 +66,37 @@ namespace Planetary_Terrain {
 
             shaderConstants = new Constants();
             shaderConstants.World = Matrix.Identity;
+
+            MeshCenter = Vector3d.Normalize(CubePosition);
+            MeshCenter *= Body.GetHeight(MeshCenter);
+
+            SetupMesh();
         }
-        
+
+        void SetupMesh() {
+            VertexSamples = new Vector3d[9];
+            int i = 0;
+
+            double scale = Size / GridSize;
+            
+            Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
+
+            for (int x = 0; x <= GridSize; x+=GridSize/2) {
+                for (int z = 0; z <= GridSize; z+=GridSize/2) {
+                    Vector3d p = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));                    
+                    p *= Body.GetHeight(p);
+                    p -= MeshCenter;
+
+                    VertexSamples[i++] = p;
+                }
+            }
+        }
+
         public void Generate() {
             if (generating) return;
             generating = true;
 
             ThreadPool.QueueUserWorkItem(new WaitCallback((object o) => {
-                Vector3d posn = Vector3d.Normalize(CubePosition);
-                MeshCenter = posn * Body.GetHeight(posn);
-
                 double scale = Size / GridSize;
                 double invScale = 1d / Size;
 
@@ -83,24 +104,10 @@ namespace Planetary_Terrain {
                 verticies = new VertexNormalTexture[s * s * 6];
                 List<short> inds = new List<short>();
 
-                Vector3 n;
+                Vector2 t;
                 Vector3d p1d, p2d, p3d;
                 Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
 
-                int v = s - 1;
-                vertexSamples = new int[] {
-                    // x*s + v
-                    0 * s + 0,       // 0, 0
-                    v * s + 0,       // 1, 0
-                    0 * s + v,       // 0, 1
-                    v * s + v,       // 1, 1
-                    (v/2) * s + 0,   // .5, 0
-                    0 * s + v/2,     // 0, .5
-                    (v/2) * s + v,   // .5, 1
-                    v * s + v/2,     // 1, .5
-                    (v/2) * s + v/2, // .5, .5
-                };
-                
                 for (int x = 0; x < s; x++) {
                     for (int z = 0; z < s; z++) {
                         if (!generating)
@@ -110,7 +117,7 @@ namespace Planetary_Terrain {
                         p2d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z + 1) - offset), Orientation));
                         p3d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x + 1, 0, z) - offset), Orientation));
                         
-                        Vector2 t = Body.GetTemp(p1d);
+                        t = Body.GetTemp(p1d);
 
                         p1d *= Body.GetHeight(p1d);
                         p2d *= Body.GetHeight(p2d);
@@ -119,10 +126,12 @@ namespace Planetary_Terrain {
                         p1d -= MeshCenter;
                         p2d -= MeshCenter;
                         p3d -= MeshCenter;
-
-                        n = Vector3.Cross(Vector3d.Normalize(p2d - p1d), Vector3d.Normalize(p3d - p1d));
                         
-                        verticies[x * s + z] = new VertexNormalTexture(p1d * invScale, n, t);
+                        verticies[x * s + z] =
+                            new VertexNormalTexture(
+                                p1d * invScale,
+                                Vector3.Cross(Vector3d.Normalize(p2d - p1d), Vector3d.Normalize(p3d - p1d)),
+                                t);
 
                         if (x + 1 < s && z + 1 < s) {
                             // middle/no border
@@ -140,10 +149,14 @@ namespace Planetary_Terrain {
                     if (!generating)
                         break;
                 }
-                if (!generating) {
+                if (!generating) { // generation cancelled due to split
                     dirty = false;
                     verticies = null;
-                    vertexSamples = null;
+                    indicies = null;
+                    vertexBuffer?.Dispose();
+                    vertexBuffer = null;
+                    indexBuffer?.Dispose();
+                    indexBuffer = null;
                     return;
                 }
 
@@ -167,31 +180,33 @@ namespace Planetary_Terrain {
             dirty = false;
         }
 
-        public Vector3d ClosestVertex(Vector3d pos) {
-            if (vertexSamples == null) return MeshCenter + Body.Position;
-            pos -= MeshCenter + Body.Position;
+        public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
+            vert = MeshCenter + Body.Position;
+            dist = double.MaxValue;
 
-            int close = 1;
-            double dist = double.MaxValue;
-            for (int i = 0; i < vertexSamples.Length; i++) {
-                double d = (pos - verticies[vertexSamples[i]].Position).LengthSquared();
+            if (VertexSamples == null) return;
+
+            pos -= MeshCenter + Body.Position;
+            
+            for (int i = 0; i < VertexSamples.Length; i++) {
+                double d = (pos - VertexSamples[i]).LengthSquared();
                 if (d < dist) {
                     dist = d;
-                    close = vertexSamples[i];
+                    vert = VertexSamples[i] + MeshCenter + Body.Position;
                 }
             }
 
-            return (Vector3d)verticies[close].Position + MeshCenter + Body.Position;
+            dist = Math.Sqrt(dist);
         }
 
         public void Split(D3D11.Device device) {
             if (Children != null)
                 return;
 
-            if (generating) {
-                generating = false;
-                dirty = false;
-            }
+            //if (generating) {
+            //    generating = false;
+            //    dirty = false;
+            //}
             double s = Size * .5;
 
             //  | 0 | 1 |
@@ -223,11 +238,16 @@ namespace Planetary_Terrain {
                 Children[i]?.Dispose();
 
             Children = null;
+
+            if (vertexBuffer == null && !generating)
+                Generate();
         }
         public void SplitDynamic(Vector3d pos, D3D11.Device device) {
-            double d = (ClosestVertex(pos) - pos).LengthSquared();
+            double dist;
+            Vector3d vert;
+            ClosestVertex(pos, out vert, out dist);
 
-            if (d < Size * Size || VertexSpacing > Body.MaxVertexSpacing) {
+            if (dist < Size || Size / GridSize > Body.MaxVertexSpacing) {
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
                         Children[i].SplitDynamic(pos, device);
@@ -237,20 +257,23 @@ namespace Planetary_Terrain {
                 }
             } else
                 UnSplit();
-
         }
 
         public bool Ready() {
             return dirty || vertexBuffer != null;
         }
 
-        public bool IsAboveHorizon(Vector3d camera) {
+        public bool IsAboveHorizon(Vector3d point) {
             return true;
 
-            Vector3d planetToCam = Vector3d.Normalize(camera - Body.Position);
-            Vector3d planetToMesh = Vector3d.Normalize(ClosestVertex(camera) - Body.Position);
+            Vector3d vert;
+            double dist;
+            ClosestVertex(point, out vert, out dist);
 
-            double horizonAngle = Math.Acos(Body.Radius * .99 / (Body.Position - camera).Length());
+            Vector3d planetToCam = Vector3d.Normalize(point - Body.Position);
+            Vector3d planetToMesh = Vector3d.Normalize(vert - Body.Position);
+
+            double horizonAngle = Math.Acos(Body.Radius * .99 / (Body.Position - point).Length());
             double meshAngle = Math.Acos(Vector3.Dot(planetToCam, planetToMesh));
 
             return horizonAngle > meshAngle;

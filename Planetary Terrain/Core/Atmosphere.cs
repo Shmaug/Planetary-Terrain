@@ -103,9 +103,6 @@ namespace Planetary_Terrain {
         }
 
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
-            if ((renderer.Camera.Position - Planet.Position).Length() < Planet.Radius + Height)
-                return;
-
             if (vertexBuffer == null)
                 vertexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verticies);
             if (indexBuffer == null)
@@ -114,7 +111,6 @@ namespace Planetary_Terrain {
             Shaders.AtmosphereShader.Set(renderer);
 
             constants.World = Matrix.Scaling((float)(scale * (Planet.Radius + Height))) * Matrix.Translation(pos);
-            //constants.invWVP = Matrix.Invert(constants.world * renderer.Camera.View * renderer.Camera.Projection);
 
             SetConstants(renderer.Camera.Position, pos, scale);
 
@@ -137,7 +133,9 @@ namespace Planetary_Terrain {
             // alpha blending
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
-            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
+            if ((renderer.Camera.Position - Planet.Position).Length() > Planet.Radius + Height)
+                renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
+
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullFront : renderer.rasterizerStateSolidCullFront;
             #endregion
 
