@@ -263,20 +263,20 @@ namespace Planetary_Terrain {
             return dirty || vertexBuffer != null;
         }
 
-        public bool IsAboveHorizon(Vector3d point) {
-            return true;
+        public bool IsAboveHorizon(Vector3d camera) {
+            Vector3d planetToCam = Vector3d.Normalize(camera - Body.Position);
+            double horizonAngle = Math.Acos(Body.Radius / (Body.Position - camera).Length());
 
-            Vector3d vert;
-            double dist;
-            ClosestVertex(point, out vert, out dist);
+            for (int i = 0; i < VertexSamples.Length; i++) {
+                Vector3d planetToMesh = Vector3d.Normalize(VertexSamples[i] + MeshCenter);
 
-            Vector3d planetToCam = Vector3d.Normalize(point - Body.Position);
-            Vector3d planetToMesh = Vector3d.Normalize(vert - Body.Position);
+                double meshAngle = Math.Acos(Vector3.Dot(planetToCam, planetToMesh));
 
-            double horizonAngle = Math.Acos(Body.Radius * .99 / (Body.Position - point).Length());
-            double meshAngle = Math.Acos(Vector3.Dot(planetToCam, planetToMesh));
+                if (horizonAngle > meshAngle)
+                    return true;
+            }
 
-            return horizonAngle > meshAngle;
+            return false;
         }
 
         public void Draw(Renderer renderer, Matrix world) {
