@@ -18,7 +18,9 @@ namespace Planetary_Terrain {
         /// </summary>
         public Atmosphere Atmosphere;
 
-        public bool Ocean;
+        public bool HasOcean;
+        public Color OceanColor;
+        public double OceanScaleHeight;
         
         /// <summary>
         /// The map of temperature-humidity to color
@@ -33,9 +35,11 @@ namespace Planetary_Terrain {
         /// </summary>
         D3D11.SamplerState colorMapSampler;
 
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 16)]
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 32)]
         struct Constants {
             public Vector3 lightDirection;
+            public float oceanScaleHeight;
+            public Vector3 oceanColor;
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
@@ -49,21 +53,29 @@ namespace Planetary_Terrain {
             if (atmosphere != null)
                 atmosphere.Planet = this;
 
-            Ocean = ocean;
+            HasOcean = ocean;
+            OceanScaleHeight = .25;
+            OceanColor = Color.MediumBlue;
         }
 
-        
+        public double min, max;
         double height(Vector3d direction) {
             double total = 0;
 
-            double n = Noise.Ridged(direction * 150 + new Vector3(1000), 2, .01f, .3f);
-            n = 1 - n * n * n;
+            double r2 = Math.Min(Math.Pow(Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) + .7, 2), 1);
+            r2 = 1.0 - r2;
 
-            total += n * Noise.Fractal(direction * 100 + new Vector3(1000), 11, .03f, .5f);
+            double rough = 1.0 - Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
 
-            if (Ocean)
-                if (total < 0 || Noise.Ridged(direction * 150 + new Vector3(5000), 2, .01f, .3f) < 0)
-                    total = 0;
+            rough *= r2;
+
+            double smooth = Noise.Fractal(direction * 200 + new Vector3d(-5000), 4, .02f, .3f);
+            smooth *= 1 - rough;
+
+            total = smooth + rough;
+            
+            min = Math.Min(min, total);
+            max = Math.Max(max, total);
 
             return total;
         }
@@ -71,21 +83,31 @@ namespace Planetary_Terrain {
         public override double GetHeight(Vector3d direction) {
             return Radius + height(direction) * TerrainHeight;
         }
-        public override Vector2 GetTemp(Vector3d direction) {
-            float y = MathUtil.Clamp((float)Math.Abs(direction.Y) - .3f, 0, 1);
-            y *= y;
-            float temp = (float)(Noise.SmoothSimplex(direction * 5, 5, .3f, .8f)*.5d+.5d) - y;
-            float humid = (float)(Noise.SmoothSimplex(direction * 5, 4, .1f, .8f)*.5d+.5d) - .1f;
+        public override void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double h) {
+            data = Vector2.Zero;
+            h = height(direction);
 
-            if (Ocean) {
-                double h = height(direction);
-                if (h <= 0)
-                    humid = 1;
-                else
-                    humid += (float)Math.Pow(1.0 - h, 2);
-            }
+            double temp, humid;
+            temp = humid = 0;
 
-            return new Vector2(temp, humid);
+            float p = MathUtil.Clamp((float)Math.Abs(direction.Y) - .3f, 0, 1);
+            p *= p;
+            float y = (float)(height(direction) * .1);
+
+            temp = Noise.SmoothSimplex(direction * 2, 5, .3f, .8f)*.5d+.5d - p;
+            //humid = Noise.SmoothSimplex(direction * 5, 4, .1f, .8f)*.5d+.5d - .1f;
+
+            if (HasOcean)
+                humid += (float)Math.Pow(1.0 - (h - OceanScaleHeight), 2);
+
+            //double mountain = Math.Min(Math.Pow(Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) + .7, 2), 1);
+            //mountain = 1.0 - mountain;
+
+            //temp = 1.0 - Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
+
+            //temp *= mountain;
+
+            data = new Vector2((float)temp, (float)humid);
         }
 
         public void SetColormap(D3D11.Texture2D map, D3D11.Device device) {
@@ -118,6 +140,8 @@ namespace Planetary_Terrain {
                 return;
 
             constants.lightDirection = Vector3d.Normalize(Position - sun.Position);
+            constants.oceanScaleHeight = (float)OceanScaleHeight;
+            constants.oceanColor = OceanColor.ToVector3();
 
             // create/update constant buffer
             if (constBuffer == null)
@@ -136,9 +160,17 @@ namespace Planetary_Terrain {
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
             for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Draw(renderer, pos, scale);
-            
-            Atmosphere?.Draw(renderer, pos, scale);
+                BaseQuads[i].Draw(renderer, false, pos, scale);
+
+            // set water shader
+            Shaders.WaterShader.Set(renderer);
+            renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
+            renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
+
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Draw(renderer, true, pos, scale);
+
+            //Atmosphere?.Draw(renderer, pos, scale);
         }
 
         public override void Dispose() {

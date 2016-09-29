@@ -109,7 +109,10 @@
     <Compile Include="UI\TextLabel.cs" />
     <Compile Include="UI\UIElement.cs" />
     <Content Include="Shaders\atmosphere_vs.hlsl" />
+    <Content Include="Shaders\Include\water.hlsl" />
     <Content Include="Shaders\Include\star.hlsl" />
+    <Content Include="Shaders\water_ps.hlsl" />
+    <Content Include="Shaders\water_vs.hlsl" />
     <Content Include="Shaders\star_ps.hlsl" />
     <Content Include="Shaders\Include\atmosphere.hlsl" />
     <Content Include="Shaders\atmosphere_ps.hlsl" />
@@ -155,6 +158,9 @@
     <Content Include="Shaders\planet_vs.hlsl" />
     <Content Include="Shaders\planet_ps.hlsl" />
     <Content Include="Shaders\Include\planet.hlsl" />
+    <Content Include="Textures\Earth.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Textures\Mars.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -164,7 +170,7 @@
     <Content Include="Textures\Mercury.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\Earth.jpg">
+    <Content Include="Textures\height.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Textures\Sun.jpg">

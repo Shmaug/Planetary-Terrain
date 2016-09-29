@@ -37,12 +37,15 @@ namespace Planetary_Terrain {
         public override double GetHeight(Vector3d direction) {
             return Radius;
         }
-        public override Vector2 GetTemp(Vector3d direction) {
+        public override void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double h) {
+            data = Vector2.Zero;
+            h = 1;
+            
             float y = (float)Math.Abs(direction.Y);
             float temp = (float)Noise.SmoothSimplex(direction * 10, 4, .75f, .8f) + y;
             float humid = (float)Noise.SmoothSimplex(direction * 128, 7, .0008f, .8f);
 
-            return 1 - new Vector2(temp, humid);
+            data = 1 - new Vector2(temp, humid);
         }
 
         public void SetColormap(D3D11.Texture2D map, D3D11.Device device) {
@@ -91,7 +94,7 @@ namespace Planetary_Terrain {
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
             for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Draw(renderer, pos, scale);
+                BaseQuads[i].Draw(renderer, false, pos, scale);
         }
 
         public override void Dispose() {

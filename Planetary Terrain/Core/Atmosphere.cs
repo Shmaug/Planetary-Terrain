@@ -63,14 +63,6 @@ namespace Planetary_Terrain {
             constants = new Constants();
         }
 
-        /// <summary>
-        /// Density, in atmospheres
-        /// </summary>
-        public double GetDensity(double altitude) {
-            double t = altitude / Height;
-            return t * MaxPressure;
-        }
-
         void SetConstants(Vector3d camPos, Vector3d scaledPos, double scale) {
             constants.nSamples = 10;
             constants.fSamples = 10f;
@@ -82,7 +74,7 @@ namespace Planetary_Terrain {
 
             float kr = .0025f; // rayleigh scattering constant
             float km = .0010f; // mie scattering constant
-            float sun = 20f; // sun brightness
+            float sun = 15f; // sun brightness
             Vector3 wavelength = new Vector3(.65f, .57f, .475f);// new Vector3(6.5e-7f, 5.7e-7f, 4.75e-7f);
 
             constants.InvWavelength = 1f / (wavelength * wavelength * wavelength * wavelength);

@@ -10,6 +10,8 @@ namespace Planetary_Terrain {
         public static double ClosestQuadTreeDistance;
         public static double ClosestQuadTreeScale;
         public static int ChunksDrawn;
+        public static int VerticiesDrawn;
+        public static int WaterChunksDrawn;
         public static int FPS;
 
         static List<string> logs = new List<string>();
@@ -27,6 +29,8 @@ namespace Planetary_Terrain {
 
         public static void BeginFrame() {
             ChunksDrawn = 0;
+            VerticiesDrawn = 0;
+            WaterChunksDrawn = 0;
             ClosestQuadTreeDistance = double.MaxValue;
         }
 
@@ -41,21 +45,26 @@ namespace Planetary_Terrain {
             renderer.D2DContext.BeginDraw();
 
             renderer.D2DContext.DrawText(
-                ChunksDrawn.ToString("N0") + " chunks (" + (ChunksDrawn * QuadTree.GridSize * QuadTree.GridSize).ToString("N0") + " verticies) " + FPS + "fps",
+                string.Format("{0} chunks ({2} verticies) {3} fps",
+                ChunksDrawn.ToString("N0"), WaterChunksDrawn.ToString("N0"), VerticiesDrawn.ToString("N0"), FPS),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.SolidWhiteBrush);
 
             double spd = renderer.Camera.Speed * renderer.Camera.SpeedMultiplier;
             renderer.D2DContext.DrawText(
-                spd.ToString("F1") + " m/s (" + (spd / Constants.LIGHT_SPEED).ToString("F4") + "c)",
+                string.Format("{0} m/s ({1}c)",
+                spd.ToString("F1"), (spd / Constants.LIGHT_SPEED).ToString("F4")),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 40), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             renderer.D2DContext.DrawText(
-                renderer.Camera.Position.X.ToString("F1") + ", " + renderer.Camera.Position.Y.ToString("F1") + ", " + renderer.Camera.Position.Z.ToString("F1"),
+                string.Format("{0}, {1}, {2}",
+                renderer.Camera.Position.X.ToString("F1"), renderer.Camera.Position.Y.ToString("F1"), renderer.Camera.Position.Z.ToString("F1")),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             if (ClosestQuadTree != null) {
+                Planet p = (Planet)ClosestQuadTree.Body;
                 renderer.D2DContext.DrawText(
-                    "Closest QuadTree: " + ClosestQuadTreeDistance.ToString("F2") + "  " + ClosestQuadTree.VertexSpacing.ToString("F2") + "m/vertex (Scale: " + ClosestQuadTreeScale + ")",
+                    string.Format("Closest QuadTree: {0} | {1}m/vertex | Scale: {2} | [{3}-{4}]",
+                    ClosestQuadTreeDistance.ToString("F2"), ClosestQuadTree.VertexSpacing.ToString("F2"), ClosestQuadTreeScale.ToString("F2"), p.min.ToString("F1"), p.max.ToString("F1")),
                     renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.SolidWhiteBrush);
             }
             #region logs

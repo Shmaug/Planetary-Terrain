@@ -107,7 +107,7 @@ namespace Planetary_Terrain {
         }
 
         public abstract double GetHeight(Vector3d direction);
-        public abstract Vector2 GetTemp(Vector3d direction);
+        public abstract void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double height);
 
         public void ApplyGravity(Body other, double deltaTime) {
             Vector3d dir = Position - other.Position;
