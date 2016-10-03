@@ -54,7 +54,7 @@ namespace Planetary_Terrain {
                 atmosphere.Planet = this;
 
             HasOcean = ocean;
-            OceanScaleHeight = .25;
+            OceanScaleHeight = .5;
             OceanColor = Color.MediumBlue;
         }
 

@@ -61,10 +61,10 @@ namespace Planetary_Terrain {
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             if (ClosestQuadTree != null) {
-                Planet p = (Planet)ClosestQuadTree.Body;
+                Planet p = ClosestQuadTree.Body is Planet ? ClosestQuadTree.Body as Planet : null;
                 renderer.D2DContext.DrawText(
                     string.Format("Closest QuadTree: {0} | {1}m/vertex | Scale: {2} | [{3}-{4}]",
-                    ClosestQuadTreeDistance.ToString("F2"), ClosestQuadTree.VertexSpacing.ToString("F2"), ClosestQuadTreeScale.ToString("F2"), p.min.ToString("F1"), p.max.ToString("F1")),
+                    ClosestQuadTreeDistance.ToString("F2"), ClosestQuadTree.VertexSpacing.ToString("F2"), ClosestQuadTreeScale.ToString("F2"), p?.min.ToString("F1"), p?.max.ToString("F1")),
                     renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.SolidWhiteBrush);
             }
             #region logs
