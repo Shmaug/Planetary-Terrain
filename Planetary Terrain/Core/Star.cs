@@ -68,7 +68,7 @@ namespace Planetary_Terrain {
                 BaseQuads[i].SplitDynamic(camera.Position, device);
         }
 
-        public override void Draw(Renderer renderer, Body sun) {
+        public override void Draw(Renderer renderer, Vector3d sunPosition) {
             // Get the entire planet's scale and scaled position
             // This ensures the planet is always within the clipping planes
             Vector3d pos;

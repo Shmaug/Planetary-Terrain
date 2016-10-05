@@ -103,7 +103,6 @@ namespace NoiseTests {
             Dispose();
         }
         // TODO: better handling of noise functions per planet
-        // TODO: better camera control
         double height(Vector3d direction) {
             double total = 0;
 

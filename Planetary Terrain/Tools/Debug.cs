@@ -38,26 +38,27 @@ namespace Planetary_Terrain {
 
         }
 
-        public static void Draw(Renderer renderer) {
+        public static void Draw(Renderer renderer, PlayerShip ship) {
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
 
             renderer.D2DContext.BeginDraw();
 
             renderer.D2DContext.DrawText(
-                string.Format("{0} chunks ({2} verticies) {3} fps",
-                ChunksDrawn.ToString("N0"), WaterChunksDrawn.ToString("N0"), VerticiesDrawn.ToString("N0"), FPS),
+                string.Format("{0} fps",
+                FPS),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.SolidWhiteBrush);
 
-            double spd = renderer.Camera.Speed * renderer.Camera.SpeedMultiplier;
+            double spd = ship.LinearVelocity.Length();
             renderer.D2DContext.DrawText(
                 string.Format("{0} m/s ({1}c)",
                 spd.ToString("F1"), (spd / Constants.LIGHT_SPEED).ToString("F4")),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 40), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             renderer.D2DContext.DrawText(
-                string.Format("{0}, {1}, {2}",
-                renderer.Camera.Position.X.ToString("F1"), renderer.Camera.Position.Y.ToString("F1"), renderer.Camera.Position.Z.ToString("F1")),
+                string.Format("[{0}, {1}, {2}]      [{3},{4},{5}]",
+                renderer.Camera.Position.X.ToString("F1"), renderer.Camera.Position.Y.ToString("F1"), renderer.Camera.Position.Z.ToString("F1"),
+                renderer.Camera.Rotation.X.ToString("F1"), renderer.Camera.Rotation.Y.ToString("F1"), renderer.Camera.Rotation.Z.ToString("F1")),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             if (ClosestQuadTree != null) {

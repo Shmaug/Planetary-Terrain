@@ -24,6 +24,8 @@ namespace Planetary_Terrain {
         bool lockMouse;
         
         public UI.Frame NavigatorWindow;
+
+        PlayerShip ship;
         
         public Game() {
             renderForm = new RenderForm("D3D11 Planets");
@@ -67,13 +69,8 @@ namespace Planetary_Terrain {
             starSystem = new StarSystem(renderer.Device);
             
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
-            {
-                Body p = starSystem.bodies[3];
-                Vector3d d = new Vector3d(0, 1, -1);
-                d.Normalize();
-                renderer.Camera.Position = p.Position + d * (p.SOI + 1000);
-                renderer.Camera.Rotation = new Vector3(0, 0, 0);
-            }
+            ship = new PlayerShip(renderer.Device, renderer.Camera);
+
             float h = 35;
             NavigatorWindow = new UI.Frame(null, "Panel1", new RawRectangleF(0, 300, 200, 300 + (starSystem.bodies.Count+1) * h), renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
             NavigatorWindow.Draggable = true;
@@ -85,16 +82,15 @@ namespace Planetary_Terrain {
                     ()=> {
                         Vector3d d = new Vector3d(0, 1, -1);
                         d.Normalize();
-                        renderer.Camera.Position = p.Position + d * (p.SOI+1000);
-                        renderer.Camera.Rotation = new Vector3(0, 0, 0);
+                        ship.Position = p.Position + d * (p.SOI + 1000);
                     });
                 y += h;
             }
+            (NavigatorWindow["EarthButton"] as UI.TextButton).Click();
         }
 
         int framec = 0;
         double ftime = 0;
-        double accelTime = 0;
         void Update() {
             #region timing
             double deltaTime = frameTimer.ElapsedMilliseconds / 1000d;
@@ -118,98 +114,60 @@ namespace Planetary_Terrain {
             #endregion
 
             #region camera control
-            Vector3 move = Vector3.Zero;
+            Vector3d r = Vector3.Zero;
             if (InputState.ks.IsPressed(DInput.Key.W))
-                move += Vector3.ForwardLH;
+                r.X -= -1;
             else if (InputState.ks.IsPressed(DInput.Key.S))
-                move += Vector3.BackwardLH;
+                r.X += -1;
             if (InputState.ks.IsPressed(DInput.Key.A))
-                move += Vector3.Left;
+                r.Y -= 1;
             else if (InputState.ks.IsPressed(DInput.Key.D))
-                move += Vector3.Right;
+                r.Y += 1;
+            if (InputState.ks.IsPressed(DInput.Key.Q))
+                r.Z += 1;
+            if (InputState.ks.IsPressed(DInput.Key.E))
+                r.Z -= 1;
+            r *= deltaTime * .5f;
 
-            bool accelerating = !move.IsZero;
+            ship.AngularVelocity += r;
 
-            if (InputState.ks.IsPressed(DInput.Key.LeftShift)) {
-                Body near = renderer.Camera.NearestBody;
-                if (near != null) {
-                    double dist = (renderer.Camera.Position - near.Position).Length();
-                    if (dist < near.SOI) {
-                        double alt = dist - near.Radius; // altitude from sea level
-                        renderer.Camera.Speed = (.5 + alt / (near.SOI - near.Radius)) * 600;
-                        accelerating = true;
-                    }
-                }
-            }
-
-            if (InputState.ks.IsPressed(DInput.Key.Space)) {
-                if (!move.IsZero) {
-                    accelTime += deltaTime;
-                    renderer.Camera.Speed += (accelTime < 10 ? Math.Pow(.1 * accelTime, 4) : accelTime) * Constants.LIGHT_SPEED;
-                }
-                accelerating = true;
-            }
-            if (!accelerating) {
-                renderer.Camera.Speed = 1;
-                accelTime = 0;
-            }
-
-            if (!move.IsZero) {
-                move.Normalize();
-                move = Vector3.Transform(move, renderer.Camera.RotationQuaternion);
-                Vector3d moved = move;
-                
-                moved *= renderer.Camera.Speed * renderer.Camera.SpeedMultiplier;
-                
-                renderer.Camera.Translate(moved * deltaTime);
-            }
+            if (InputState.ks.IsPressed(DInput.Key.Space))
+                ship.Throttle += deltaTime * .25;
+            else if (InputState.ks.IsPressed(DInput.Key.LeftShift))
+                ship.Throttle -= deltaTime * .25;
+            ship.Throttle = MathTools.Clamp01(ship.Throttle);
 
             // Mouse lock
-            if (InputState.ks.IsPressed(DInput.Key.LeftControl) && !InputState.lastks.IsPressed(DInput.Key.LeftControl)) {
-                lockMouse = !lockMouse;
-
-                if (lockMouse)
-                    System.Windows.Forms.Cursor.Hide();
-                else
-                    System.Windows.Forms.Cursor.Show();
-            }
-
-            // Mouse look
-            if (lockMouse) {
-                Vector3 delta = new Vector3(InputState.ms.Y, InputState.ms.X, 0) * .003f;
-                renderer.Camera.Rotation += delta;
-                System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
-            }
-
-            #region camera collision & planet attach
-            Body b = starSystem.GetNearestBody(renderer.Camera.Position);
-            renderer.Camera.NearestBody = b;
-             if ((renderer.Camera.Position - b.Position).Length() < b.SOI) {
-                renderer.Camera.Mode = Camera.CameraMode.Surface;
-                
-                Vector3d c = renderer.Camera.Position - b.Position;
-                double a = c.Length();
-                c.Normalize();
-                double h = b.GetHeight(c);
-                if (h + 2 > a)
-                    renderer.Camera.Position = c * (h + 2) + b.Position;
-            } else
-                renderer.Camera.Mode = Camera.CameraMode.Orbital;
-            #endregion
+            //if (InputState.ks.IsPressed(DInput.Key.LeftControl) && !InputState.lastks.IsPressed(DInput.Key.LeftControl)) {
+            //    lockMouse = !lockMouse;
+            //
+            //    if (lockMouse)
+            //        System.Windows.Forms.Cursor.Hide();
+            //    else
+            //        System.Windows.Forms.Cursor.Show();
+            //}
+            
+            //// Mouse look
+            //if (lockMouse) {
+            //    Vector3 delta = new Vector3(InputState.ms.Y, InputState.ms.X, 0) * .003f;
+            //    renderer.Camera.Rotation += delta;
+            //    System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
+            //}
             #endregion
 
             #region misc keyboard 
             if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
                 renderer.DrawGUI = !renderer.DrawGUI;
-
-            if (InputState.ks.IsPressed(DInput.Key.R) && !InputState.lastks.IsPressed(DInput.Key.R))
-                renderer.Camera.Frozen = !renderer.Camera.Frozen;
             #endregion
 
-            renderer.Camera.Update((float)deltaTime);
+            ship.Update(deltaTime);
             starSystem.Update(renderer, renderer.Device, deltaTime);
 
             NavigatorWindow.Update((float)deltaTime, InputState);
+
+            // lock camera to ship
+            renderer.Camera.Position = ship.Position + ship.RotationMatrix.Backward * 10;
+            renderer.Camera.Rotation = ship.Rotation;
 
             #region input state update
             InputState.lastks = InputState.ks;
@@ -230,11 +188,10 @@ namespace Planetary_Terrain {
             renderer.DrawWireframe = InputState.ks.IsPressed(DInput.Key.F);
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
             
-            starSystem.Draw(renderer);
+            starSystem.Draw(renderer, ship.LinearVelocity.Length());
 
-            if (renderer.Camera.Frozen)
-                renderer.DrawAxis();
-
+            ship.Draw(renderer, starSystem.bodies[0].Position);
+            
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
                 NavigatorWindow.Draw(renderer);
@@ -244,7 +201,7 @@ namespace Planetary_Terrain {
             Debug.EndFrame();
 
             if (renderer.DrawGUI)
-                Debug.Draw(renderer);
+                Debug.Draw(renderer, ship);
             
             renderer.EndDrawFrame();
         }

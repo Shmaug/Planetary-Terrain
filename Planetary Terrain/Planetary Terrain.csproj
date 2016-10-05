@@ -108,15 +108,30 @@
     <Compile Include="Core\Atmosphere.cs" />
     <Compile Include="Core\Body.cs" />
     <Compile Include="Core\Camera.cs" />
+    <Compile Include="Core\Ship.cs" />
     <Compile Include="Core\Star.cs" />
     <Compile Include="Core\StarSystem.cs" />
+    <Compile Include="Model.cs" />
+    <Compile Include="ModelMesh.cs" />
     <Compile Include="UI\Frame.cs" />
     <Compile Include="UI\TextButton.cs" />
     <Compile Include="UI\TextLabel.cs" />
     <Compile Include="UI\UIElement.cs" />
+    <Content Include="Models\ship_diffuse.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\ship_illumination.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\ship_specular.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Shaders\atmosphere_vs.hlsl" />
+    <Content Include="Shaders\Include\model.hlsl" />
     <Content Include="Shaders\Include\water.hlsl" />
     <Content Include="Shaders\Include\star.hlsl" />
+    <Content Include="Shaders\model_vs.hlsl" />
+    <Content Include="Shaders\model_ps.hlsl" />
     <Content Include="Shaders\water_ps.hlsl" />
     <Content Include="Shaders\water_vs.hlsl" />
     <Content Include="Shaders\star_ps.hlsl" />
@@ -142,6 +157,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Models\ship.fbx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

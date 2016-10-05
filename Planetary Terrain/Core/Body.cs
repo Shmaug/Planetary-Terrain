@@ -60,8 +60,8 @@ namespace Planetary_Terrain {
         }
 
         public abstract void Update(D3D11.Device device, Camera camera);
-        public abstract void Draw(Renderer renderer, Body mainSun);
-        public void DrawHUDIcon(Renderer renderer) {
+        public abstract void Draw(Renderer renderer, Vector3d sunPosition);
+        public void DrawHUDIcon(Renderer renderer, double playerSpeed) {
             Vector2? screenPos = renderer.WorldToScreen(Position);
             if (screenPos.HasValue) {
                 renderer.SegoeUI14.TextAlignment = DWrite.TextAlignment.Center;
@@ -70,7 +70,7 @@ namespace Planetary_Terrain {
 
                 double dist = (renderer.Camera.Position - Position).Length();
 
-                ulong totalSeconds = (ulong)(dist / (renderer.Camera.Speed * renderer.Camera.SpeedMultiplier));
+                ulong totalSeconds = (ulong)(dist / playerSpeed);
                 ulong totalMinutes = totalSeconds / 60L;
                 ulong totalHours = totalMinutes / 60L;
                 ulong totalDays = totalHours / 24L;

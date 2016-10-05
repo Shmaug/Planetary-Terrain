@@ -29,7 +29,7 @@ namespace Planetary_Terrain {
                     BindFlags = D3D11.BindFlags.ShaderResource,
                     Usage = D3D11.ResourceUsage.Immutable,
                     CpuAccessFlags = D3D11.CpuAccessFlags.None,
-                    Format = SharpDX.DXGI.Format.R8G8B8A8_UNorm,
+                    Format = Format.R8G8B8A8_UNorm,
                     MipLevels = 1,
                     OptionFlags = D3D11.ResourceOptionFlags.None,
                     SampleDescription = new SampleDescription(1, 0)

@@ -5,6 +5,10 @@ using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
     class StarSystem : IDisposable {
+        public static void NearestStar() {
+
+        }
+
         public List<Body> bodies;
 
         public StarSystem(D3D11.Device device) {
@@ -76,14 +80,14 @@ namespace Planetary_Terrain {
             }
         }
 
-        public void Draw(Renderer renderer) {
+        public void Draw(Renderer renderer, double playerSpeed) {
             foreach (Body b in bodies)
-                b.Draw(renderer, bodies[0]);
+                b.Draw(renderer, bodies[0].Position);
 
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
                 foreach (Body b in bodies)
-                    b.DrawHUDIcon(renderer);
+                    b.DrawHUDIcon(renderer, playerSpeed);
                 renderer.D2DContext.EndDraw();
             }
         }

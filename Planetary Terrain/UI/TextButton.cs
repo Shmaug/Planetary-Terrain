@@ -15,7 +15,7 @@ namespace Planetary_Terrain.UI
         public DWrite.TextAlignment TextAlignment = DWrite.TextAlignment.Center;
         public D2D1.Brush Brush1;
         public D2D1.Brush Brush2;
-        public Action action;
+        public Action Click;
         float hoverTime;
 
         public TextButton(UIElement parent, string name, RawRectangleF bounds, string text, DWrite.TextFormat textFormat, D2D1.Brush brush1, D2D1.Brush brush2, Action action) : base(parent, name, bounds) {
@@ -23,7 +23,7 @@ namespace Planetary_Terrain.UI
             TextFormat = textFormat;
             Brush1 = brush1;
             Brush2 = brush2;
-            this.action = action;
+            Click = action;
         }
 
         public override void Update(float time, InputState inputState) {
@@ -33,7 +33,7 @@ namespace Planetary_Terrain.UI
                 hoverTime = 0f;
 
             if (hoverTime > 0 && inputState.lastms.Buttons[0] && !inputState.ms.Buttons[0])
-                action();
+                Click();
 
             base.Update(time, inputState);
         }

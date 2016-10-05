@@ -24,6 +24,29 @@ namespace Planetary_Terrain {
     }
 
     [StructLayout(LayoutKind.Explicit)]
+    struct VertexNormalTexture {
+        [FieldOffset(0)]
+        public Vector3 Position;
+        [FieldOffset(12)]
+        public Vector3 Normal;
+        [FieldOffset(24)]
+        public Vector2 TexCoord;
+
+        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
+        {
+            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+            new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
+            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0),
+        };
+
+        public VertexNormalTexture(Vector3 pos, Vector3 norm, Vector2 uv) {
+            Position = pos;
+            Normal = norm;
+            TexCoord = uv;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     struct VertexColor {
         [FieldOffset(0)]
         public Vector3 Position;

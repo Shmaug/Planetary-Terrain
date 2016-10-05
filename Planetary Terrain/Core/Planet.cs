@@ -43,7 +43,7 @@ namespace Planetary_Terrain {
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
-        
+
         public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null, bool ocean = false) : base(pos, radius, mass) {
             Label = name;
             Radius = radius;
@@ -130,7 +130,7 @@ namespace Planetary_Terrain {
                 BaseQuads[i].SplitDynamic(camera.Position, device);
         }
 
-        public override void Draw(Renderer renderer, Body sun) {
+        public override void Draw(Renderer renderer, Vector3d sunPosition) {
             // Get the entire planet's scale and scaled position
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
@@ -139,7 +139,7 @@ namespace Planetary_Terrain {
             if (scale * Radius < 1)
                 return;
 
-            constants.lightDirection = Vector3d.Normalize(Position - sun.Position);
+            constants.lightDirection = Vector3d.Normalize(Position - sunPosition);
             constants.oceanScaleHeight = (float)OceanScaleHeight;
             constants.oceanColor = OceanColor.ToVector3();
 

@@ -348,7 +348,7 @@ namespace Planetary_Terrain {
             
             renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
             renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
-
+            
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
             renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
