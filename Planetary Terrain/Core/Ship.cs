@@ -27,7 +27,7 @@ namespace Planetary_Terrain {
             Rotation += AngularVelocity * deltaTime;
 
             // TODO: fuckin rotations yo
-            RotationMatrix = Matrix.RotationZ((float)Rotation.Z) * Matrix.RotationX((float)Rotation.X) * Matrix.RotationY((float)Rotation.Y);
+            RotationMatrix = Matrix.RotationYawPitchRoll((float)Rotation.Y, (float)Rotation.X, (float)Rotation.Z);
         }
         
         public void Draw(Renderer renderer, Vector3d sunPosition) {

@@ -28,7 +28,7 @@ namespace Planetary_Terrain {
             get { return _rotation; }
             set {
                 _rotation = value;
-                _rotationMatrix = Matrix3x3.RotationZ(_rotation.Z) * Matrix3x3.RotationX(_rotation.X) * Matrix3x3.RotationY(_rotation.Y);
+                _rotationMatrix = Matrix3x3.RotationYawPitchRoll(Rotation.Y, Rotation.X, Rotation.Z);
                 makeView();
             }
         }

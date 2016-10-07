@@ -166,7 +166,7 @@ namespace Planetary_Terrain {
             NavigatorWindow.Update((float)deltaTime, InputState);
 
             // lock camera to ship
-            renderer.Camera.Position = ship.Position + ship.RotationMatrix.Backward * 10;
+            renderer.Camera.Position = ship.Position + ship.RotationMatrix.Forward * 30 + ship.RotationMatrix.Up * 7;
             renderer.Camera.Rotation = ship.Rotation;
 
             #region input state update
