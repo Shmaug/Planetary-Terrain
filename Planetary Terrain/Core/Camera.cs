@@ -65,6 +65,14 @@ namespace Planetary_Terrain {
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
         
+        public void AttachTo(PlayerShip ship) {
+            _rotationMatrix = Matrix3x3.RotationQuaternion(ship.Rotation);
+            _position = ship.Position +
+                Vector3.Transform(Vector3.BackwardLH, _rotationMatrix) * 30 +
+                Vector3.Transform(Vector3.Up, _rotationMatrix) * 7;
+            makeView();
+        }
+        
         public Camera(float fieldOfView, float aspectRatio) {
             _fov = fieldOfView;
             _aspect = aspectRatio;

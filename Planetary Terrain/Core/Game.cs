@@ -127,9 +127,8 @@ namespace Planetary_Terrain {
                 r.Z += 1;
             if (InputState.ks.IsPressed(DInput.Key.E))
                 r.Z -= 1;
-            r *= deltaTime * .5f;
 
-            ship.AngularVelocity += r;
+            ship.AngularVelocity = Vector3.Lerp(ship.AngularVelocity, r, (float)deltaTime);
 
             if (InputState.ks.IsPressed(DInput.Key.Space))
                 ship.Throttle += deltaTime * .25;
@@ -166,8 +165,7 @@ namespace Planetary_Terrain {
             NavigatorWindow.Update((float)deltaTime, InputState);
 
             // lock camera to ship
-            renderer.Camera.Position = ship.Position + ship.RotationMatrix.Forward * 30 + ship.RotationMatrix.Up * 7;
-            renderer.Camera.Rotation = ship.Rotation;
+            renderer.Camera.AttachTo(ship);
 
             #region input state update
             InputState.lastks = InputState.ks;
