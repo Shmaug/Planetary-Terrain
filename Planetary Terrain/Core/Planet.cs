@@ -170,7 +170,7 @@ namespace Planetary_Terrain {
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Draw(renderer, true, pos, scale);
 
-            //Atmosphere?.Draw(renderer, pos, scale);
+            Atmosphere?.Draw(renderer, pos, scale);
         }
 
         public override void Dispose() {

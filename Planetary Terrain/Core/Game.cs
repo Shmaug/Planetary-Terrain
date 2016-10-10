@@ -124,10 +124,11 @@ namespace Planetary_Terrain {
             else if (InputState.ks.IsPressed(DInput.Key.D))
                 r.Y += 1;
             if (InputState.ks.IsPressed(DInput.Key.Q))
-                r.Z += 1;
-            if (InputState.ks.IsPressed(DInput.Key.E))
                 r.Z -= 1;
+            if (InputState.ks.IsPressed(DInput.Key.E))
+                r.Z += 1;
 
+            r *= .01;
             ship.AngularVelocity = Vector3.Lerp(ship.AngularVelocity, r, (float)deltaTime);
 
             if (InputState.ks.IsPressed(DInput.Key.Space))

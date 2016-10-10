@@ -22,10 +22,6 @@ namespace Planetary_Terrain {
         }
     }
     class Model {
-        public Vector3d Position;
-        public SharpDX.Quaternion Orientation;
-        public Vector3 Scale;
-
         [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 144)]
         struct Constants {
             public Matrix World;
@@ -39,9 +35,6 @@ namespace Planetary_Terrain {
         string modelPath;
 
         public Model(string file, D3D11.Device device) {
-            Scale = Vector3.One;
-            Orientation = SharpDX.Quaternion.Identity;
-
             AssimpContext ctx = new AssimpContext();
             if (!ctx.IsImportFormatSupported(Path.GetExtension(file)))
                 return;
@@ -156,10 +149,10 @@ namespace Planetary_Terrain {
         }
 
 
-        public void Draw(Renderer renderer, Vector3d sunPosition, Matrix world) {
+        public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world) {
             constants.World = world;
             constants.WorldInverseTranspose = Matrix.Transpose(Matrix.Invert(world));
-            constants.lightDirection = Vector3d.Normalize(Position - sunPosition);
+            constants.lightDirection = lightDirection;
 
             // create/update constant buffer
             if (cbuffer == null)

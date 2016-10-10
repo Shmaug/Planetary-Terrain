@@ -6,7 +6,7 @@ namespace Planetary_Terrain {
         private Vector3d _position;
         private Vector3 _rotation;
         private float _fov, _aspect, _near = 1f, _far = 10000000;
-        private Matrix3x3 _rotationMatrix;
+        private Matrix _rotationMatrix;
         private Matrix _view, _proj;
 
         #region make functions
@@ -14,9 +14,7 @@ namespace Planetary_Terrain {
             _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
         }
         private void makeView() {
-            Vector3 fwd = Vector3.Transform(Vector3.ForwardLH, _rotationMatrix);
-            Vector3 up = Vector3.Transform(Vector3.Up, _rotationMatrix);
-            _view = Matrix.LookAtLH(Vector3.Zero, fwd, up);
+            _view = Matrix.LookAtLH(Vector3.Zero, _rotationMatrix.Backward, _rotationMatrix.Up);
         }
         #endregion
 
@@ -28,7 +26,7 @@ namespace Planetary_Terrain {
             get { return _rotation; }
             set {
                 _rotation = value;
-                _rotationMatrix = Matrix3x3.RotationYawPitchRoll(Rotation.Y, Rotation.X, Rotation.Z);
+                _rotationMatrix = Matrix.RotationYawPitchRoll(Rotation.Y, Rotation.X, Rotation.Z);
                 makeView();
             }
         }
@@ -61,15 +59,15 @@ namespace Planetary_Terrain {
         }
         #endregion
 
-        public Matrix3x3 RotationMatrix { get { return _rotationMatrix; } }
+        public Matrix RotationMatrix { get { return _rotationMatrix; } }
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
         
         public void AttachTo(PlayerShip ship) {
-            _rotationMatrix = Matrix3x3.RotationQuaternion(ship.Rotation);
+            _rotationMatrix = ship.Rotation;
             _position = ship.Position +
-                Vector3.Transform(Vector3.BackwardLH, _rotationMatrix) * 30 +
-                Vector3.Transform(Vector3.Up, _rotationMatrix) * 7;
+                _rotationMatrix.Forward * 30 +
+                _rotationMatrix.Up * 7;
             makeView();
         }
         

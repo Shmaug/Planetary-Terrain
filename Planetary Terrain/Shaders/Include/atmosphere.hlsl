@@ -28,13 +28,15 @@ cbuffer AtmoConstants : register (b1) {
 }
 cbuffer PlanetConstants : register(b2) {
 	float3 LightDirection;
+	float waterHeight;
+	float3 waterColor;
 }
 
 struct v2f {
 	float4 position : SV_POSITION;
-	float4 C0 : COLOR0;
-	float4 C1 : COLOR1;
-	float3 rd : TEXCOORD0;
+	float4 C0 : TEXCOORD0;
+	float4 C1 : TEXCOORD1;
+	float3 rd : TEXCOORD2;
 };
 
 // The scale equation calculated by Vernier's Graphical Analysis

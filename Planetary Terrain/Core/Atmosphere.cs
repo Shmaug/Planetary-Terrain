@@ -75,9 +75,10 @@ namespace Planetary_Terrain {
             float kr = .0025f; // rayleigh scattering constant
             float km = .0010f; // mie scattering constant
             float sun = 15f; // sun brightness
-            Vector3 wavelength = new Vector3(.65f, .57f, .475f);// new Vector3(6.5e-7f, 5.7e-7f, 4.75e-7f);
+            Vector3 wavelength = new Vector3(.65f, .57f, .475f);
+            wavelength = wavelength * wavelength * wavelength * wavelength; // wavelength^4
 
-            constants.InvWavelength = 1f / (wavelength * wavelength * wavelength * wavelength);
+            constants.InvWavelength = 1f / wavelength;
 
             constants.KrESun = kr * sun;
             constants.KmESun = km * sun;

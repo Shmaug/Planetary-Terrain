@@ -6,8 +6,8 @@ namespace Planetary_Terrain {
     class PlayerShip {
         public Vector3d Position;
         public Vector3d LinearVelocity;
-        public Quaternion Rotation = Quaternion.Identity;
-        public Vector3d AngularVelocity;
+        public Matrix Rotation = Matrix.Identity;
+        public Vector3 AngularVelocity;
         public double Mass;
         public Model ShipModel;
 
@@ -19,15 +19,16 @@ namespace Planetary_Terrain {
         }
 
         public void Update(double deltaTime) {
-            LinearVelocity += Vector3d.Transform(Vector3.ForwardLH, Rotation) * Throttle * 1000d;
+            LinearVelocity += (Vector3d)Rotation.Backward * Throttle * 1000d;
 
             Position += LinearVelocity * deltaTime;
-            Rotation += new Quaternion((AngularVelocity * deltaTime), 0) * Rotation;
-            Rotation.Normalize();
+            Rotation *= Matrix.RotationAxis(Rotation.Right, AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Forward, AngularVelocity.Z);
+
+
         }
         
         public void Draw(Renderer renderer, Vector3d sunPosition) {
-            ShipModel.Draw(renderer, sunPosition, Matrix.RotationQuaternion(Rotation) * Matrix.Translation(Position - renderer.Camera.Position));
+            ShipModel.Draw(renderer, Vector3d.Normalize(Position - sunPosition), Rotation * Matrix.Translation(Position - renderer.Camera.Position));
         }
     }
 }
