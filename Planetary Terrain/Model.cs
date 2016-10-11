@@ -22,15 +22,43 @@ namespace Planetary_Terrain {
         }
     }
     class Model {
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 144)]
+        [StructLayout(LayoutKind.Explicit, Size = 176)]
         struct Constants {
+            [FieldOffset(0)]
             public Matrix World;
+            [FieldOffset(64)]
             public Matrix WorldInverseTranspose;
+            
+            [FieldOffset(128)]
             public Vector3 lightDirection;
+            
+            [FieldOffset(144)]
+            public Vector3 SpecularColor;
+
+            [FieldOffset(156)]
+            public float Shininess;
+            [FieldOffset(160)]
+            public float SpecularIntensity;
         }
         Constants constants;
         D3D11.Buffer cbuffer;
 
+        public float Shininess
+        {
+            get { return constants.Shininess; }
+            set { constants.Shininess = value; }
+        }
+        public float SpecularIntensity
+        {
+            get { return constants.SpecularIntensity; }
+            set { constants.SpecularIntensity = value; }
+        }
+        public Color SpecularColor
+        {
+            get { return new Color(constants.SpecularColor); }
+            set { constants.SpecularColor = value.ToVector3(); }
+        }
+        
         public List<ModelMesh> Meshes;
         string modelPath;
 
@@ -47,6 +75,11 @@ namespace Planetary_Terrain {
 
             Meshes = new List<ModelMesh>();
             AddNode(scene, scene.RootNode, device, mat);
+
+            constants = new Constants();
+            SpecularColor = Color.White;
+            Shininess = 200;
+            SpecularIntensity = 1;
         }
 
         public void AddNode(Scene scene, Node node, D3D11.Device device, Matrix transform) {
@@ -61,15 +94,14 @@ namespace Planetary_Terrain {
                     Meshes.Add(mm);
 
                     Material mat = scene.Materials[mesh.MaterialIndex];
-                    if (mat != null && mat.GetMaterialTextureCount(TextureType.Diffuse) > 0) {
-                        mm.DiffuseTexture = ResourceUtil.LoadTexture(device, modelPath + @"\" + mat.TextureDiffuse.FilePath);
-                        mm.DiffuseSampler = new D3D11.SamplerState(device, new D3D11.SamplerStateDescription() {
-                            AddressU = D3D11.TextureAddressMode.Clamp,
-                            AddressV = D3D11.TextureAddressMode.Clamp,
-                            AddressW = D3D11.TextureAddressMode.Clamp,
-                            Filter = D3D11.Filter.Anisotropic,
-                        });
-                        mm.DiffuseTextureView = new D3D11.ShaderResourceView(device, mm.DiffuseTexture);
+                    if (mat != null) {
+                        if (mat.GetMaterialTextureCount(TextureType.Diffuse) > 0) {
+                            mm.SetDiffuseTexture(device, modelPath + @"\" + mat.TextureDiffuse.FilePath);
+                        }
+                        if (mat.GetMaterialTextureCount(TextureType.Emissive) > 0) {
+                            mm.SetEmissiveTexture(device, modelPath + @"\" + mat.TextureEmissive.FilePath);
+                            Debug.Log("Emissive added " + mat.TextureEmissive.FilePath);
+                        }
                     }
 
                     //bool hasTexCoords = mesh.HasTextureCoords(0);
@@ -147,13 +179,12 @@ namespace Planetary_Terrain {
             foreach (Node c in node.Children)
                 AddNode(scene, c, device, transform);
         }
-
-
+        
         public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world) {
             constants.World = world;
             constants.WorldInverseTranspose = Matrix.Transpose(Matrix.Invert(world));
             constants.lightDirection = lightDirection;
-
+            
             // create/update constant buffer
             if (cbuffer == null)
                 cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);

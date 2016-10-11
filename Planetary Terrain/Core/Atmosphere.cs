@@ -17,39 +17,49 @@ namespace Planetary_Terrain {
         D3D11.Buffer vertexBuffer;
         D3D11.Buffer indexBuffer;
 
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 160)]
+        [StructLayout(LayoutKind.Explicit, Size = 160)]
         struct Constants {
+            [FieldOffset(0)]
             public Matrix World;
-            // ----
-            public float InnerRadius;
-            public float OuterRadius;
             
+            [FieldOffset(64)]
+            public float InnerRadius;
+            [FieldOffset(68)]
+            public float OuterRadius;
+
+            [FieldOffset(72)]
             public float CameraHeight;
 
+            [FieldOffset(76)]
             public float KrESun;
-            // ----
+            [FieldOffset(80)]
             public float KmESun;
+            [FieldOffset(84)]
             public float Kr4PI;
+            [FieldOffset(88)]
             public float Km4PI;
-            
+
+            [FieldOffset(92)]
             public float g;
-            // ----
+            [FieldOffset(96)]
             public float Scale;
+            [FieldOffset(100)]
             public float ScaleDepth;
+            [FieldOffset(104)]
             public float ScaleOverScaleDepth;
 
+            [FieldOffset(108)]
             public float InvScaleDepth;
-            // ----
+            [FieldOffset(112)]
             public float fSamples;
+            [FieldOffset(116)]
             public int nSamples;
 
-            Vector2 spacer0;
-            // ----
+            [FieldOffset(128)]
             public Vector3 planetPos;
-            float spacer1;
-            // ----
+
+            [FieldOffset(144)]
             public Vector3 InvWavelength;
-            float spacer2;
         }
         Constants constants;
         D3D11.Buffer constBuffer;
@@ -63,7 +73,7 @@ namespace Planetary_Terrain {
             constants = new Constants();
         }
 
-        void SetConstants(Vector3d camPos, Vector3d scaledPos, double scale) {
+        void SetConstants(Vector3d scaledPos, double scale) {
             constants.nSamples = 10;
             constants.fSamples = 10f;
 
@@ -103,9 +113,9 @@ namespace Planetary_Terrain {
 
             Shaders.AtmosphereShader.Set(renderer);
 
-            constants.World = Matrix.Scaling((float)(scale * (Planet.Radius + Height))) * Matrix.Translation(pos);
+            constants.World = Matrix.Scaling((float)((Planet.Radius + Height) * scale)) * Matrix.Translation(pos);
 
-            SetConstants(renderer.Camera.Position, pos, scale);
+            SetConstants(pos, scale);
 
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);

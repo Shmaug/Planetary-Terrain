@@ -35,10 +35,13 @@ namespace Planetary_Terrain {
         /// </summary>
         D3D11.SamplerState colorMapSampler;
 
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 32)]
+        [StructLayout(LayoutKind.Explicit, Size = 32)]
         struct Constants {
+            [FieldOffset(0)]
             public Vector3 lightDirection;
+            [FieldOffset(12)]
             public float oceanScaleHeight;
+            [FieldOffset(16)]
             public Vector3 oceanColor;
         }
         Constants constants;

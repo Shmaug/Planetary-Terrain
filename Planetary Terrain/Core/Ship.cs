@@ -15,6 +15,9 @@ namespace Planetary_Terrain {
 
         public PlayerShip(D3D11.Device device, Camera camera) {
             ShipModel = new Model("Models/ship.fbx", device);
+            ShipModel.SpecularColor = Color.White;
+            ShipModel.Shininess = 200;
+            ShipModel.SpecularIntensity = 1;
             Mass = 100;
         }
 
@@ -22,9 +25,7 @@ namespace Planetary_Terrain {
             LinearVelocity += (Vector3d)Rotation.Backward * Throttle * 1000d;
 
             Position += LinearVelocity * deltaTime;
-            Rotation *= Matrix.RotationAxis(Rotation.Right, AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Forward, AngularVelocity.Z);
-
-
+            Rotation *= Matrix.RotationAxis(Rotation.Right, AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, AngularVelocity.Z);
         }
         
         public void Draw(Renderer renderer, Vector3d sunPosition) {

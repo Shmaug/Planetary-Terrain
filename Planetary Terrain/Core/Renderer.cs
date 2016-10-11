@@ -14,7 +14,6 @@ namespace Planetary_Terrain {
             public Matrix View;
             public Matrix Projection;
             public Vector3 cameraDirection;
-            public float farPlane;
         }
         Constants constants;
         public D3D11.Buffer constantBuffer { get; private set; }
@@ -316,8 +315,7 @@ namespace Planetary_Terrain {
         public void BeginDrawFrame() {
             constants.View = Camera.View;
             constants.Projection = Camera.Projection;
-            constants.cameraDirection = Camera.View.Forward;
-            constants.farPlane = Camera.zFar;
+            constants.cameraDirection = Camera.View.Backward;
 
             Context.UpdateSubresource(ref constants, constantBuffer);
         }

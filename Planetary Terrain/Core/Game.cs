@@ -113,7 +113,7 @@ namespace Planetary_Terrain {
             InputState.mousePos = realMousePos;
             #endregion
 
-            #region camera control
+            #region ship control
             Vector3d r = Vector3.Zero;
             if (InputState.ks.IsPressed(DInput.Key.W))
                 r.X -= -1;
@@ -124,9 +124,9 @@ namespace Planetary_Terrain {
             else if (InputState.ks.IsPressed(DInput.Key.D))
                 r.Y += 1;
             if (InputState.ks.IsPressed(DInput.Key.Q))
-                r.Z -= 1;
-            if (InputState.ks.IsPressed(DInput.Key.E))
                 r.Z += 1;
+            if (InputState.ks.IsPressed(DInput.Key.E))
+                r.Z -= 1;
 
             r *= .01;
             ship.AngularVelocity = Vector3.Lerp(ship.AngularVelocity, r, (float)deltaTime);

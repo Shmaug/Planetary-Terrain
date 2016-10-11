@@ -6,5 +6,4 @@ cbuffer WorldConstants : register(b0) {
 	row_major float4x4 Projection;
 	float3 CameraPosition;
 	float3 CameraDirection;
-	float FarPlane;
 };

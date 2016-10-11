@@ -2,10 +2,13 @@
 
 float4 main(v2f i) : SV_TARGET
 {
-	float fCos = dot(LightDirection, normalize(i.rd));
-	float fCos2 = fCos*fCos;
-	float4 color = getRayleighPhase(fCos2) * i.C0 + getMiePhase(fCos, fCos2, g, g*g) * i.C1;
-	
-	return float4(color.rgb, length(color.rgb));
+	float g2 = g*g;
+
+	float fCos = dot(-LightDirection, i.rd) / length(i.rd);
+	float fRayleighPhase = 0.75 * (1.0 + fCos*fCos);
+	float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
+	float3 f = i.c0 + fMiePhase * i.c1;
+
+	return float4(f, length(f));
 }
 

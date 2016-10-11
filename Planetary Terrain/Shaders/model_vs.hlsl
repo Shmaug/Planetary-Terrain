@@ -5,5 +5,6 @@ v2f main(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOOR
 	v.position = mul(vertex, mul(World, mul(View, Projection)));
 	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
 	v.uv = uv;
+	v.worldPos = mul(vertex, World).xyz;
 	return v;
 }
