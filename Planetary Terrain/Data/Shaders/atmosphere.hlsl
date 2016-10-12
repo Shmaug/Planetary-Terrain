@@ -18,7 +18,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	float3 v3CameraPos = -planetPos;
 
 	// Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)
-	float3 v3Pos = worldPosition.xyz - v3CameraPos;
+	float3 v3Pos = worldPosition.xyz - planetPos;
 	float3 v3Ray = worldPosition.xyz;
 	float fFar = length(v3Ray);
 	v3Ray /= fFar;
@@ -83,6 +83,7 @@ float4 psmain(v2f i) : SV_TARGET
 	float fCos = dot(-LightDirection, i.rd) / length(i.rd);
 	float fCos2 = fCos*fCos;
 	float3 color = getRayleighPhase(fCos2) * i.c0 + getMiePhase(fCos, fCos2, g, g*g) * i.c1;
-	return float4(color.rgb, color.b);
+
+	return float4(color.rgb, length(color));
 }
 

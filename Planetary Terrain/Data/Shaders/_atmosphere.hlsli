@@ -32,9 +32,9 @@ float scale(float fCos)
 	return ScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
 }
 
-float2 GetIntersections(float3 v3CameraPos, float3 v3Ray, float r) {
+float2 GetIntersections(float3 v3CameraPos, float3 v3Ray, float radius) {
 	float B = 2.0 * dot(v3CameraPos, v3Ray);
-	float C = CameraHeight*CameraHeight - r*r;
+	float C = CameraHeight*CameraHeight - radius*radius;
 	float fDet = sqrt(max(0.0, B*B - 4.0 * C));
 	return float2(0.5 * (-B - fDet), 0.5 * (-B + fDet));
 }

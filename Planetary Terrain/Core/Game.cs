@@ -87,6 +87,7 @@ namespace Planetary_Terrain {
             (NavigatorWindow["EarthButton"] as UI.TextButton).Click();
         }
 
+        double zoomd = 0;
         int framec = 0;
         double ftime = 0;
         void Update() {
@@ -135,8 +136,17 @@ namespace Planetary_Terrain {
                 ship.Throttle -= deltaTime * .25;
             ship.Throttle = MathTools.Clamp01(ship.Throttle);
 
+            // Camera view switch
+            if (InputState.ks.IsPressed(DInput.Key.V) && !InputState.lastks.IsPressed(DInput.Key.V)) {
+                if (renderer.Camera.Mode == Camera.CameraMode.Body) {
+                    renderer.Camera.Mode = Camera.CameraMode.Ship;
+                    renderer.Camera.Ship = ship;
+                } else
+                    renderer.Camera.Mode = Camera.CameraMode.Body;
+            }
+
             // Mouse lock
-            if (InputState.ks.IsPressed(DInput.Key.LeftControl) && !InputState.lastks.IsPressed(DInput.Key.LeftControl)) {
+            if (InputState.ks.IsPressed(DInput.Key.F1) && !InputState.lastks.IsPressed(DInput.Key.F1)) {
                 lockMouse = !lockMouse;
             
                 if (lockMouse)
@@ -146,24 +156,35 @@ namespace Planetary_Terrain {
             }
             
             // Mouse look
-            if (lockMouse || InputState.ms.Buttons[1]) {
-                Vector3 delta = new Vector3(InputState.mousePos.Y - InputState.lastMousePos.Y, InputState.mousePos.X - InputState.lastMousePos.X, 0) * .003f;
-                renderer.Camera.Rotation += delta;
-
-                if (lockMouse)
+            if (lockMouse || InputState.ms.Buttons[1] || InputState.ms.Buttons[2]) {
+                Vector2 delta;
+                if (lockMouse) {
+                    delta = new Vector2(InputState.ms.X, InputState.ms.Y);
                     System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
+                } else
+                    delta = InputState.mousePos - InputState.lastMousePos;
+
+                if (InputState.ms.Buttons[2])
+                    renderer.Camera.PostRotation += new Vector3(delta.Y, delta.X, 0) * .003f;
+                else
+                    renderer.Camera.Rotation += new Vector3(delta.Y, delta.X, 0) * .003f;
             }
+            zoomd += Math.Sign(-InputState.ms.Z);
+            renderer.Camera.Zoom += zoomd * deltaTime;
+            zoomd *= .9;
             #endregion
-            
-            if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
+
+            if (InputState.ks.IsPressed(DInput.Key.F2) && !InputState.lastks.IsPressed(DInput.Key.F2))
                 renderer.DrawGUI = !renderer.DrawGUI;
+
+            if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
+                renderer.Camera.BodyIndex = (renderer.Camera.BodyIndex + 1) % StarSystem.ActiveSystem.bodies.Count;
 
             ship.Update(deltaTime);
             StarSystem.ActiveSystem.Update(renderer, renderer.Device, deltaTime);
             NavigatorWindow.Update((float)deltaTime, InputState);
-
-            // lock camera to ship
-            renderer.Camera.AttachTo(ship);
+            
+            renderer.Camera.Update();
 
             #region input state update
             InputState.lastks = InputState.ks;

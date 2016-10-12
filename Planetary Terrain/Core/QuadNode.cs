@@ -43,13 +43,15 @@ namespace Planetary_Terrain {
         public int IndexCount { get; private set; }
         public int VertexCount { get; private set; }
         
-        [StructLayout(LayoutKind.Explicit, Size = 144)]
+        [StructLayout(LayoutKind.Explicit, Size = 208)]
         struct Constants {
             [FieldOffset(0)]
             public Matrix World;
             [FieldOffset(64)]
             public Matrix WorldInverseTranspose;
             [FieldOffset(128)]
+            public Matrix NodeToPlanetMatrix;
+            [FieldOffset(192)]
             public bool drawWaterFar;
         }
         private Constants constants;
@@ -404,10 +406,12 @@ namespace Planetary_Terrain {
 
                 if (vertexBuffer != null) {
                     if (IsAboveHorizon(renderer.Camera.Position)) {
-                        Vector3d pos = MeshCenter * planetScale + planetPos;
                         double scale = planetScale;
+                        Vector3d pos = planetPos + MeshCenter * planetScale;
 
-                        //renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
+                        constants.NodeToPlanetMatrix = Matrix.Scaling((float)(scale * Size)) * Matrix.Translation(pos);
+
+                        renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
 
                         scale *= Size;
 

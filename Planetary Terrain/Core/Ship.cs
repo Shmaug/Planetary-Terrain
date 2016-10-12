@@ -36,7 +36,7 @@ namespace Planetary_Terrain {
 
             Body b = StarSystem.ActiveSystem.GetNearestBody(Position);
             if (b != null) {
-                Vector3d p = b.Position - Position;
+                Vector3d p = Position - b.Position;
                 double l = p.Length();
                 p /= l;
                 double h = b.GetHeight(p);

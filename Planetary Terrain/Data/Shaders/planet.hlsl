@@ -28,28 +28,42 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 
 	float3 v3CameraPos = -planetPos;
 
-	// Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)
-	float3 v3Pos = worldPosition.xyz - planetPos;
-	float3 v3Ray = worldPosition.xyz;
-	v3Pos = normalize(v3Pos);
+	float3 position = mul(vertex, NodeToPlanet).xyz - planetPos;
+
+	float3 v3Ray = position - v3CameraPos;
 	float fFar = length(v3Ray);
-	v3Ray / fFar;
+	v3Ray /= fFar;
 
-	float fNear = GetIntersections(v3CameraPos, v3Ray, OuterRadius).x;
+	float3 v3Start;
 
-	// Calculate the ray's starting position, then calculate its scattering offset
-	float3 v3Start = v3CameraPos + v3Ray * fNear;
-	fFar -= fNear;
-	float fDepth = exp((InnerRadius - OuterRadius) * InvScaleDepth);
-	float fCameraAngle = dot(-v3Ray, v3Pos);
-	float fLightAngle = dot(-LightDirection, v3Pos);
+	if (CameraHeight > OuterRadius) {
+		// GroundFromSpace
+
+		// Calculate the closest intersection of the ray with the outer atmosphere (which is the near point of the ray passing through the atmosphere)
+		float B = 2.0 * dot(v3CameraPos, v3Ray);
+		float C = CameraHeight*CameraHeight - OuterRadius*OuterRadius;
+		float fDet = max(0.0, B*B - 4.0 * C);
+		float fNear = 0.5 * (-B - sqrt(fDet));
+
+		// Calculate the ray's starting position, then calculate its scattering offset
+		float3 v3Start = v3CameraPos + v3Ray * fNear;
+		fFar -= fNear;
+	}
+	else {
+		// GroundFromAtmosphere
+
+		v3Start = v3CameraPos;
+	}
+
+	float fDepth = exp((InnerRadius - OuterRadius) / ScaleDepth);
+	float fCameraAngle = dot(-v3Ray, position) / length(position);
+	float fLightAngle = dot(-LightDirection, position) / length(position);
 	float fCameraScale = scale(fCameraAngle);
 	float fLightScale = scale(fLightAngle);
 	float fCameraOffset = fDepth*fCameraScale;
 	float fTemp = (fLightScale + fCameraScale);
 
 	// Initialize the scattering loop variables
-	//gl_FrontColor = vec4(0.0, 0.0, 0.0, 0.0);
 	float fSampleLength = fFar / fSamples;
 	float fScaledLength = fSampleLength * Scale;
 	float3 v3SampleRay = v3Ray * fSampleLength;
@@ -57,8 +71,8 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 
 	// Now loop through the sample rays
 	float3 v3FrontColor = 0;
-	float3 v3Attenuate = 0;
-	for (int i = 0; i<nSamples; i++)
+	float3 v3Attenuate;
+	for (int i = 0; i < nSamples; i++)
 	{
 		float fHeight = length(v3SamplePoint);
 		float fDepth = exp(ScaleOverScaleDepth * (InnerRadius - fHeight));
@@ -68,8 +82,9 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 		v3SamplePoint += v3SampleRay;
 	}
 
-	v.c0 = v3FrontColor * (InvWavelength * KrESun + KmESun);
-	v.c1 = v3Attenuate;
+	// Calculate the attenuation factor for the ground
+	v.c0 = v3Attenuate;
+	v.c1 = v3FrontColor * (InvWavelength * KrESun + KmESun);
 
 	return v;
 }
@@ -97,7 +112,7 @@ float4 psmain(v2f i) : SV_TARGET
 		}
 	}
 
-	col = i.c0 + col * i.c1;
+	col = i.c1 + col * i.c0;
 
 	return float4(col, 1);
 }
