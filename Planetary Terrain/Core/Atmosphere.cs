@@ -62,7 +62,7 @@ namespace Planetary_Terrain {
             public Vector3 InvWavelength;
         }
         Constants constants;
-        D3D11.Buffer constBuffer;
+        public D3D11.Buffer constBuffer { get; private set; }
 
         public Atmosphere(double height, double pressure) {
             Height = height;
@@ -122,8 +122,8 @@ namespace Planetary_Terrain {
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
             #region prepare device
-            renderer.Context.VertexShader.SetConstantBuffers(1, constBuffer);
-            renderer.Context.PixelShader.SetConstantBuffers(1, constBuffer);
+            renderer.Context.VertexShader.SetConstantBuffers(3, constBuffer);
+            renderer.Context.PixelShader.SetConstantBuffers(3, constBuffer);
 
             renderer.Context.VertexShader.SetConstantBuffers(2, Planet.constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2,  Planet.constBuffer);

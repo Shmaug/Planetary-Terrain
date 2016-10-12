@@ -131,9 +131,9 @@ namespace Planetary_Terrain {
             r *= .01;
             ship.AngularVelocity = Vector3.Lerp(ship.AngularVelocity, r, (float)deltaTime);
 
-            if (InputState.ks.IsPressed(DInput.Key.Space))
+            if (InputState.ks.IsPressed(DInput.Key.LeftShift))
                 ship.Throttle += deltaTime * .25;
-            else if (InputState.ks.IsPressed(DInput.Key.LeftShift))
+            else if (InputState.ks.IsPressed(DInput.Key.LeftControl))
                 ship.Throttle -= deltaTime * .25;
             ship.Throttle = MathTools.Clamp01(ship.Throttle);
 

@@ -58,7 +58,7 @@ namespace Planetary_Terrain {
 
             HasOcean = ocean;
             OceanScaleHeight = .5;
-            OceanColor = Color.MediumBlue;
+            OceanColor = Color.DeepSkyBlue;
         }
 
         public double min, max;
@@ -151,7 +151,17 @@ namespace Planetary_Terrain {
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
+            // draw atmosphere behind planet
+            Atmosphere?.Draw(renderer, pos, scale);
+
             Shaders.PlanetShader.Set(renderer);
+
+            // atmosphere constants
+            if (Atmosphere != null) {
+                renderer.Context.VertexShader.SetConstantBuffers(3, Atmosphere.constBuffer);
+                renderer.Context.PixelShader.SetConstantBuffers(3, Atmosphere.constBuffer);
+            }
+
             // set constant buffer
             renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
@@ -167,13 +177,18 @@ namespace Planetary_Terrain {
 
             // set water shader
             Shaders.WaterShader.Set(renderer);
+
             renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
+            
+            // atmosphere constants
+            if (Atmosphere != null) {
+                renderer.Context.VertexShader.SetConstantBuffers(3, Atmosphere.constBuffer);
+                renderer.Context.PixelShader.SetConstantBuffers(3, Atmosphere.constBuffer);
+            }
 
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Draw(renderer, true, pos, scale);
-
-            Atmosphere?.Draw(renderer, pos, scale);
         }
 
         public override void Dispose() {

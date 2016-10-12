@@ -6,7 +6,7 @@ using SharpDX;
 
 namespace Planetary_Terrain {
     static class Debug {
-        public static QuadTree ClosestQuadTree;
+        public static QuadNode ClosestQuadTree;
         public static double ClosestQuadTreeDistance;
         public static double ClosestQuadTreeScale;
         public static int ChunksDrawn;

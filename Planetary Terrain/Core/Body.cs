@@ -20,7 +20,7 @@ namespace Planetary_Terrain {
         /// <summary>
         /// The 6 base quadtrees composing the planet
         /// </summary>
-        public QuadTree[] BaseQuads;
+        public QuadNode[] BaseQuads;
 
         public Body OrbitalParent;
 
@@ -40,20 +40,20 @@ namespace Planetary_Terrain {
             Mass = mass;
             SOI = Radius * 1.02;
 
-            MaxVertexSpacing = radius*.5 / QuadTree.GridSize;
+            MaxVertexSpacing = radius*.5 / QuadNode.GridSize;
 
             InitializeQuadTree();
         }
         void InitializeQuadTree() {
             double s = 1.41421356237 * Radius;
 
-            BaseQuads = new QuadTree[6];
-            BaseQuads[0] = new QuadTree(this, 0, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
-            BaseQuads[1] = new QuadTree(this, 1, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            BaseQuads[2] = new QuadTree(this, 2, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            BaseQuads[3] = new QuadTree(this, 3, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            BaseQuads[4] = new QuadTree(this, 4, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            BaseQuads[5] = new QuadTree(this, 5, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+            BaseQuads = new QuadNode[6];
+            BaseQuads[0] = new QuadNode(this, 0, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
+            BaseQuads[1] = new QuadNode(this, 1, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            BaseQuads[2] = new QuadNode(this, 2, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            BaseQuads[3] = new QuadNode(this, 3, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            BaseQuads[4] = new QuadNode(this, 4, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            BaseQuads[5] = new QuadNode(this, 5, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
 
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Generate();

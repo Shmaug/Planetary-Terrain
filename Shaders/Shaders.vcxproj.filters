@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="constants.hlsli" />
+    <None Include="atmosphere.hlsli">
+      <Filter>Atmosphere</Filter>
+    </None>
+    <None Include="line.hlsli">
+      <Filter>Line</Filter>
+    </None>
+    <None Include="model.hlsli">
+      <Filter>Model</Filter>
+    </None>
+    <None Include="planet.hlsli">
+      <Filter>Planet</Filter>
+    </None>
+    <None Include="water.hlsli">
+      <Filter>Water</Filter>
+    </None>
+    <None Include="star.hlsli">
+      <Filter>Star</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Atmosphere">
+      <UniqueIdentifier>{2cd44104-e086-4405-8507-07554291266c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Line">
+      <UniqueIdentifier>{4ca3b779-a6c3-48ba-bf7a-b262ac8b06f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Planet">
+      <UniqueIdentifier>{5a129e35-1ba2-42d3-bc7c-dd3f55cf3427}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Model">
+      <UniqueIdentifier>{2c0816cf-8126-4837-9842-51bd450d004b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Water">
+      <UniqueIdentifier>{2ee02bb2-95f7-480f-863e-1201d7dab7fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Star">
+      <UniqueIdentifier>{3edaad9b-c86f-4cfa-ba04-706ae0488aca}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="atmosphere_ps.hlsl">
+      <Filter>Atmosphere</Filter>
+    </FxCompile>
+    <FxCompile Include="atmosphere_vs.hlsl">
+      <Filter>Atmosphere</Filter>
+    </FxCompile>
+    <FxCompile Include="line_ps.hlsl">
+      <Filter>Line</Filter>
+    </FxCompile>
+    <FxCompile Include="line_vs.hlsl">
+      <Filter>Line</Filter>
+    </FxCompile>
+    <FxCompile Include="model_vs.hlsl">
+      <Filter>Model</Filter>
+    </FxCompile>
+    <FxCompile Include="model_ps.hlsl">
+      <Filter>Model</Filter>
+    </FxCompile>
+    <FxCompile Include="planet_vs.hlsl">
+      <Filter>Planet</Filter>
+    </FxCompile>
+    <FxCompile Include="planet_ps.hlsl">
+      <Filter>Planet</Filter>
+    </FxCompile>
+    <FxCompile Include="water_ps.hlsl">
+      <Filter>Water</Filter>
+    </FxCompile>
+    <FxCompile Include="water_vs.hlsl">
+      <Filter>Water</Filter>
+    </FxCompile>
+    <FxCompile Include="star_ps.hlsl">
+      <Filter>Star</Filter>
+    </FxCompile>
+    <FxCompile Include="star_vs.hlsl">
+      <Filter>Star</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>

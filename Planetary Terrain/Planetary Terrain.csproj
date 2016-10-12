@@ -111,37 +111,26 @@
     <Compile Include="Core\Ship.cs" />
     <Compile Include="Core\Star.cs" />
     <Compile Include="Core\StarSystem.cs" />
-    <Compile Include="Model.cs" />
-    <Compile Include="ModelMesh.cs" />
+    <Compile Include="Core\Model.cs" />
+    <Compile Include="Core\ModelMesh.cs" />
+    <Content Include="Data\Shaders\_quadnode.hlsli" />
     <Compile Include="UI\Frame.cs" />
     <Compile Include="UI\TextButton.cs" />
     <Compile Include="UI\TextLabel.cs" />
     <Compile Include="UI\UIElement.cs" />
-    <Content Include="Models\ship_diffuse.png">
+    <Content Include="Data\Models\ship_diffuse.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Models\ship_illumination.png">
+    <Content Include="Data\Models\ship_illumination.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Models\ship_specular.png">
+    <Content Include="Data\Models\ship_specular.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\atmosphere_vs.hlsl" />
-    <Content Include="Shaders\Include\model.hlsl" />
-    <Content Include="Shaders\Include\water.hlsl" />
-    <Content Include="Shaders\Include\star.hlsl" />
-    <Content Include="Shaders\model_vs.hlsl" />
-    <Content Include="Shaders\model_ps.hlsl" />
-    <Content Include="Shaders\water_ps.hlsl" />
-    <Content Include="Shaders\water_vs.hlsl" />
-    <Content Include="Shaders\star_ps.hlsl" />
-    <Content Include="Shaders\Include\atmosphere.hlsl" />
-    <Content Include="Shaders\atmosphere_ps.hlsl" />
-    <Content Include="Shaders\Include\constants.hlsl" />
     <Compile Include="Tools\Constants.cs" />
     <Compile Include="Tools\Debug.cs" />
     <Compile Include="Tools\Icosphere.cs" />
-    <Compile Include="Core\QuadTree.cs" />
+    <Compile Include="Core\QuadNode.cs" />
     <Compile Include="Core\Game.cs" />
     <Compile Include="Core\Renderer.cs" />
     <Compile Include="Tools\Noise.cs" />
@@ -157,7 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Models\ship.fbx">
+    <None Include="Data\Models\ship.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
@@ -175,59 +164,47 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Shaders\line_ps.hlsl" />
-    <Content Include="Shaders\line_vs.hlsl" />
-    <Content Include="Shaders\Include\line.hlsl" />
-    <Content Include="Shaders\star_vs.hlsl" />
-    <Content Include="Shaders\planet_vs.hlsl" />
-    <Content Include="Shaders\planet_ps.hlsl" />
-    <Content Include="Shaders\Include\planet.hlsl" />
-    <Content Include="Textures\Earth.jpg">
+    <Content Include="Data\Shaders\atmosphere.hlsl" />
+    <Content Include="Data\Shaders\_atmosphere.hlsli" />
+    <Content Include="Data\Shaders\_planet.hlsli" />
+    <Content Include="Data\Shaders\_constants.hlsli" />
+    <Content Include="Data\Shaders\line.hlsl" />
+    <Content Include="Data\Shaders\model.hlsl" />
+    <Content Include="Data\Shaders\planet.hlsl" />
+    <Content Include="Data\Shaders\star.hlsl" />
+    <Content Include="Data\Shaders\water.hlsl" />
+    <Content Include="Data\Textures\Earth.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\Mars.jpg">
+    <Content Include="Data\Textures\Mars.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\Venus.jpg">
+    <Content Include="Data\Textures\Venus.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\Mercury.jpg">
+    <Content Include="Data\Textures\Mercury.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\height.jpg">
+    <Content Include="Data\Textures\height.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\Sun.jpg">
+    <Content Include="Data\Textures\Sun.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>SET COMPILE_AT_RUNTIME=0
-
-if not exist "Shaders" mkdir "Shaders"
-
-if %25COMPILE_AT_RUNTIME%25 equ 1 (
-  xcopy /s/y "$(ProjectDir)Shaders" "Shaders"
-) else (
-setlocal ENABLEDELAYEDEXPANSION
-
-for /r "$(ProjectDir)Shaders" %25%25G in (*.hlsl) do (
- set fname=%25%25~nG
- set end=!fname:~-3!
- if !end! == _vs (
-  fxc "$(ProjectDir)Shaders"\!fname!.hlsl /I "$(ProjectDir)Shaders"\Include /T vs_5_0 /Zpr /nologo /Fo "Shaders\!fname!.cso"
- )
- if !end! == _ps (
-  fxc "$(ProjectDir)Shaders"\!fname!.hlsl /I "$(ProjectDir)Shaders"\Include /T ps_5_0 /Zpr /nologo /Fo "Shaders\!fname!.cso"
- )
-)
-)</PreBuildEvent>
+    <PreBuildEvent>
+    </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>if not exist "Data\Shaders" mkdir "Data\Shaders"
+
+for /r "$(ProjectDir)Data\Shaders" %25%25G in (*.hlsl) do (
+ fxc "%25%25G" /E vsmain /T vs_5_0 /Zpr /nologo /Fo Data\Shaders\%25%25~nG_vs.cso
+ fxc "%25%25G" /E psmain /T ps_5_0 /Zpr /nologo /Fo Data\Shaders\%25%25~nG_ps.cso
+)</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\AssimpNet.3.3.1\build\AssimpNet.targets" Condition="Exists('..\packages\AssimpNet.3.3.1\build\AssimpNet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
