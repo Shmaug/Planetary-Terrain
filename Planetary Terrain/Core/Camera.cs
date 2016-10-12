@@ -6,7 +6,7 @@ namespace Planetary_Terrain {
         private Vector3d _position;
         private Vector3 _rotation;
         private float _fov, _aspect, _near = 1f, _far = 10000000;
-        private Matrix _rotationMatrix;
+        private Matrix _rotationMatrix = Matrix.Identity;
         private Matrix _view, _proj;
 
         #region make functions
@@ -64,10 +64,8 @@ namespace Planetary_Terrain {
         public Matrix Projection { get { return _proj; } }
         
         public void AttachTo(PlayerShip ship) {
-            _rotationMatrix = ship.Rotation;
-            _position = ship.Position +
-                _rotationMatrix.Forward * 30 +
-                _rotationMatrix.Up * 7;
+            _rotationMatrix = ship.Rotation * (Matrix.RotationX(Rotation.X) * Matrix.RotationY(Rotation.Y));
+            _position = ship.Position + _rotationMatrix.Forward * 50;
             makeView();
         }
         

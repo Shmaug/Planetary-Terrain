@@ -102,6 +102,10 @@ namespace Planetary_Terrain {
                             mm.SetEmissiveTexture(device, modelPath + @"\" + mat.TextureEmissive.FilePath);
                             Debug.Log("Emissive added " + mat.TextureEmissive.FilePath);
                         }
+                        if (mat.GetMaterialTextureCount(TextureType.Specular) > 0) {
+                            mm.SetSpecularTexture(device, modelPath + @"\" + mat.TextureSpecular.FilePath);
+                            Debug.Log("Specular added " + mat.TextureSpecular.FilePath);
+                        }
                     }
 
                     //bool hasTexCoords = mesh.HasTextureCoords(0);

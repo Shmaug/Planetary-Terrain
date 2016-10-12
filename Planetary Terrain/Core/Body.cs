@@ -7,8 +7,8 @@ using DWrite = SharpDX.DirectWrite;
 
 namespace Planetary_Terrain {
     abstract class Body : IDisposable {
-        public double MaxVertexSpacing = 1000000; // m/vertex
-        public double MinVertexSpacing = 4;       // m/vertex
+        public double MaxVertexSpacing = 2000000; // m/vertex
+        public double MinVertexSpacing = 1;       // m/vertex
 
         /// <summary>
         /// The world-space north pole

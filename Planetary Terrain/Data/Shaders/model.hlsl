@@ -8,14 +8,11 @@ cbuffer ModelConstants : register (b1) {
 	float Shininess;
 	float SpecularIntensity;
 }
-Texture2D DiffuseTexture : register(t0);
-SamplerState DiffuseSampler : register(s0);
+SamplerState TextureSampler : register(s0);
 
+Texture2D DiffuseTexture  : register(t0);
 Texture2D EmissiveTexture : register(t1);
-SamplerState EmissiveSampler : register(s1);
-
 Texture2D SpecularTexture : register(t2);
-SamplerState SpecularSampler : register(s2);
 
 struct v2f {
 	float4 position : SV_POSITION;
@@ -36,7 +33,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float3 col = DiffuseTexture.Sample(DiffuseSampler, i.uv).rgb;
+	float3 col = DiffuseTexture.Sample(TextureSampler, i.uv).rgb;
 	if (length(LightDirection) > 0) {
 		float light = dot(LightDirection, -i.normal);
 		col *= clamp(light, 0, 1);
@@ -45,9 +42,13 @@ float4 psmain(v2f i) : SV_TARGET
 			float3 r = reflect(-LightDirection, i.normal);
 			float3 v = normalize(i.worldPos);
 			float dp = dot(r, v);
-			if (dp > 0)
-				col += SpecularColor * SpecularIntensity * pow(dp, Shininess);
+			if (dp > 0) {
+				float s = SpecularTexture.Sample(TextureSampler, i.uv).r;
+				col += SpecularColor * SpecularIntensity * pow(dp, Shininess) * s;
+			}
 		}
 	}
+	col += EmissiveTexture.Sample(TextureSampler, i.uv).rgb;
+
 	return float4(col, 1);
 }

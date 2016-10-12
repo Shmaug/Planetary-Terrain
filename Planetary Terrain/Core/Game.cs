@@ -78,7 +78,7 @@ namespace Planetary_Terrain {
             new UI.TextLabel(NavigatorWindow, "Title", new RawRectangleF(0, 0, 200, h), "NAVIGATOR", renderer.SegoeUI24, renderer.SolidWhiteBrush);
             float y = h;
             foreach (Body p in starSystem.bodies) {
-                new UI.TextButton(NavigatorWindow, p.Label + "Button", new RawRectangleF(0, y, 200, y + h), p.Label, renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
+                new UI.TextButton(NavigatorWindow, p.Label + "Button", new RawRectangleF(5, y, 195, y + h-2), p.Label, renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
                     ()=> {
                         Vector3d d = new Vector3d(0, 1, -1);
                         d.Normalize();
@@ -138,31 +138,30 @@ namespace Planetary_Terrain {
             ship.Throttle = MathTools.Clamp01(ship.Throttle);
 
             // Mouse lock
-            //if (InputState.ks.IsPressed(DInput.Key.LeftControl) && !InputState.lastks.IsPressed(DInput.Key.LeftControl)) {
-            //    lockMouse = !lockMouse;
-            //
-            //    if (lockMouse)
-            //        System.Windows.Forms.Cursor.Hide();
-            //    else
-            //        System.Windows.Forms.Cursor.Show();
-            //}
+            if (InputState.ks.IsPressed(DInput.Key.LeftControl) && !InputState.lastks.IsPressed(DInput.Key.LeftControl)) {
+                lockMouse = !lockMouse;
             
-            //// Mouse look
-            //if (lockMouse) {
-            //    Vector3 delta = new Vector3(InputState.ms.Y, InputState.ms.X, 0) * .003f;
-            //    renderer.Camera.Rotation += delta;
-            //    System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
-            //}
-            #endregion
+                if (lockMouse)
+                    System.Windows.Forms.Cursor.Hide();
+                else
+                    System.Windows.Forms.Cursor.Show();
+            }
+            
+            // Mouse look
+            if (lockMouse || InputState.ms.Buttons[1]) {
+                Vector3 delta = new Vector3(InputState.mousePos.Y - InputState.lastMousePos.Y, InputState.mousePos.X - InputState.lastMousePos.X, 0) * .003f;
+                renderer.Camera.Rotation += delta;
 
-            #region misc keyboard 
+                if (lockMouse)
+                    System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
+            }
+            #endregion
+            
             if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
                 renderer.DrawGUI = !renderer.DrawGUI;
-            #endregion
 
             ship.Update(deltaTime);
             starSystem.Update(renderer, renderer.Device, deltaTime);
-
             NavigatorWindow.Update((float)deltaTime, InputState);
 
             // lock camera to ship

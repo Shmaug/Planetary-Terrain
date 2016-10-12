@@ -15,6 +15,8 @@ namespace Planetary_Terrain {
 
         public PlayerShip(D3D11.Device device, Camera camera) {
             ShipModel = new Model("Data/Models/ship.fbx", device);
+            ShipModel.Meshes[0].SetEmissiveTexture(device, "Data/Models/ship_emission.png");
+            ShipModel.Meshes[0].SetSpecularTexture(device, "Data/Models/ship_specular.png");
             ShipModel.SpecularColor = Color.White;
             ShipModel.Shininess = 200;
             ShipModel.SpecularIntensity = 1;
@@ -22,12 +24,12 @@ namespace Planetary_Terrain {
         }
 
         public void Update(double deltaTime) {
-            LinearVelocity += (Vector3d)Rotation.Backward * Throttle * 1000d;
+            LinearVelocity += (Vector3d)Rotation.Backward * Throttle * 500d;
 
             // extremely fake aerodynamic forces (in space)
             LinearVelocity = (Vector3d)Rotation.Backward * LinearVelocity.Length();
             if (Throttle < .1)
-                LinearVelocity *= .5;
+                LinearVelocity *= .8;
 
             Position += LinearVelocity * deltaTime;
             Rotation *= Matrix.RotationAxis(Rotation.Right, AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, AngularVelocity.Z);

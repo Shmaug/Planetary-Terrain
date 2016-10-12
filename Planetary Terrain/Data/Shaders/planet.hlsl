@@ -29,7 +29,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 	float3 v3CameraPos = -planetPos;
 
 	// Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)
-	float3 v3Pos = worldPosition.xyz - v3CameraPos;
+	float3 v3Pos = worldPosition.xyz - planetPos;
 	float3 v3Ray = worldPosition.xyz;
 	v3Pos = normalize(v3Pos);
 	float fFar = length(v3Ray);
@@ -56,8 +56,8 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 	float3 v3SamplePoint = v3Start + v3SampleRay * 0.5;
 
 	// Now loop through the sample rays
-	float3 v3FrontColor = float3(0.0, 0.0, 0.0);
-	float3 v3Attenuate;
+	float3 v3FrontColor = 0;
+	float3 v3Attenuate = 0;
 	for (int i = 0; i<nSamples; i++)
 	{
 		float fHeight = length(v3SamplePoint);
@@ -70,6 +70,8 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 
 	v.c0 = v3FrontColor * (InvWavelength * KrESun + KmESun);
 	v.c1 = v3Attenuate;
+
+	v.c0 = (normalize(v3Pos) - .5) * 2;
 
 	return v;
 }
@@ -97,7 +99,7 @@ float4 psmain(v2f i) : SV_TARGET
 		}
 	}
 
-	col = i.c0 + col * i.c1;
+	col = i.c0;// +col * i.c1;
 
 	return float4(col, 1);
 }

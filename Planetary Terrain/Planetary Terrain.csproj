@@ -121,7 +121,7 @@
     <Content Include="Data\Models\ship_diffuse.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\ship_illumination.png">
+    <Content Include="Data\Models\ship_emission.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Models\ship_specular.png">
