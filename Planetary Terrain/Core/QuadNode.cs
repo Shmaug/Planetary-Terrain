@@ -50,8 +50,6 @@ namespace Planetary_Terrain {
             [FieldOffset(64)]
             public Matrix WorldInverseTranspose;
             [FieldOffset(128)]
-            public Vector3 nodePosition;
-            [FieldOffset(140)]
             public bool drawWaterFar;
         }
         private Constants constants;
@@ -344,7 +342,6 @@ namespace Planetary_Terrain {
             constants.World = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
             constants.WorldInverseTranspose = Matrix.Identity;
             constants.drawWaterFar = !waterPass && hasWaterVerticies && d > waterDetailThreshold;
-            constants.nodePosition = pos;
 
             // constant buffer
             if (constantBuffer == null)
@@ -410,7 +407,7 @@ namespace Planetary_Terrain {
                         Vector3d pos = MeshCenter * planetScale + planetPos;
                         double scale = planetScale;
 
-                        renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
+                        //renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
 
                         scale *= Size;
 

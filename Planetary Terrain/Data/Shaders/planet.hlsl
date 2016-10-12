@@ -71,8 +71,6 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 	v.c0 = v3FrontColor * (InvWavelength * KrESun + KmESun);
 	v.c1 = v3Attenuate;
 
-	v.c0 = (normalize(v3Pos) - .5) * 2;
-
 	return v;
 }
 
@@ -99,7 +97,7 @@ float4 psmain(v2f i) : SV_TARGET
 		}
 	}
 
-	col = i.c0;// +col * i.c1;
+	col = i.c0 + col * i.c1;
 
 	return float4(col, 1);
 }

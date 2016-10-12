@@ -12,8 +12,6 @@ namespace Planetary_Terrain {
 
         public Renderer renderer;
 
-        private StarSystem starSystem;
-
         private System.Diagnostics.Stopwatch frameTimer;
 
         DInput.Keyboard keyboard;
@@ -66,18 +64,18 @@ namespace Planetary_Terrain {
         }
 
         void InitializeScene() {
-            starSystem = new StarSystem(renderer.Device);
+            StarSystem.ActiveSystem = new StarSystem(renderer.Device);
             
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
             ship = new PlayerShip(renderer.Device, renderer.Camera);
 
             float h = 35;
-            NavigatorWindow = new UI.Frame(null, "Panel1", new RawRectangleF(0, 300, 200, 300 + (starSystem.bodies.Count+1) * h), renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
+            NavigatorWindow = new UI.Frame(null, "Panel1", new RawRectangleF(0, 300, 200, 300 + (StarSystem.ActiveSystem.bodies.Count+1) * h), renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
             NavigatorWindow.Draggable = true;
 
             new UI.TextLabel(NavigatorWindow, "Title", new RawRectangleF(0, 0, 200, h), "NAVIGATOR", renderer.SegoeUI24, renderer.SolidWhiteBrush);
             float y = h;
-            foreach (Body p in starSystem.bodies) {
+            foreach (Body p in StarSystem.ActiveSystem.bodies) {
                 new UI.TextButton(NavigatorWindow, p.Label + "Button", new RawRectangleF(5, y, 195, y + h-2), p.Label, renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
                     ()=> {
                         Vector3d d = new Vector3d(0, 1, -1);
@@ -161,7 +159,7 @@ namespace Planetary_Terrain {
                 renderer.DrawGUI = !renderer.DrawGUI;
 
             ship.Update(deltaTime);
-            starSystem.Update(renderer, renderer.Device, deltaTime);
+            StarSystem.ActiveSystem.Update(renderer, renderer.Device, deltaTime);
             NavigatorWindow.Update((float)deltaTime, InputState);
 
             // lock camera to ship
@@ -185,10 +183,10 @@ namespace Planetary_Terrain {
 
             renderer.DrawWireframe = InputState.ks.IsPressed(DInput.Key.F);
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
-            
-            starSystem.Draw(renderer, ship.LinearVelocity.Length());
 
-            ship.Draw(renderer, starSystem.bodies[0].Position);
+            StarSystem.ActiveSystem.Draw(renderer, ship.LinearVelocity.Length());
+
+            ship.Draw(renderer);
             
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
@@ -208,7 +206,7 @@ namespace Planetary_Terrain {
             NavigatorWindow.Dispose();
 
             // scene stuff
-            starSystem.Dispose();
+            StarSystem.ActiveSystem.Dispose();
 
             renderer.Dispose();
             

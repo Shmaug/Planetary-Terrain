@@ -133,7 +133,7 @@ namespace Planetary_Terrain {
                 BaseQuads[i].SplitDynamic(camera.Position, device);
         }
 
-        public override void Draw(Renderer renderer, Vector3d sunPosition) {
+        public override void Draw(Renderer renderer) {
             // Get the entire planet's scale and scaled position
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
@@ -142,7 +142,11 @@ namespace Planetary_Terrain {
             if (scale * Radius < 1)
                 return;
 
-            constants.lightDirection = Vector3d.Normalize(Position - sunPosition);
+            Star s = StarSystem.ActiveSystem.GetNearestStar(Position);
+            if (s != null)
+                constants.lightDirection = Vector3d.Normalize(Position - s.Position);
+            else
+                constants.lightDirection = new Vector3d();
             constants.oceanScaleHeight = (float)OceanScaleHeight;
             constants.oceanColor = OceanColor.ToVector3();
 

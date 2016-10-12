@@ -64,7 +64,7 @@ namespace Planetary_Terrain {
         public Matrix Projection { get { return _proj; } }
         
         public void AttachTo(PlayerShip ship) {
-            _rotationMatrix = ship.Rotation * (Matrix.RotationX(Rotation.X) * Matrix.RotationY(Rotation.Y));
+            _rotationMatrix = ship.Rotation * (Matrix.RotationAxis(ship.Rotation.Right, Rotation.X) * Matrix.RotationAxis(ship.Rotation.Up, Rotation.Y));
             _position = ship.Position + _rotationMatrix.Forward * 50;
             makeView();
         }

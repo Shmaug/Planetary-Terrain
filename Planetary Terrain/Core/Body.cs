@@ -60,7 +60,7 @@ namespace Planetary_Terrain {
         }
 
         public abstract void Update(D3D11.Device device, Camera camera);
-        public abstract void Draw(Renderer renderer, Vector3d sunPosition);
+        public abstract void Draw(Renderer renderer);
         public void DrawHUDIcon(Renderer renderer, double playerSpeed) {
             Vector2? screenPos = renderer.WorldToScreen(Position);
             if (screenPos.HasValue) {

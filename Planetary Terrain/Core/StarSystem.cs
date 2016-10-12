@@ -5,6 +5,8 @@ using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
     class StarSystem : IDisposable {
+        public static StarSystem ActiveSystem;
+
         public List<Body> bodies;
 
         public StarSystem(D3D11.Device device) {
@@ -65,6 +67,22 @@ namespace Planetary_Terrain {
             return n;
         }
 
+        public Star GetNearestStar(Vector3d pos) {
+            double near = double.MaxValue;
+            Star n = null;
+            foreach (Body p in bodies) {
+                if (p is Star) {
+                    double d = (p.Position - pos).Length();
+                    if (d < near) {
+                        near = d;
+                        n = p as Star;
+                    }
+                }
+            }
+            return n;
+        }
+
+
         public void Update(Renderer renderer, D3D11.Device device, double deltaTime) {
             foreach (Body b in bodies) {
                 b.Update(device, renderer.Camera);
@@ -78,7 +96,7 @@ namespace Planetary_Terrain {
 
         public void Draw(Renderer renderer, double playerSpeed) {
             foreach (Body b in bodies)
-                b.Draw(renderer, bodies[0].Position);
+                b.Draw(renderer);
 
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();

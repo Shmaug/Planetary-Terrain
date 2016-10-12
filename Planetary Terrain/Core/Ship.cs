@@ -33,10 +33,26 @@ namespace Planetary_Terrain {
 
             Position += LinearVelocity * deltaTime;
             Rotation *= Matrix.RotationAxis(Rotation.Right, AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, AngularVelocity.Z);
+
+            Body b = StarSystem.ActiveSystem.GetNearestBody(Position);
+            if (b != null) {
+                Vector3d p = b.Position - Position;
+                double l = p.Length();
+                p /= l;
+                double h = b.GetHeight(p);
+                if (l < h)
+                    Position = b.Position + p * h;
+            }
         }
         
-        public void Draw(Renderer renderer, Vector3d sunPosition) {
-            ShipModel.Draw(renderer, Vector3d.Normalize(Position - sunPosition), Rotation * Matrix.Translation(Position - renderer.Camera.Position));
+        public void Draw(Renderer renderer) {
+            Vector3d light = new Vector3d();
+            Star star = StarSystem.ActiveSystem.GetNearestStar(Position);
+            if (star != null)
+                light = Vector3d.Normalize(Position - star.Position);
+            ShipModel.Draw(renderer,
+                light,
+                Rotation * Matrix.Translation(Position - renderer.Camera.Position));
         }
     }
 }
