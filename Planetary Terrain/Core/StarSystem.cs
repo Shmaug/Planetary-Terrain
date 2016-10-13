@@ -19,12 +19,12 @@ namespace Planetary_Terrain {
             //Planet mercury = new Planet("Mercury", new Vector3d(0, 0, 57910000000), 2440000, 3.285e23, 10000);
             //mercury.SetColormap(ResourceUtil.LoadTexture(device, "Data/Textures/Mercury.jpg"), device);
             //bodies.Add(mercury);
-            
+
             //Planet venus = new Planet("Venus",new Vector3d(0, 0, 108200000000), 6500000, 4.867e24, 40000);
             //venus.SetColormap(ResourceUtil.LoadTexture(device, "Data/Textures/Venus.jpg"), device);
             //bodies.Add(venus);
 
-            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 20000, new Atmosphere(6371000 * 1.025, 101325), true);
+            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 20000, new Atmosphere(6371000 * 1.025, 101325), false);
             earth.SetColormap(ResourceUtil.LoadTexture(device, "Data/Textures/Earth.jpg"), device);
             bodies.Add(earth);
 

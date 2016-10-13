@@ -78,8 +78,7 @@ namespace Planetary_Terrain {
             foreach (Body p in StarSystem.ActiveSystem.bodies) {
                 new UI.TextButton(NavigatorWindow, p.Label + "Button", new RawRectangleF(5, y, 195, y + h-2), p.Label, renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
                     ()=> {
-                        Vector3d d = new Vector3d(0, 1, -1);
-                        d.Normalize();
+                        Vector3d d = new Vector3d(0, 0, -1);
                         ship.Position = p.Position + d * (p.SOI + 1000);
                     });
                 y += h;

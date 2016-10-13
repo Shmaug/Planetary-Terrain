@@ -66,6 +66,9 @@ namespace Planetary_Terrain {
         public D3D11.BlendState blendStateTransparent { get; private set; }
         #endregion
 
+        int SampleCount = 8;
+        int SampleQuality = 0;
+
         public bool DrawWireframe = false;
         public bool DrawGUI = true;
 
@@ -81,14 +84,16 @@ namespace Planetary_Terrain {
             int width = renderForm.ClientSize.Width, height = renderForm.ClientSize.Height;
             ResolutionX = width; ResolutionY = height;
 
+
             #region 3d device & context
             DXGI.SwapChainDescription swapChainDesc = new DXGI.SwapChainDescription() {
                 ModeDescription = new DXGI.ModeDescription(width, height, new DXGI.Rational(60, 1), DXGI.Format.R8G8B8A8_UNorm),
-                SampleDescription = new DXGI.SampleDescription(1, 0),
+                SampleDescription = new DXGI.SampleDescription(SampleCount, SampleQuality),
                 Usage = DXGI.Usage.RenderTargetOutput,
                 BufferCount = 1,
                 OutputHandle = renderForm.Handle,
-                IsWindowed = true
+                IsWindowed = true,
+                SwapEffect = DXGI.SwapEffect.Discard
             };
             D3D11.Device device;
             D3D11.Device.CreateWithSwapChain(DriverType.Hardware, D3D11.DeviceCreationFlags.BgraSupport | D3D11.DeviceCreationFlags.Debug, swapChainDesc, out device, out swapChain);
@@ -160,7 +165,7 @@ namespace Planetary_Terrain {
                 MipLevels = 1,
                 Width = width,
                 Height = height,
-                SampleDescription = new DXGI.SampleDescription(1, 0),
+                SampleDescription = new DXGI.SampleDescription(SampleCount, SampleQuality),
                 Usage = D3D11.ResourceUsage.Default,
                 BindFlags = D3D11.BindFlags.DepthStencil,
                 CpuAccessFlags = D3D11.CpuAccessFlags.None,
@@ -233,7 +238,7 @@ namespace Planetary_Terrain {
                 IsMultisampleEnabled = true
             });
             #endregion
-
+            
             constants = new Constants();
             constantBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             
@@ -287,7 +292,7 @@ namespace Planetary_Terrain {
                 MipLevels = 1,
                 Width = width,
                 Height = height,
-                SampleDescription = new DXGI.SampleDescription(1, 0),
+                SampleDescription = new DXGI.SampleDescription(SampleCount, SampleQuality),
                 Usage = D3D11.ResourceUsage.Default,
                 BindFlags = D3D11.BindFlags.DepthStencil,
                 CpuAccessFlags = D3D11.CpuAccessFlags.None,

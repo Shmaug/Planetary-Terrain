@@ -75,7 +75,7 @@ namespace Planetary_Terrain {
             double smooth = Noise.Fractal(direction * 200 + new Vector3d(-5000), 4, .02f, .3f);
             smooth *= 1 - rough;
 
-            total = smooth + rough;
+            total = rough;// smooth + rough;
             
             min = Math.Min(min, total);
             max = Math.Max(max, total);

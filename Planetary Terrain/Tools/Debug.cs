@@ -15,6 +15,8 @@ namespace Planetary_Terrain {
         static List<string> logs = new List<string>();
         static Dictionary<string, string> labels = new Dictionary<string, string>();
 
+        // TODO: profiler
+
         public static void Log(object l) {
             logs.Add(l.ToString());
             if (logs.Count > 10)

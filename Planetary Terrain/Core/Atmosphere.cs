@@ -7,7 +7,7 @@ using D3D11 = SharpDX.Direct3D11;
 namespace Planetary_Terrain {
     class Atmosphere : IDisposable {
         public double MaxVertexSpacing = 2000000; // m/vertex
-        public double MinVertexSpacing = 1000;       // m/vertex
+        public double MinVertexSpacing = 5000;       // m/vertex
 
         public Planet Planet;
         public double Radius;
@@ -72,12 +72,12 @@ namespace Planetary_Terrain {
             double s = 1.41421356237 * Radius;
 
             BaseQuads = new AtmosphereQuadNode[6];
-            BaseQuads[0] = new AtmosphereQuadNode(this, 0, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
-            BaseQuads[1] = new AtmosphereQuadNode(this, 1, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            BaseQuads[2] = new AtmosphereQuadNode(this, 2, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            BaseQuads[3] = new AtmosphereQuadNode(this, 3, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            BaseQuads[4] = new AtmosphereQuadNode(this, 4, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            BaseQuads[5] = new AtmosphereQuadNode(this, 5, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+            BaseQuads[0] = new AtmosphereQuadNode(this, 0, s, 0, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
+            BaseQuads[1] = new AtmosphereQuadNode(this, 1, s, 0, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            BaseQuads[2] = new AtmosphereQuadNode(this, 2, s, 0, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            BaseQuads[3] = new AtmosphereQuadNode(this, 3, s, 0, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            BaseQuads[4] = new AtmosphereQuadNode(this, 4, s, 0, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            BaseQuads[5] = new AtmosphereQuadNode(this, 5, s, 0, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
 
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Generate();

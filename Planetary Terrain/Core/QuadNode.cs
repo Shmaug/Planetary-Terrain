@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Planetary_Terrain {
     class QuadNode : IDisposable {
         public const int GridSize = 16;
-        const double waterDetailThreshold = 2500;
+        const double waterDetailThreshold = 5000;
 
         public double Size;
         public double ArcSize;
@@ -42,6 +42,8 @@ namespace Planetary_Terrain {
 
         public int IndexCount { get; private set; }
         public int VertexCount { get; private set; }
+
+        public int LoDLevel;
         
         [StructLayout(LayoutKind.Explicit, Size = 208)]
         struct Constants {
@@ -64,13 +66,15 @@ namespace Planetary_Terrain {
 
         bool dirty = false;
         bool generating = false;
-        
-        public QuadNode(Body body, int siblingIndex, double size, QuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
+        public bool Ready { get { return dirty || vertexBuffer != null; } }
+
+        public QuadNode(Body body, int siblingIndex, double size, int lod, QuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
             SiblingIndex = siblingIndex;
             Size = size;
             Body = body;
             Parent = parent;
             ArcSize = Body.ArcLength(Size);
+            LoDLevel = lod;
 
             VertexSpacing = Size / GridSize;
 
@@ -87,7 +91,6 @@ namespace Planetary_Terrain {
 
             hasWaterVerticies = Body is Planet && ((Planet)Body).HasOcean;
         }
-
         void SetupMesh() {
             VertexSamples = new Vector3d[9];
             int i = 0;
@@ -125,7 +128,7 @@ namespace Planetary_Terrain {
                     waterVerticies = new VertexNormal[s * s * 6];
                     waterFarVerticies = new PlanetVertex[s * s * 6];
                 }
-                
+
                 Vector2 t;
                 Vector3d p1d, p2d, p3d;
                 Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
@@ -141,12 +144,12 @@ namespace Planetary_Terrain {
                         p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
                         p2d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z + 1) - offset), Orientation));
                         p3d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x + 1, 0, z) - offset), Orientation));
-                        
+
                         Body.GetSurfaceInfo(p1d, out t, out h);
-                        
+
                         if (hasWaterVerticies) {
                             waterVerticies[x * s + z] = new VertexNormal((p1d * oceanLevel - MeshCenter) * invScale, p1d);
-                            
+
                             waterFarVerticies[x * s + z] =
                                 new PlanetVertex(
                                     waterVerticies[x * s + z].Position,
@@ -156,16 +159,16 @@ namespace Planetary_Terrain {
                         }
 
                         rh = Body.GetHeight(p1d);
-                        p1d = p1d * rh                  - MeshCenter;
+                        p1d = p1d * rh - MeshCenter;
                         p2d = p2d * Body.GetHeight(p2d) - MeshCenter;
                         p3d = p3d * Body.GetHeight(p3d) - MeshCenter;
-                        
+
                         verticies[x * s + z] =
                             new PlanetVertex(
                                 p1d * invScale,
                                 Vector3.Cross(Vector3d.Normalize(p2d - p1d), Vector3d.Normalize(p3d - p1d)),
                                 t, (float)h);
-
+                        
                         if (hasWaterVerticies && rh > oceanLevel)
                             waterFarVerticies[x * s + z] = verticies[x * s + z];
                         else
@@ -206,25 +209,474 @@ namespace Planetary_Terrain {
                 dirty = true;
             }));
         }
-
+        
         public void GenerateIndicies() {
+            QuadNode l = GetLeft();
+            QuadNode r = GetRight();
+            QuadNode u = GetUp();
+            QuadNode d = GetDown();
+
+            bool fanLeft =  l != null && l.LoDLevel < LoDLevel;
+            bool fanUp =    u != null && u.LoDLevel < LoDLevel;
+            bool fanRight = r != null && r.LoDLevel < LoDLevel;
+            bool fanDown =  d != null && d.LoDLevel < LoDLevel;
+            
+            // TODO: Generate these ahead of time
             List<short> inds = new List<short>();
             int s = GridSize + 1;
-            for (int x = 0; x < s; x++) {
-                for (int z = 0; z < s; z++) {
-                    if (x + 1 < s && z + 1 < s) {
-                        // TODO: Quad fanning to handle cracks
-                        inds.Add((short)((x + 1) * s + z));
-                        inds.Add((short)(x * s + z));
-                        inds.Add((short)(x * s + z + 1));
+            short i0, i1, i2, i3, i4, i5, i6, i7, i8;
+            for (int x = 0; x < s - 2; x += 2) {
+                for (int z = 0; z < s - 2; z += 2) {
+                    i0 = (short)((x + 0) * s + z);
+                    i1 = (short)((x + 1) * s + z);
+                    i2 = (short)((x + 2) * s + z);
+                    
+                    i3 = (short)((x + 0) * s + z + 1);
+                    i4 = (short)((x + 1) * s + z + 1);
+                    i5 = (short)((x + 2) * s + z + 1);
 
-                        inds.Add((short)((x + 1) * s + z + 1));
-                        inds.Add((short)((x + 1) * s + z));
-                        inds.Add((short)(x * s + z + 1));
+                    i6 = (short)((x + 0) * s + z + 2);
+                    i7 = (short)((x + 1) * s + z + 2);
+                    i8 = (short)((x + 2) * s + z + 2);
+
+                    if (fanUp && z == s - 3) {
+                        if (fanRight && x == s - 3) {
+                            #region Fan right/up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3 --- i4     i5
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i8, i4,
+                                i8, i2, i4,
+                                i6, i4, i3,
+                                i3, i4, i1,
+                                i3, i1, i0,
+                                i4, i2, i1
+                            });
+                            #endregion
+                        } else if (fanLeft && x == 0) {
+                            #region Fan left/up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3     i4 --- i5
+                            //    |    /  | \    |
+                            //    |  /    |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i8, i4,
+                                i6, i4, i0,
+                                i8, i5, i4,
+                                i4, i5, i2,
+                                i4, i2, i1,
+                                i4, i1, i0
+                            });
+                            #endregion
+                        } else {
+                            #region Fan up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3 --- i4 --- i5
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i4, i3,
+                                i6, i8, i4,
+                                i4, i8, i5,
+
+                                i3, i4, i1,
+                                i3, i1, i0,
+                                i4, i5, i2,
+                                i4, i2, i1
+                            });
+                            #endregion
+                        }
+                    } else if (fanDown && z == 0) {
+                        if (fanRight && x == s - 3) {
+                            #region Fan right/down
+                            //    i6 --- i7 --- i8
+                            //    |  \    |   /  |
+                            //    |    \  | /    |
+                            // z+ i3 --- i4     i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i6, i4, i3,
+                                i3, i4, i0,
+                                i0, i4, i2,
+                                i7, i8 ,i4,
+                                i4, i8, i2
+                            });
+                            #endregion
+                        } else if (fanLeft && x == 0) {
+                            #region Fan left/down
+                            //    i6 --- i7 --- i8
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            // z+ i3     i4 --- i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i7, i8, i5,
+                                i7, i5, i4,
+                                i4, i5, i2,
+                                i6, i4, i0,
+                                i0, i4, i2
+                            });
+                            #endregion
+                        } else {
+                            #region Fan down
+                            //    i6 --- i7 --- i8
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            // z+ i3 --- i4 --- i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i6, i4, i3,
+                                i7, i8, i5,
+                                i7, i5, i4,
+
+                                i3, i4, i0,
+                                i0, i4, i2,
+                                i4, i5, i2
+                            });
+                            #endregion
+                        }
+                    } else if (fanRight && x == s - 3) {
+                        #region Fan right
+                        //    i6 --- i7 --- i8
+                        //    |  \    |   /  |
+                        //    |    \  | /    |
+                        // z+ i3 --- i4     i5
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i3,
+                            i3, i4, i1,
+                            i3, i1, i0,
+
+                            i7, i8, i4,
+                            i8, i2, i4,
+                            i4, i2, i1
+                        });
+                        #endregion
+                    } else if (fanLeft && x == 0) {
+                        #region Fan left
+                        //    i6 --- i7 --- i8
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        // z+ i3     i4 --- i5
+                        //    |    /  | \    |
+                        //    |  /    |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i0,
+                            i7, i8, i5,
+                            i7, i5, i4,
+                            i4, i5, i2,
+                            i4, i2, i1,
+                            i4, i1, i0
+                        });
+                        #endregion
+                    } else {
+                        #region No fan
+                        //    i6 --- i7 --- i8
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        // z+ i3 --- i4 --- i5
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i3,
+                            i7, i8, i5,
+                            i7, i5, i4,
+                            i3, i4, i1,
+                            i3, i1, i0,
+                            i4, i5, i2,
+                            i4, i2, i1
+                        });
+                        #endregion
                     }
                 }
             }
             indicies = inds.ToArray();
+            dirty = true;
+        }
+
+        QuadNode GetLeft() {
+            if (Parent != null) {
+                QuadNode l;
+                switch (SiblingIndex) {
+                    case 0:
+                        l = Parent.GetLeft();
+                        if (l != null) {
+                            if (l.Children != null) // parent left node is split, return the adjacent child
+                                return l.Children[1];
+                            else
+                                return l; // parent left node isnt split
+                        }
+                        break;
+                    case 2:
+                        l = Parent.GetLeft();
+                        if (l != null) {
+                            if (l.Children != null) // parent left node is split, return the adjacent child
+                                return l.Children[3];
+                            else
+                                return l; // parent left node isnt split
+                        }
+                        break;
+                    case 1:
+                        return Parent.Children[0];
+                    case 3:
+                        return Parent.Children[2];
+                }
+            }
+
+            return null;
+        }
+        QuadNode GetRight() {
+            if (Parent != null) {
+                QuadNode l;
+                switch (SiblingIndex) {
+                    case 1:
+                        l = Parent.GetRight();
+                        if (l != null) {
+                            if (l.Children != null) // parent right node is split, return the adjacent child
+                                return l.Children[0];
+                            else
+                                return l; // parent left node isnt split
+                        }
+                        break;
+                    case 3:
+                        l = Parent.GetRight();
+                        if (l != null) {
+                            if (l.Children != null) // parent right node is split, return the adjacent child
+                                return l.Children[2];
+                            else
+                                return l; // parent right node isnt split
+                        }
+                        break;
+                    case 0:
+                        return Parent.Children[1];
+                    case 2:
+                        return Parent.Children[3];
+                }
+            }
+
+            return null;
+        }
+        QuadNode GetUp() {
+            if (Parent != null) {
+                QuadNode l;
+                switch (SiblingIndex) {
+                    case 0:
+                        l = Parent.GetUp();
+                        if (l != null) {
+                            if (l.Children != null) // parent up node is split, return the adjacent child
+                                return l.Children[2];
+                            else
+                                return l; // parent up node isnt split
+                        }
+                        break;
+                    case 1:
+                        l = Parent.GetUp();
+                        if (l != null) {
+                            if (l.Children != null) // parent up node is split, return the adjacent child
+                                return l.Children[3];
+                            else
+                                return l; // parent up node isnt split
+                        }
+                        break;
+                    case 2:
+                        return Parent.Children[0];
+                    case 3:
+                        return Parent.Children[1];
+                }
+            }
+
+            return null;
+        }
+        QuadNode GetDown() {
+            if (Parent != null) {
+                QuadNode l;
+                switch (SiblingIndex) {
+                    case 2:
+                        l = Parent.GetDown();
+                        if (l != null) {
+                            if (l.Children != null) // parent down node is split, return the adjacent child
+                                return l.Children[0];
+                            else
+                                return l; // parent down node isnt split
+                        }
+                        break;
+                    case 3:
+                        l = Parent.GetDown();
+                        if (l != null) {
+                            if (l.Children != null) // parent down node is split, return the adjacent child
+                                return l.Children[1];
+                            else
+                                return l; // parent down node isnt split
+                        }
+                        break;
+                    case 0:
+                        return Parent.Children[2];
+                    case 1:
+                        return Parent.Children[3];
+                }
+            }
+
+            return null;
+        }
+
+        public void Split(D3D11.Device device) {
+            if (Children != null)
+                return;
+
+            // TODO: stop generating if we get split
+            // BUT then the children won't draw
+            //if (generating) {
+            //    generating = false;
+            //    dirty = false;
+            //}
+            double s = Size * .5;
+
+            //  | 0 | 1 |
+            //  | 2 | 3 |
+
+            Vector3d rght = Vector3.Transform(Vector3.Right, Orientation);
+            Vector3d fwd = Vector3.Transform(Vector3.ForwardLH, Orientation);
+
+            Vector3d p0 = (-rght + fwd);
+            Vector3d p1 = (rght + fwd);
+            Vector3d p2 = (-rght + -fwd);
+            Vector3d p3 = (rght + -fwd);
+
+            Children = new QuadNode[4];
+            Children[0] = new QuadNode(Body, 0, s, LoDLevel + 1, this, CubePosition + s * .5 * p0, Orientation);
+            Children[1] = new QuadNode(Body, 1, s, LoDLevel + 1, this, CubePosition + s * .5 * p1, Orientation);
+            Children[2] = new QuadNode(Body, 2, s, LoDLevel + 1, this, CubePosition + s * .5 * p2, Orientation);
+            Children[3] = new QuadNode(Body, 3, s, LoDLevel + 1, this, CubePosition + s * .5 * p3, Orientation);
+
+            Children[0].Generate();
+            Children[1].Generate();
+            Children[2].Generate();
+            Children[3].Generate();
+
+            GetRight()?.RefreshIndicies(0);
+            GetDown()?.RefreshIndicies(1);
+            GetLeft()?.RefreshIndicies(2);
+            GetUp()?.RefreshIndicies(3);
+        }
+        public void UnSplit() {
+            if (Children == null) return;
+
+            for (int i = 0; i < Children.Length; i++)
+                Children[i]?.Dispose();
+
+            Children = null;
+
+            if (vertexBuffer == null && !generating)
+                Generate();
+
+            GetRight()?.RefreshIndicies(0);
+            GetDown()?.RefreshIndicies(1);
+            GetLeft()?.RefreshIndicies(2);
+            GetUp()?.RefreshIndicies(3);
+        }
+        public void SplitDynamic(Vector3d pos, D3D11.Device device) {
+            double dist;
+            Vector3d vert;
+            ClosestVertex(pos, out vert, out dist);
+
+            if (dist < Size || Size / GridSize > Body.MaxVertexSpacing) {
+                if (Children != null) {
+                    for (int i = 0; i < Children.Length; i++)
+                        Children[i].SplitDynamic(pos, device);
+                } else {
+                    if ((Size * .5f) / GridSize > Body.MinVertexSpacing)
+                        Split(device);
+                }
+            } else
+                UnSplit();
+        }
+
+        public void RefreshIndicies(int edgeIndex) {
+            if (generating)
+                return;
+            
+            GenerateIndicies();
+
+            if (Children != null) {
+                int[,] ei = new int[,] {
+                    { 0, 2 }, // left
+                    { 0, 1 }, // up
+                    { 1, 3 }, // right
+                    { 2, 3 }  // down
+                }; // update top 2 children if the top edge is split, etc..
+                for (int i = 0; i < 2; i++)
+                    Children[ei[edgeIndex, i]].RefreshIndicies(edgeIndex);
+            }
+        }
+        
+        public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
+            vert = MeshCenter + Body.Position;
+            dist = double.MaxValue;
+
+            if (VertexSamples == null) return;
+
+            pos -= MeshCenter + Body.Position;
+            
+            for (int i = 0; i < VertexSamples.Length; i++) {
+                double d = (pos - VertexSamples[i]).LengthSquared();
+                if (d < dist) {
+                    dist = d;
+                    vert = VertexSamples[i] + MeshCenter + Body.Position;
+                }
+            }
+
+            dist = Math.Sqrt(dist);
+        }
+        public bool IsAboveHorizon(Vector3d camera) {
+            Vector3d planetToCam = Vector3d.Normalize(camera - Body.Position);
+            double horizonAngle = Math.Acos(Body.Radius / (Body.Position - camera).Length());
+
+            for (int i = 0; i < VertexSamples.Length; i++) {
+                Vector3d planetToMesh = Vector3d.Normalize(VertexSamples[i] + MeshCenter);
+
+                double meshAngle = Math.Acos(Vector3.Dot(planetToCam, planetToMesh));
+
+                if (horizonAngle > meshAngle)
+                    return true;
+            }
+
+            return false;
         }
 
         public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
@@ -246,106 +698,6 @@ namespace Planetary_Terrain {
 
             dirty = false;
         }
-
-        public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
-            vert = MeshCenter + Body.Position;
-            dist = double.MaxValue;
-
-            if (VertexSamples == null) return;
-
-            pos -= MeshCenter + Body.Position;
-            
-            for (int i = 0; i < VertexSamples.Length; i++) {
-                double d = (pos - VertexSamples[i]).LengthSquared();
-                if (d < dist) {
-                    dist = d;
-                    vert = VertexSamples[i] + MeshCenter + Body.Position;
-                }
-            }
-
-            dist = Math.Sqrt(dist);
-        }
-
-        public void Split(D3D11.Device device) {
-            if (Children != null)
-                return;
-
-            //if (generating) {
-            //    generating = false;
-            //    dirty = false;
-            //}
-            double s = Size * .5;
-
-            //  | 0 | 1 |
-            //  | 2 | 3 |
-
-            Vector3d right = Vector3.Transform(Vector3.Right, Orientation);
-            Vector3d fwd = Vector3.Transform(Vector3.ForwardLH, Orientation);
-
-            Vector3d p0 = (-right + fwd);
-            Vector3d p1 = (right + fwd);
-            Vector3d p2 = (-right + -fwd);
-            Vector3d p3 = (right + -fwd);
-
-            Children = new QuadNode[4];
-            Children[0] = new QuadNode(Body, 0, s, this, CubePosition + s * .5 * p0, Orientation);
-            Children[1] = new QuadNode(Body, 1, s, this, CubePosition + s * .5 * p1, Orientation);
-            Children[2] = new QuadNode(Body, 2, s, this, CubePosition + s * .5 * p2, Orientation);
-            Children[3] = new QuadNode(Body, 3, s, this, CubePosition + s * .5 * p3, Orientation);
-
-            Children[0].Generate();
-            Children[1].Generate();
-            Children[2].Generate();
-            Children[3].Generate();
-        }
-        public void UnSplit() {
-            if (Children == null) return;
-
-            for (int i = 0; i < Children.Length; i++)
-                Children[i]?.Dispose();
-
-            Children = null;
-
-            if (vertexBuffer == null && !generating)
-                Generate();
-        }
-        public void SplitDynamic(Vector3d pos, D3D11.Device device) {
-            double dist;
-            Vector3d vert;
-            ClosestVertex(pos, out vert, out dist);
-
-            if (dist < Size || Size / GridSize > Body.MaxVertexSpacing) {
-                if (Children != null) {
-                    for (int i = 0; i < Children.Length; i++)
-                        Children[i].SplitDynamic(pos, device);
-                } else {
-                    if ((Size * .5f) / GridSize > Body.MinVertexSpacing)
-                        Split(device);
-                }
-            } else
-                UnSplit();
-        }
-
-        public bool Ready() {
-            return dirty || vertexBuffer != null;
-        }
-
-        public bool IsAboveHorizon(Vector3d camera) {
-            Vector3d planetToCam = Vector3d.Normalize(camera - Body.Position);
-            double horizonAngle = Math.Acos(Body.Radius / (Body.Position - camera).Length());
-
-            for (int i = 0; i < VertexSamples.Length; i++) {
-                Vector3d planetToMesh = Vector3d.Normalize(VertexSamples[i] + MeshCenter);
-
-                double meshAngle = Math.Acos(Vector3.Dot(planetToCam, planetToMesh));
-
-                if (horizonAngle > meshAngle)
-                    return true;
-            }
-
-            return false;
-        }
-
         public void Draw(Renderer renderer, bool waterPass, double scale, Vector3d pos) {
             double d = (renderer.Camera.Position - (MeshCenter + Body.Position)).Length();
 
@@ -390,7 +742,6 @@ namespace Planetary_Terrain {
                 Debug.ClosestQuadTreeScale = scale;
             }
         }
-        
         public void Draw(Renderer renderer, bool waterPass, Vector3d planetPos, double planetScale) {
             bool draw = true;
 
@@ -398,7 +749,7 @@ namespace Planetary_Terrain {
                 draw = false;
 
                 for (int i = 0; i < Children.Length; i++)
-                    if (!Children[i].Ready())
+                    if (!Children[i].Ready)
                         draw = true;
 
                 if (!draw)
@@ -428,6 +779,11 @@ namespace Planetary_Terrain {
         }
 
         public void Dispose() {
+            if (generating) {
+                generating = false;
+                dirty = false;
+            }
+
             vertexBuffer?.Dispose();
             constantBuffer?.Dispose();
             indexBuffer?.Dispose();
@@ -443,6 +799,7 @@ namespace Planetary_Terrain {
         public const int GridSize = 16;
 
         public double Size;
+        public double ArcSize;
         public double VertexSpacing; // meters per vertex
 
         public Atmosphere Atmosphere;
@@ -465,9 +822,11 @@ namespace Planetary_Terrain {
 
         Vector3[] verticies;
         short[] indicies;
-        
+
         public int IndexCount { get; private set; }
         public int VertexCount { get; private set; }
+
+        public int LoDLevel;
 
         [StructLayout(LayoutKind.Explicit, Size = 208)]
         struct Constants {
@@ -485,13 +844,14 @@ namespace Planetary_Terrain {
         public D3D11.Buffer constantBuffer { get; private set; }
 
         bool dirty = false;
-        bool generating = false;
+        public bool Ready { get { return dirty || vertexBuffer != null; } }
 
-        public AtmosphereQuadNode(Atmosphere atmo, int siblingIndex, double size, AtmosphereQuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
+        public AtmosphereQuadNode(Atmosphere atmo, int siblingIndex, double size, int lod, AtmosphereQuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
             SiblingIndex = siblingIndex;
             Size = size;
-            Parent = parent;
             Atmosphere = atmo;
+            Parent = parent;
+            LoDLevel = lod;
 
             VertexSpacing = Size / GridSize;
 
@@ -502,11 +862,10 @@ namespace Planetary_Terrain {
             constants.World = Matrix.Identity;
 
             MeshCenter = Vector3d.Normalize(CubePosition);
-            MeshCenter *= atmo.Radius;
+            MeshCenter *= Atmosphere.Radius;
 
             SetupMesh();
         }
-
         void SetupMesh() {
             VertexSamples = new Vector3d[9];
             int i = 0;
@@ -527,85 +886,456 @@ namespace Planetary_Terrain {
         }
 
         public void Generate() {
-            if (generating) return;
-            generating = true;
+            double scale = Size / GridSize;
+            double invScale = 1d / Size;
 
-            ThreadPool.QueueUserWorkItem(new WaitCallback((object _ctx) => {
-                double scale = Size / GridSize;
-                double invScale = 1d / Size;
+            int s = GridSize + 1;
+            verticies = new Vector3[s * s * 6];
+            List<short> inds = new List<short>();
+            
+            Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
 
-                int s = GridSize + 1;
-                verticies = new Vector3[s * s * 6];
-                List<short> inds = new List<short>();
-                
-                Vector3d p1d;
-                Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
-
-                for (int x = 0; x < s; x++) {
-                    for (int z = 0; z < s; z++) {
-                        if (!generating)
-                            break;
-
-                        p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
-                        
-                        p1d = p1d * Atmosphere.Radius - MeshCenter;
-
-                        verticies[x * s + z] = p1d * invScale;
-                    }
-
-                    if (!generating)
-                        break;
+            for (int x = 0; x < s; x++) {
+                for (int z = 0; z < s; z++) {
+                    verticies[x * s + z] =
+                        (Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation)) * Atmosphere.Radius - MeshCenter) * invScale;
                 }
-                
-                if (!generating) { // generation cancelled due to split
-                    dirty = false;
-                    verticies = null;
-                    indicies = null;
-                    vertexBuffer?.Dispose();
-                    vertexBuffer = null;
-                    indexBuffer?.Dispose();
-                    indexBuffer = null;
-                    return;
-                }
-                
-                GenerateIndicies();
-                
-                generating = false;
-                dirty = true;
-            }));
+            }
+            GenerateIndicies();
+
+            dirty = true;
         }
 
         public void GenerateIndicies() {
+            AtmosphereQuadNode l = GetLeft();
+            AtmosphereQuadNode r = GetRight();
+            AtmosphereQuadNode u = GetUp();
+            AtmosphereQuadNode d = GetDown();
+
+            bool fanLeft = l != null && l.LoDLevel < LoDLevel;
+            bool fanUp = u != null && u.LoDLevel < LoDLevel;
+            bool fanRight = r != null && r.LoDLevel < LoDLevel;
+            bool fanDown = d != null && d.LoDLevel < LoDLevel;
+
+            // TODO: Generate these ahead of time
             List<short> inds = new List<short>();
             int s = GridSize + 1;
-            for (int x = 0; x < s; x++) {
-                for (int z = 0; z < s; z++) {
-                    if (x + 1 < s && z + 1 < s) {
-                        // TODO: Quad fanning to handle cracks
-                        inds.Add((short)((x + 1) * s + z));
-                        inds.Add((short)(x * s + z));
-                        inds.Add((short)(x * s + z + 1));
+            short i0, i1, i2, i3, i4, i5, i6, i7, i8;
+            for (int x = 0; x < s - 2; x += 2) {
+                for (int z = 0; z < s - 2; z += 2) {
+                    i0 = (short)((x + 0) * s + z);
+                    i1 = (short)((x + 1) * s + z);
+                    i2 = (short)((x + 2) * s + z);
 
-                        inds.Add((short)((x + 1) * s + z + 1));
-                        inds.Add((short)((x + 1) * s + z));
-                        inds.Add((short)(x * s + z + 1));
+                    i3 = (short)((x + 0) * s + z + 1);
+                    i4 = (short)((x + 1) * s + z + 1);
+                    i5 = (short)((x + 2) * s + z + 1);
+
+                    i6 = (short)((x + 0) * s + z + 2);
+                    i7 = (short)((x + 1) * s + z + 2);
+                    i8 = (short)((x + 2) * s + z + 2);
+
+                    if (fanUp && z == s - 3) {
+                        if (fanRight && x == s - 3) {
+                            #region Fan right/up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3 --- i4     i5
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i8, i4,
+                                i8, i2, i4,
+                                i6, i4, i3,
+                                i3, i4, i1,
+                                i3, i1, i0,
+                                i4, i2, i1
+                            });
+                            #endregion
+                        } else if (fanLeft && x == 0) {
+                            #region Fan left/up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3     i4 --- i5
+                            //    |    /  | \    |
+                            //    |  /    |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i8, i4,
+                                i6, i4, i0,
+                                i8, i5, i4,
+                                i4, i5, i2,
+                                i4, i2, i1,
+                                i4, i1, i0
+                            });
+                            #endregion
+                        } else {
+                            #region Fan up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3 --- i4 --- i5
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i4, i3,
+                                i6, i8, i4,
+                                i4, i8, i5,
+
+                                i3, i4, i1,
+                                i3, i1, i0,
+                                i4, i5, i2,
+                                i4, i2, i1
+                            });
+                            #endregion
+                        }
+                    } else if (fanDown && z == 0) {
+                        if (fanRight && x == s - 3) {
+                            #region Fan right/down
+                            //    i6 --- i7 --- i8
+                            //    |  \    |   /  |
+                            //    |    \  | /    |
+                            // z+ i3 --- i4     i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i6, i4, i3,
+                                i3, i4, i0,
+                                i0, i4, i2,
+                                i7, i8 ,i4,
+                                i4, i8, i2
+                            });
+                            #endregion
+                        } else if (fanLeft && x == 0) {
+                            #region Fan left/down
+                            //    i6 --- i7 --- i8
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            // z+ i3     i4 --- i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i7, i8, i5,
+                                i7, i5, i4,
+                                i4, i5, i2,
+                                i6, i4, i0,
+                                i0, i4, i2
+                            });
+                            #endregion
+                        } else {
+                            #region Fan down
+                            //    i6 --- i7 --- i8
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            // z+ i3 --- i4 --- i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i6, i4, i3,
+                                i7, i8, i5,
+                                i7, i5, i4,
+
+                                i3, i4, i0,
+                                i0, i4, i2,
+                                i4, i5, i2
+                            });
+                            #endregion
+                        }
+                    } else if (fanRight && x == s - 3) {
+                        #region Fan right
+                        //    i6 --- i7 --- i8
+                        //    |  \    |   /  |
+                        //    |    \  | /    |
+                        // z+ i3 --- i4     i5
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i3,
+                            i3, i4, i1,
+                            i3, i1, i0,
+
+                            i7, i8, i4,
+                            i8, i2, i4,
+                            i4, i2, i1
+                        });
+                        #endregion
+                    } else if (fanLeft && x == 0) {
+                        #region Fan left
+                        //    i6 --- i7 --- i8
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        // z+ i3     i4 --- i5
+                        //    |    /  | \    |
+                        //    |  /    |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i0,
+                            i7, i8, i5,
+                            i7, i5, i4,
+                            i4, i5, i2,
+                            i4, i2, i1,
+                            i4, i1, i0
+                        });
+                        #endregion
+                    } else {
+                        #region No fan
+                        //    i6 --- i7 --- i8
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        // z+ i3 --- i4 --- i5
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i3,
+                            i7, i8, i5,
+                            i7, i5, i4,
+                            i3, i4, i1,
+                            i3, i1, i0,
+                            i4, i5, i2,
+                            i4, i2, i1
+                        });
+                        #endregion
                     }
                 }
             }
             indicies = inds.ToArray();
+            dirty = true;
         }
 
-        public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
-            vertexBuffer?.Dispose();
-            vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
-            
-            indexBuffer?.Dispose();
-            indexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies);
+        AtmosphereQuadNode GetLeft() {
+            if (Parent != null) {
+                AtmosphereQuadNode l;
+                switch (SiblingIndex) {
+                    case 0:
+                        l = Parent.GetLeft();
+                        if (l != null) {
+                            if (l.Children != null) // parent left node is split, return the adjacent child
+                                return l.Children[1];
+                            else
+                                return l; // parent left node isnt split
+                        }
+                        break;
+                    case 2:
+                        l = Parent.GetLeft();
+                        if (l != null) {
+                            if (l.Children != null) // parent left node is split, return the adjacent child
+                                return l.Children[3];
+                            else
+                                return l; // parent left node isnt split
+                        }
+                        break;
+                    case 1:
+                        return Parent.Children[0];
+                    case 3:
+                        return Parent.Children[2];
+                }
+            }
 
-            VertexCount = verticies.Length;
-            IndexCount = indicies.Length;
+            return null;
+        }
+        AtmosphereQuadNode GetRight() {
+            if (Parent != null) {
+                AtmosphereQuadNode l;
+                switch (SiblingIndex) {
+                    case 1:
+                        l = Parent.GetRight();
+                        if (l != null) {
+                            if (l.Children != null) // parent right node is split, return the adjacent child
+                                return l.Children[0];
+                            else
+                                return l; // parent left node isnt split
+                        }
+                        break;
+                    case 3:
+                        l = Parent.GetRight();
+                        if (l != null) {
+                            if (l.Children != null) // parent right node is split, return the adjacent child
+                                return l.Children[2];
+                            else
+                                return l; // parent right node isnt split
+                        }
+                        break;
+                    case 0:
+                        return Parent.Children[1];
+                    case 2:
+                        return Parent.Children[3];
+                }
+            }
 
-            dirty = false;
+            return null;
+        }
+        AtmosphereQuadNode GetUp() {
+            if (Parent != null) {
+                AtmosphereQuadNode l;
+                switch (SiblingIndex) {
+                    case 0:
+                        l = Parent.GetUp();
+                        if (l != null) {
+                            if (l.Children != null) // parent up node is split, return the adjacent child
+                                return l.Children[2];
+                            else
+                                return l; // parent up node isnt split
+                        }
+                        break;
+                    case 1:
+                        l = Parent.GetUp();
+                        if (l != null) {
+                            if (l.Children != null) // parent up node is split, return the adjacent child
+                                return l.Children[3];
+                            else
+                                return l; // parent up node isnt split
+                        }
+                        break;
+                    case 2:
+                        return Parent.Children[0];
+                    case 3:
+                        return Parent.Children[1];
+                }
+            }
+
+            return null;
+        }
+        AtmosphereQuadNode GetDown() {
+            if (Parent != null) {
+                AtmosphereQuadNode l;
+                switch (SiblingIndex) {
+                    case 2:
+                        l = Parent.GetDown();
+                        if (l != null) {
+                            if (l.Children != null) // parent down node is split, return the adjacent child
+                                return l.Children[0];
+                            else
+                                return l; // parent down node isnt split
+                        }
+                        break;
+                    case 3:
+                        l = Parent.GetDown();
+                        if (l != null) {
+                            if (l.Children != null) // parent down node is split, return the adjacent child
+                                return l.Children[1];
+                            else
+                                return l; // parent down node isnt split
+                        }
+                        break;
+                    case 0:
+                        return Parent.Children[2];
+                    case 1:
+                        return Parent.Children[3];
+                }
+            }
+
+            return null;
+        }
+
+        public void Split(D3D11.Device device) {
+            if (Children != null)
+                return;
+
+            // TODO: stop generating if we get split
+            // BUT then the children won't draw
+            //if (generating) {
+            //    generating = false;
+            //    dirty = false;
+            //}
+            double s = Size * .5;
+
+            //  | 0 | 1 |
+            //  | 2 | 3 |
+
+            Vector3d rght = Vector3.Transform(Vector3.Right, Orientation);
+            Vector3d fwd = Vector3.Transform(Vector3.ForwardLH, Orientation);
+
+            Vector3d p0 = (-rght + fwd);
+            Vector3d p1 = (rght + fwd);
+            Vector3d p2 = (-rght + -fwd);
+            Vector3d p3 = (rght + -fwd);
+
+            Children = new AtmosphereQuadNode[4];
+            Children[0] = new AtmosphereQuadNode(Atmosphere, 0, s, LoDLevel + 1, this, CubePosition + s * .5 * p0, Orientation);
+            Children[1] = new AtmosphereQuadNode(Atmosphere, 1, s, LoDLevel + 1, this, CubePosition + s * .5 * p1, Orientation);
+            Children[2] = new AtmosphereQuadNode(Atmosphere, 2, s, LoDLevel + 1, this, CubePosition + s * .5 * p2, Orientation);
+            Children[3] = new AtmosphereQuadNode(Atmosphere, 3, s, LoDLevel + 1, this, CubePosition + s * .5 * p3, Orientation);
+
+            Children[0].Generate();
+            Children[1].Generate();
+            Children[2].Generate();
+            Children[3].Generate();
+
+            GetRight()?.RefreshIndicies(0);
+            GetDown()?.RefreshIndicies(1);
+            GetLeft()?.RefreshIndicies(2);
+            GetUp()?.RefreshIndicies(3);
+        }
+        public void UnSplit() {
+            if (Children == null) return;
+
+            for (int i = 0; i < Children.Length; i++)
+                Children[i]?.Dispose();
+
+            Children = null;
+
+            if (vertexBuffer == null)
+                Generate();
+
+            GetRight()?.RefreshIndicies(0);
+            GetDown()?.RefreshIndicies(1);
+            GetLeft()?.RefreshIndicies(2);
+            GetUp()?.RefreshIndicies(3);
+        }
+        public void SplitDynamic(Vector3d pos, D3D11.Device device) {
+            double dist;
+            Vector3d vert;
+            ClosestVertex(pos, out vert, out dist);
+
+            if (dist < Size || Size / GridSize > Atmosphere.MaxVertexSpacing) {
+                if (Children != null) {
+                    for (int i = 0; i < Children.Length; i++)
+                        Children[i].SplitDynamic(pos, device);
+                } else {
+                    if ((Size * .5f) / GridSize > Atmosphere.MinVertexSpacing)
+                        Split(device);
+                }
+            } else
+                UnSplit();
+        }
+
+        public void RefreshIndicies(int edgeIndex) {
+            GenerateIndicies();
+
+            if (Children != null) {
+                int[,] ei = new int[,] {
+                    { 0, 2 }, // left
+                    { 0, 1 }, // up
+                    { 1, 3 }, // right
+                    { 2, 3 }  // down
+                }; // update top 2 children if the top edge is split, etc..
+                for (int i = 0; i < 2; i++)
+                    Children[ei[edgeIndex, i]].RefreshIndicies(edgeIndex);
+            }
         }
 
         public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
@@ -627,70 +1357,18 @@ namespace Planetary_Terrain {
             dist = Math.Sqrt(dist);
         }
 
-        public void Split(D3D11.Device device) {
-            if (Children != null)
-                return;
+        public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
+            vertexBuffer?.Dispose();
+            vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
+            
+            indexBuffer?.Dispose();
+            indexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies);
 
-            //if (generating) {
-            //    generating = false;
-            //    dirty = false;
-            //}
-            double s = Size * .5;
+            VertexCount = verticies.Length;
+            IndexCount = indicies.Length;
 
-            //  | 0 | 1 |
-            //  | 2 | 3 |
-
-            Vector3d right = Vector3.Transform(Vector3.Right, Orientation);
-            Vector3d fwd = Vector3.Transform(Vector3.ForwardLH, Orientation);
-
-            Vector3d p0 = (-right + fwd);
-            Vector3d p1 = (right + fwd);
-            Vector3d p2 = (-right + -fwd);
-            Vector3d p3 = (right + -fwd);
-
-            Children = new AtmosphereQuadNode[4];
-            Children[0] = new AtmosphereQuadNode(Atmosphere, 0, s, this, CubePosition + s * .5 * p0, Orientation);
-            Children[1] = new AtmosphereQuadNode(Atmosphere, 1, s, this, CubePosition + s * .5 * p1, Orientation);
-            Children[2] = new AtmosphereQuadNode(Atmosphere, 2, s, this, CubePosition + s * .5 * p2, Orientation);
-            Children[3] = new AtmosphereQuadNode(Atmosphere, 3, s, this, CubePosition + s * .5 * p3, Orientation);
-
-            Children[0].Generate();
-            Children[1].Generate();
-            Children[2].Generate();
-            Children[3].Generate();
+            dirty = false;
         }
-        public void UnSplit() {
-            if (Children == null) return;
-
-            for (int i = 0; i < Children.Length; i++)
-                Children[i]?.Dispose();
-
-            Children = null;
-
-            if (vertexBuffer == null && !generating)
-                Generate();
-        }
-        public void SplitDynamic(Vector3d pos, D3D11.Device device) {
-            double dist;
-            Vector3d vert;
-            ClosestVertex(pos, out vert, out dist);
-
-            if (dist < Size || Size / GridSize > Atmosphere.MaxVertexSpacing) {
-                if (Children != null) {
-                    for (int i = 0; i < Children.Length; i++)
-                        Children[i].SplitDynamic(pos, device);
-                } else {
-                    if ((Size * .5f) / GridSize > Atmosphere.MinVertexSpacing)
-                        Split(device);
-                }
-            } else
-                UnSplit();
-        }
-
-        public bool Ready() {
-            return dirty || vertexBuffer != null;
-        }
-        
         public void Draw(Renderer renderer, double scale, Vector3d pos) {
             double d = (renderer.Camera.Position - (MeshCenter + Atmosphere.Planet.Position)).Length();
 
@@ -713,9 +1391,7 @@ namespace Planetary_Terrain {
             renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
             Debug.VerticiesDrawn += VertexCount;
-            
         }
-
         public void Draw(Renderer renderer, Vector3d planetPos, double planetScale) {
             bool draw = true;
 
@@ -723,7 +1399,7 @@ namespace Planetary_Terrain {
                 draw = false;
 
                 for (int i = 0; i < Children.Length; i++)
-                    if (!Children[i].Ready())
+                    if (!Children[i].Ready)
                         draw = true;
 
                 if (!draw)
