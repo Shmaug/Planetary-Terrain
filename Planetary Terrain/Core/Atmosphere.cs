@@ -6,71 +6,81 @@ using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
     class Atmosphere : IDisposable {
-        public VertexNormal[] verticies;
-        public short[] indicies;
+        public double MaxVertexSpacing = 2000000; // m/vertex
+        public double MinVertexSpacing = 1000;       // m/vertex
 
         public Planet Planet;
-        public double Height;
+        public double Radius;
 
         public double MaxPressure;
 
-        D3D11.Buffer vertexBuffer;
-        D3D11.Buffer indexBuffer;
+        /// <summary>
+        /// The 6 base quadtrees composing the planet
+        /// </summary>
+        public AtmosphereQuadNode[] BaseQuads;
 
         [StructLayout(LayoutKind.Explicit, Size = 160)]
         struct Constants {
             [FieldOffset(0)]
-            public Matrix World;
-            
-            [FieldOffset(64)]
             public float InnerRadius;
-            [FieldOffset(68)]
+            [FieldOffset(4)]
             public float OuterRadius;
 
-            [FieldOffset(72)]
+            [FieldOffset(8)]
             public float CameraHeight;
 
-            [FieldOffset(76)]
+            [FieldOffset(12)]
             public float KrESun;
-            [FieldOffset(80)]
+            [FieldOffset(16)]
             public float KmESun;
-            [FieldOffset(84)]
+            [FieldOffset(20)]
             public float Kr4PI;
-            [FieldOffset(88)]
+            [FieldOffset(24)]
             public float Km4PI;
 
-            [FieldOffset(92)]
+            [FieldOffset(28)]
             public float g;
-            [FieldOffset(96)]
+            [FieldOffset(32)]
             public float Scale;
-            [FieldOffset(100)]
+            [FieldOffset(36)]
             public float ScaleDepth;
-            [FieldOffset(104)]
+            [FieldOffset(40)]
             public float ScaleOverScaleDepth;
 
-            [FieldOffset(108)]
+            [FieldOffset(44)]
             public float InvScaleDepth;
-            [FieldOffset(112)]
+            [FieldOffset(48)]
             public float fSamples;
-            [FieldOffset(116)]
+            [FieldOffset(52)]
             public int nSamples;
 
-            [FieldOffset(128)]
+            [FieldOffset(64)]
             public Vector3 planetPos;
 
-            [FieldOffset(144)]
+            [FieldOffset(80)]
             public Vector3 InvWavelength;
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
 
-        public Atmosphere(double height, double pressure) {
-            Height = height;
+        public Atmosphere(double radius, double pressure) {
+            Radius = radius;
             MaxPressure = pressure;
-
-            Icosphere.GenerateIcosphere(6, false, out verticies, out indicies);
-
+            
             constants = new Constants();
+
+            double s = 1.41421356237 * Radius;
+
+            BaseQuads = new AtmosphereQuadNode[6];
+            BaseQuads[0] = new AtmosphereQuadNode(this, 0, s, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
+            BaseQuads[1] = new AtmosphereQuadNode(this, 1, s, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            BaseQuads[2] = new AtmosphereQuadNode(this, 2, s, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            BaseQuads[3] = new AtmosphereQuadNode(this, 3, s, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            BaseQuads[4] = new AtmosphereQuadNode(this, 4, s, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            BaseQuads[5] = new AtmosphereQuadNode(this, 5, s, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Generate();
         }
 
         void SetConstants(Vector3d scaledPos, double scale) {
@@ -78,7 +88,7 @@ namespace Planetary_Terrain {
             constants.fSamples = 10f;
 
             constants.InnerRadius = (float)(Planet.Radius * scale);
-            constants.OuterRadius = (float)((Planet.Radius + Height) * scale);
+            constants.OuterRadius = (float)(Radius * scale);
 
             constants.CameraHeight = (float)scaledPos.Length();
 
@@ -105,20 +115,17 @@ namespace Planetary_Terrain {
             constants.planetPos = scaledPos;
         }
 
+        public void Update(D3D11.Device device, Camera camera) {
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].SplitDynamic(camera.Position, device);
+        }
+
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
-            if (vertexBuffer == null)
-                vertexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verticies);
-            if (indexBuffer == null)
-                indexBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.IndexBuffer, indicies);
-
             Shaders.AtmosphereShader.Set(renderer);
-
-            constants.World = Matrix.Scaling((float)((Planet.Radius + Height) * scale)) * Matrix.Translation(pos);
-
+            
             SetConstants(pos, scale);
 
-            if (constBuffer == null)
-                constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            if (constBuffer == null) constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
             #region prepare device
@@ -127,22 +134,17 @@ namespace Planetary_Terrain {
 
             renderer.Context.VertexShader.SetConstantBuffers(2, Planet.constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2,  Planet.constBuffer);
-
-            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-
-            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
-            renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-
+            
             // alpha blending
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
-
-            if ((renderer.Camera.Position - Planet.Position).Length() > Planet.Radius + Height)
-                renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
+            
+            renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
 
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullFront : renderer.rasterizerStateSolidCullFront;
             #endregion
 
-            renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Draw(renderer, pos, scale);
 
             #region restore device state
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
@@ -151,8 +153,8 @@ namespace Planetary_Terrain {
         }
 
         public void Dispose() {
-            vertexBuffer?.Dispose();
-            indexBuffer?.Dispose();
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].Dispose();
             constBuffer?.Dispose();
         }
     }

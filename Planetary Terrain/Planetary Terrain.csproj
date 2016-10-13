@@ -202,8 +202,8 @@
     <PostBuildEvent>if not exist "Data\Shaders" mkdir "Data\Shaders"
 
 for /r "$(ProjectDir)Data\Shaders" %25%25G in (*.hlsl) do (
- fxc "%25%25G" /E vsmain /T vs_5_0 /Zpr /nologo /Fo Data\Shaders\%25%25~nG_vs.cso
- fxc "%25%25G" /E psmain /T ps_5_0 /Zpr /nologo /Fo Data\Shaders\%25%25~nG_ps.cso
+ fxc "%25%25G" /E vsmain /T vs_5_0 /Od /Zpr /nologo /Fo Data\Shaders\%25%25~nG_vs.cso
+ fxc "%25%25G" /E psmain /T ps_5_0 /Od /Zpr /nologo /Fo Data\Shaders\%25%25~nG_ps.cso
 )</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\AssimpNet.3.3.1\build\AssimpNet.targets" Condition="Exists('..\packages\AssimpNet.3.3.1\build\AssimpNet.targets')" />

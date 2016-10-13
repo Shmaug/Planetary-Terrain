@@ -170,17 +170,6 @@ namespace Planetary_Terrain {
                             waterFarVerticies[x * s + z] = verticies[x * s + z];
                         else
                             wv = true;
-
-                        if (x + 1 < s && z + 1 < s) {
-                            // TODO: Quad fanning to handle cracks
-                            inds.Add((short)((x + 1) * s + z));
-                            inds.Add((short)(x * s + z));
-                            inds.Add((short)(x * s + z + 1));
-
-                            inds.Add((short)((x + 1) * s + z + 1));
-                            inds.Add((short)((x + 1) * s + z));
-                            inds.Add((short)(x * s + z + 1));
-                        }
                     }
 
                     if (!generating)
@@ -210,13 +199,32 @@ namespace Planetary_Terrain {
                     waterFarVertexBuffer?.Dispose();
                     waterFarVertexBuffer = null;
                 }
-                
 
-                indicies = inds.ToArray();
+                GenerateIndicies();
 
                 generating = false;
                 dirty = true;
             }));
+        }
+
+        public void GenerateIndicies() {
+            List<short> inds = new List<short>();
+            int s = GridSize + 1;
+            for (int x = 0; x < s; x++) {
+                for (int z = 0; z < s; z++) {
+                    if (x + 1 < s && z + 1 < s) {
+                        // TODO: Quad fanning to handle cracks
+                        inds.Add((short)((x + 1) * s + z));
+                        inds.Add((short)(x * s + z));
+                        inds.Add((short)(x * s + z + 1));
+
+                        inds.Add((short)((x + 1) * s + z + 1));
+                        inds.Add((short)((x + 1) * s + z));
+                        inds.Add((short)(x * s + z + 1));
+                    }
+                }
+            }
+            indicies = inds.ToArray();
         }
 
         public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
@@ -363,7 +371,6 @@ namespace Planetary_Terrain {
                     renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
                     Debug.VerticiesDrawn += VertexCount;
-                    Debug.WaterChunksDrawn++;
                 }
             } else {
                 // when the camera is far away, draw waterFarVertexBuffer and tell the shader to draw the water verticies in blue
@@ -373,8 +380,7 @@ namespace Planetary_Terrain {
                     renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
 
                 renderer.Context.DrawIndexed(indicies.Length, 0, 0);
-
-                Debug.ChunksDrawn++;
+                
                 Debug.VerticiesDrawn += VertexCount;
             }
 
@@ -427,6 +433,327 @@ namespace Planetary_Terrain {
             indexBuffer?.Dispose();
             waterFarVertexBuffer?.Dispose();
             waterVertexBuffer?.Dispose();
+
+            if (Children != null)
+                for (int i = 0; i < Children.Length; i++)
+                    Children[i].Dispose();
+        }
+    }
+    class AtmosphereQuadNode : IDisposable {
+        public const int GridSize = 16;
+
+        public double Size;
+        public double VertexSpacing; // meters per vertex
+
+        public Atmosphere Atmosphere;
+        public AtmosphereQuadNode Parent;
+        public int SiblingIndex;
+        public AtmosphereQuadNode[] Children;
+
+        /// <summary>
+        /// The position on the cube, before being projected into a sphere
+        /// </summary>
+        public Vector3d CubePosition;
+
+        /// <summary>
+        /// The position of the mesh of which it is drawn at, relative to the planet
+        /// </summary>
+        public Vector3d MeshCenter;
+        public Matrix3x3 Orientation;
+
+        public Vector3d[] VertexSamples;
+
+        Vector3[] verticies;
+        short[] indicies;
+        
+        public int IndexCount { get; private set; }
+        public int VertexCount { get; private set; }
+
+        [StructLayout(LayoutKind.Explicit, Size = 208)]
+        struct Constants {
+            [FieldOffset(0)]
+            public Matrix World;
+            [FieldOffset(64)]
+            public Matrix WorldInverseTranspose;
+            [FieldOffset(128)]
+            public Matrix NodeToPlanetMatrix;
+        }
+        private Constants constants;
+
+        public D3D11.Buffer vertexBuffer { get; private set; }
+        public D3D11.Buffer indexBuffer { get; private set; }
+        public D3D11.Buffer constantBuffer { get; private set; }
+
+        bool dirty = false;
+        bool generating = false;
+
+        public AtmosphereQuadNode(Atmosphere atmo, int siblingIndex, double size, AtmosphereQuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
+            SiblingIndex = siblingIndex;
+            Size = size;
+            Parent = parent;
+            Atmosphere = atmo;
+
+            VertexSpacing = Size / GridSize;
+
+            CubePosition = cubePos;
+            Orientation = rot;
+
+            constants = new Constants();
+            constants.World = Matrix.Identity;
+
+            MeshCenter = Vector3d.Normalize(CubePosition);
+            MeshCenter *= atmo.Radius;
+
+            SetupMesh();
+        }
+
+        void SetupMesh() {
+            VertexSamples = new Vector3d[9];
+            int i = 0;
+
+            double scale = Size / GridSize;
+
+            Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
+
+            for (int x = 0; x <= GridSize; x += GridSize / 2) {
+                for (int z = 0; z <= GridSize; z += GridSize / 2) {
+                    Vector3d p = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
+                    p *= Atmosphere.Radius;
+                    p -= MeshCenter;
+
+                    VertexSamples[i++] = p;
+                }
+            }
+        }
+
+        public void Generate() {
+            if (generating) return;
+            generating = true;
+
+            ThreadPool.QueueUserWorkItem(new WaitCallback((object _ctx) => {
+                double scale = Size / GridSize;
+                double invScale = 1d / Size;
+
+                int s = GridSize + 1;
+                verticies = new Vector3[s * s * 6];
+                List<short> inds = new List<short>();
+                
+                Vector3d p1d;
+                Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
+
+                for (int x = 0; x < s; x++) {
+                    for (int z = 0; z < s; z++) {
+                        if (!generating)
+                            break;
+
+                        p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
+                        
+                        p1d = p1d * Atmosphere.Radius - MeshCenter;
+
+                        verticies[x * s + z] = p1d * invScale;
+                    }
+
+                    if (!generating)
+                        break;
+                }
+                
+                if (!generating) { // generation cancelled due to split
+                    dirty = false;
+                    verticies = null;
+                    indicies = null;
+                    vertexBuffer?.Dispose();
+                    vertexBuffer = null;
+                    indexBuffer?.Dispose();
+                    indexBuffer = null;
+                    return;
+                }
+                
+                GenerateIndicies();
+                
+                generating = false;
+                dirty = true;
+            }));
+        }
+
+        public void GenerateIndicies() {
+            List<short> inds = new List<short>();
+            int s = GridSize + 1;
+            for (int x = 0; x < s; x++) {
+                for (int z = 0; z < s; z++) {
+                    if (x + 1 < s && z + 1 < s) {
+                        // TODO: Quad fanning to handle cracks
+                        inds.Add((short)((x + 1) * s + z));
+                        inds.Add((short)(x * s + z));
+                        inds.Add((short)(x * s + z + 1));
+
+                        inds.Add((short)((x + 1) * s + z + 1));
+                        inds.Add((short)((x + 1) * s + z));
+                        inds.Add((short)(x * s + z + 1));
+                    }
+                }
+            }
+            indicies = inds.ToArray();
+        }
+
+        public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
+            vertexBuffer?.Dispose();
+            vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
+            
+            indexBuffer?.Dispose();
+            indexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies);
+
+            VertexCount = verticies.Length;
+            IndexCount = indicies.Length;
+
+            dirty = false;
+        }
+
+        public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
+            vert = MeshCenter + Atmosphere.Planet.Position;
+            dist = double.MaxValue;
+
+            if (VertexSamples == null) return;
+
+            pos -= MeshCenter + Atmosphere.Planet.Position;
+
+            for (int i = 0; i < VertexSamples.Length; i++) {
+                double d = (pos - VertexSamples[i]).LengthSquared();
+                if (d < dist) {
+                    dist = d;
+                    vert = VertexSamples[i] + MeshCenter + Atmosphere.Planet.Position;
+                }
+            }
+
+            dist = Math.Sqrt(dist);
+        }
+
+        public void Split(D3D11.Device device) {
+            if (Children != null)
+                return;
+
+            //if (generating) {
+            //    generating = false;
+            //    dirty = false;
+            //}
+            double s = Size * .5;
+
+            //  | 0 | 1 |
+            //  | 2 | 3 |
+
+            Vector3d right = Vector3.Transform(Vector3.Right, Orientation);
+            Vector3d fwd = Vector3.Transform(Vector3.ForwardLH, Orientation);
+
+            Vector3d p0 = (-right + fwd);
+            Vector3d p1 = (right + fwd);
+            Vector3d p2 = (-right + -fwd);
+            Vector3d p3 = (right + -fwd);
+
+            Children = new AtmosphereQuadNode[4];
+            Children[0] = new AtmosphereQuadNode(Atmosphere, 0, s, this, CubePosition + s * .5 * p0, Orientation);
+            Children[1] = new AtmosphereQuadNode(Atmosphere, 1, s, this, CubePosition + s * .5 * p1, Orientation);
+            Children[2] = new AtmosphereQuadNode(Atmosphere, 2, s, this, CubePosition + s * .5 * p2, Orientation);
+            Children[3] = new AtmosphereQuadNode(Atmosphere, 3, s, this, CubePosition + s * .5 * p3, Orientation);
+
+            Children[0].Generate();
+            Children[1].Generate();
+            Children[2].Generate();
+            Children[3].Generate();
+        }
+        public void UnSplit() {
+            if (Children == null) return;
+
+            for (int i = 0; i < Children.Length; i++)
+                Children[i]?.Dispose();
+
+            Children = null;
+
+            if (vertexBuffer == null && !generating)
+                Generate();
+        }
+        public void SplitDynamic(Vector3d pos, D3D11.Device device) {
+            double dist;
+            Vector3d vert;
+            ClosestVertex(pos, out vert, out dist);
+
+            if (dist < Size || Size / GridSize > Atmosphere.MaxVertexSpacing) {
+                if (Children != null) {
+                    for (int i = 0; i < Children.Length; i++)
+                        Children[i].SplitDynamic(pos, device);
+                } else {
+                    if ((Size * .5f) / GridSize > Atmosphere.MinVertexSpacing)
+                        Split(device);
+                }
+            } else
+                UnSplit();
+        }
+
+        public bool Ready() {
+            return dirty || vertexBuffer != null;
+        }
+        
+        public void Draw(Renderer renderer, double scale, Vector3d pos) {
+            double d = (renderer.Camera.Position - (MeshCenter + Atmosphere.Planet.Position)).Length();
+
+            constants.World = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
+            constants.WorldInverseTranspose = Matrix.Identity;
+
+            // constant buffer
+            if (constantBuffer == null)
+                constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+
+            renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
+
+            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+            
+            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<Vector3>(), 0));
+
+            renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+
+            Debug.VerticiesDrawn += VertexCount;
+            
+        }
+
+        public void Draw(Renderer renderer, Vector3d planetPos, double planetScale) {
+            bool draw = true;
+
+            if (Children != null) {
+                draw = false;
+
+                for (int i = 0; i < Children.Length; i++)
+                    if (!Children[i].Ready())
+                        draw = true;
+
+                if (!draw)
+                    for (int i = 0; i < Children.Length; i++)
+                        Children[i].Draw(renderer, planetPos, planetScale);
+            }
+
+            if (draw) {
+                if (dirty)
+                    SetData(renderer.Device, renderer.Context);
+
+                if (vertexBuffer != null) {
+                    double scale = planetScale;
+                    Vector3d pos = planetPos + MeshCenter * planetScale;
+
+                    constants.NodeToPlanetMatrix = Matrix.Scaling((float)(scale * Size)) * Matrix.Translation(pos);
+
+                    renderer.Camera.GetScaledSpace(MeshCenter + Atmosphere.Planet.Position, out pos, out scale);
+
+                    scale *= Size;
+
+                    Draw(renderer, scale, pos);
+                }
+            }
+        }
+
+        public void Dispose() {
+            vertexBuffer?.Dispose();
+            constantBuffer?.Dispose();
+            indexBuffer?.Dispose();
 
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)

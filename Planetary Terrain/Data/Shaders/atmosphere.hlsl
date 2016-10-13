@@ -2,6 +2,11 @@
 #include "_planet.hlsli"
 #include "_atmosphere.hlsli"
 
+cbuffer AtmoQuadNodeConstants : register(b1) {
+	row_major float4x4 World;
+	row_major float4x4 WorldInverseTranspose;
+	row_major float4x4 NodeToPlanet;
+}
 struct v2f {
 	float4 position : SV_POSITION;
 	float3 c0 : COLOR0;
@@ -9,17 +14,17 @@ struct v2f {
 	float3 rd : TEXCOORD0;
 };
 
-v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
+v2f vsmain(float4 vertex : POSITION0) {
 	v2f o;
 
-	float4 worldPosition = mul(vertex, AtmoWorld);
+	float4 worldPosition = mul(vertex, World);
 	o.position = mul(worldPosition, mul(View, Projection));
 
 	float3 v3CameraPos = -planetPos;
 
 	// Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)
-	float3 v3Pos = worldPosition.xyz - planetPos;
-	float3 v3Ray = worldPosition.xyz;
+	float3 v3Pos = mul(vertex, NodeToPlanet).xyz - planetPos;
+	float3 v3Ray = v3Pos - v3CameraPos;
 	float fFar = length(v3Ray);
 	v3Ray /= fFar;
 

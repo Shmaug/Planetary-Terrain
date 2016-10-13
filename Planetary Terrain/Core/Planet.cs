@@ -61,7 +61,7 @@ namespace Planetary_Terrain {
             OceanColor = Color.DeepSkyBlue;
         }
 
-        public double min, max;
+        public double min=1, max=-1;
         double height(Vector3d direction) {
             double total = 0;
 
@@ -70,7 +70,7 @@ namespace Planetary_Terrain {
 
             double rough = 1.0 - Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
 
-            rough *= r2;
+            //rough *= r2;
 
             double smooth = Noise.Fractal(direction * 200 + new Vector3d(-5000), 4, .02f, .3f);
             smooth *= 1 - rough;
@@ -131,6 +131,7 @@ namespace Planetary_Terrain {
         public override void Update(D3D11.Device device, Camera camera) {
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].SplitDynamic(camera.Position, device);
+            Atmosphere?.Update(device, camera);
         }
 
         public override void Draw(Renderer renderer) {
@@ -151,8 +152,7 @@ namespace Planetary_Terrain {
             constants.oceanColor = OceanColor.ToVector3();
 
             // create/update constant buffer
-            if (constBuffer == null)
-                constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            if (constBuffer == null) constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
             // draw atmosphere behind planet

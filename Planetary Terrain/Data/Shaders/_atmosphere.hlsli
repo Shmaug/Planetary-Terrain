@@ -1,6 +1,4 @@
 cbuffer AtmoConstants : register (b3) {
-	row_major float4x4 AtmoWorld;
-
 	float InnerRadius;
 	float OuterRadius;
 

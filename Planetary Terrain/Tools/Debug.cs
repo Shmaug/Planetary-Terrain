@@ -9,9 +9,7 @@ namespace Planetary_Terrain {
         public static QuadNode ClosestQuadTree;
         public static double ClosestQuadTreeDistance;
         public static double ClosestQuadTreeScale;
-        public static int ChunksDrawn;
         public static int VerticiesDrawn;
-        public static int WaterChunksDrawn;
         public static int FPS;
 
         static List<string> logs = new List<string>();
@@ -28,9 +26,7 @@ namespace Planetary_Terrain {
         }
 
         public static void BeginFrame() {
-            ChunksDrawn = 0;
             VerticiesDrawn = 0;
-            WaterChunksDrawn = 0;
             ClosestQuadTreeDistance = double.MaxValue;
         }
 
@@ -45,8 +41,8 @@ namespace Planetary_Terrain {
             renderer.D2DContext.BeginDraw();
 
             renderer.D2DContext.DrawText(
-                string.Format("{0} fps",
-                FPS),
+                string.Format("{0} verts, {1} fps",
+                VerticiesDrawn.ToString("N0"), FPS),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.SolidWhiteBrush);
 
             double spd = ship.LinearVelocity.Length();

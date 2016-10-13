@@ -27,12 +27,17 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 	v.worldPos = worldPosition.xyz;
 
 	float3 v3CameraPos = -planetPos;
+	float3 pos = mul(vertex, NodeToPlanet).xyz - planetPos;
 
-	float3 position = mul(vertex, NodeToPlanet).xyz - planetPos;
-
-	float3 v3Ray = position - v3CameraPos;
+	float3 v3Ray = pos - v3CameraPos;
 	float fFar = length(v3Ray);
 	v3Ray /= fFar;
+
+	if (length(pos) > CameraHeight) {
+		v3Ray *= -1;
+		v3CameraPos = pos;
+		pos = -planetPos;
+	}
 
 	float3 v3Start;
 
@@ -46,18 +51,17 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 		float fNear = 0.5 * (-B - sqrt(fDet));
 
 		// Calculate the ray's starting position, then calculate its scattering offset
-		float3 v3Start = v3CameraPos + v3Ray * fNear;
+		v3Start = v3CameraPos + v3Ray * fNear;
 		fFar -= fNear;
 	}
 	else {
 		// GroundFromAtmosphere
-
 		v3Start = v3CameraPos;
 	}
 
 	float fDepth = exp((InnerRadius - OuterRadius) / ScaleDepth);
-	float fCameraAngle = dot(-v3Ray, position) / length(position);
-	float fLightAngle = dot(-LightDirection, position) / length(position);
+	float fCameraAngle = dot(-v3Ray, pos) / length(pos);
+	float fLightAngle = dot(-LightDirection, pos) / length(pos);
 	float fCameraScale = scale(fCameraAngle);
 	float fLightScale = scale(fLightAngle);
 	float fCameraOffset = fDepth*fCameraScale;
