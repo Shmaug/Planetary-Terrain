@@ -7,6 +7,230 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 
 namespace Planetary_Terrain {
+    static class TriangleCache {
+        static readonly int GridSize = QuadNode.GridSize;
+
+        public static short[][] IndexCache;
+
+        static short[] MakeIndicies(int index) {
+            bool fanLeft  = (index & 1) >= 1;
+            bool fanUp    = (index & 2) >= 1;
+            bool fanRight = (index & 4) >= 1;
+            bool fanDown  = (index & 8) >= 1;
+
+            List<short> inds = new List<short>();
+            int s = GridSize + 1;
+            short i0, i1, i2, i3, i4, i5, i6, i7, i8;
+            for (int x = 0; x < s - 2; x += 2) {
+                for (int z = 0; z < s - 2; z += 2) {
+                    i0 = (short)((x + 0) * s + z);
+                    i1 = (short)((x + 1) * s + z);
+                    i2 = (short)((x + 2) * s + z);
+
+                    i3 = (short)((x + 0) * s + z + 1);
+                    i4 = (short)((x + 1) * s + z + 1);
+                    i5 = (short)((x + 2) * s + z + 1);
+
+                    i6 = (short)((x + 0) * s + z + 2);
+                    i7 = (short)((x + 1) * s + z + 2);
+                    i8 = (short)((x + 2) * s + z + 2);
+
+                    if (fanUp && z == s - 3) {
+                        if (fanRight && x == s - 3) {
+                            #region Fan right/up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3 --- i4     i5
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i8, i4,
+                                i8, i2, i4,
+                                i6, i4, i3,
+                                i3, i4, i1,
+                                i3, i1, i0,
+                                i4, i2, i1
+                            });
+                            #endregion
+                        } else if (fanLeft && x == 0) {
+                            #region Fan left/up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3     i4 --- i5
+                            //    |    /  | \    |
+                            //    |  /    |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i8, i4,
+                                i6, i4, i0,
+                                i8, i5, i4,
+                                i4, i5, i2,
+                                i4, i2, i1,
+                                i4, i1, i0
+                            });
+                            #endregion
+                        } else {
+                            #region Fan up
+                            //    i6 --- i7 --- i8
+                            //    |  \        /  |
+                            //    |    \    /    |
+                            // z+ i3 --- i4 --- i5
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i4, i3,
+                                i6, i8, i4,
+                                i4, i8, i5,
+
+                                i3, i4, i1,
+                                i3, i1, i0,
+                                i4, i5, i2,
+                                i4, i2, i1
+                            });
+                            #endregion
+                        }
+                    } else if (fanDown && z == 0) {
+                        if (fanRight && x == s - 3) {
+                            #region Fan right/down
+                            //    i6 --- i7 --- i8
+                            //    |  \    |   /  |
+                            //    |    \  | /    |
+                            // z+ i3 --- i4     i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i6, i4, i3,
+                                i3, i4, i0,
+                                i0, i4, i2,
+                                i7, i8 ,i4,
+                                i4, i8, i2
+                            });
+                            #endregion
+                        } else if (fanLeft && x == 0) {
+                            #region Fan left/down
+                            //    i6 --- i7 --- i8
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            // z+ i3     i4 --- i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i7, i8, i5,
+                                i7, i5, i4,
+                                i4, i5, i2,
+                                i6, i4, i0,
+                                i0, i4, i2
+                            });
+                            #endregion
+                        } else {
+                            #region Fan down
+                            //    i6 --- i7 --- i8
+                            //    |  \    | \    |
+                            //    |    \  |   \  |
+                            // z+ i3 --- i4 --- i5
+                            //    |    /    \    |
+                            //    |  /        \  |
+                            //    i0 --- i1 --- i2
+                            //           x+
+                            inds.AddRange(new short[] {
+                                i6, i7, i4,
+                                i6, i4, i3,
+                                i7, i8, i5,
+                                i7, i5, i4,
+
+                                i3, i4, i0,
+                                i0, i4, i2,
+                                i4, i5, i2
+                            });
+                            #endregion
+                        }
+                    } else if (fanRight && x == s - 3) {
+                        #region Fan right
+                        //    i6 --- i7 --- i8
+                        //    |  \    |   /  |
+                        //    |    \  | /    |
+                        // z+ i3 --- i4     i5
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i3,
+                            i3, i4, i1,
+                            i3, i1, i0,
+
+                            i7, i8, i4,
+                            i8, i2, i4,
+                            i4, i2, i1
+                        });
+                        #endregion
+                    } else if (fanLeft && x == 0) {
+                        #region Fan left
+                        //    i6 --- i7 --- i8
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        // z+ i3     i4 --- i5
+                        //    |    /  | \    |
+                        //    |  /    |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i0,
+                            i7, i8, i5,
+                            i7, i5, i4,
+                            i4, i5, i2,
+                            i4, i2, i1,
+                            i4, i1, i0
+                        });
+                        #endregion
+                    } else {
+                        #region No fan
+                        //    i6 --- i7 --- i8
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        // z+ i3 --- i4 --- i5
+                        //    |  \    | \    |
+                        //    |    \  |   \  |
+                        //    i0 --- i1 --- i2
+                        //           x+
+                        inds.AddRange(new short[] {
+                            i6, i7, i4,
+                            i6, i4, i3,
+                            i7, i8, i5,
+                            i7, i5, i4,
+                            i3, i4, i1,
+                            i3, i1, i0,
+                            i4, i5, i2,
+                            i4, i2, i1
+                        });
+                        #endregion
+                    }
+                }
+            }
+            return inds.ToArray();
+        }
+
+        static TriangleCache() {
+            IndexCache = new short[16][];
+            for (int i = 0; i < IndexCache.Length; i++)
+                IndexCache[i] = MakeIndicies(i);
+        }
+    }
     class QuadNode : IDisposable {
         public const int GridSize = 16;
         const double waterDetailThreshold = 5000;
@@ -209,224 +433,78 @@ namespace Planetary_Terrain {
                 dirty = true;
             }));
         }
-        
+        int j = 0;
         public void GenerateIndicies() {
+            Vector4 edgeColor = new Vector4[] {
+                new Vector4(0, 1, 1, 1),
+                new Vector4(1, 0, 1, 1),
+            }[j % 2];
+            Vector4 noEdgeColor = new Vector4[] {
+                new Vector4(1, 0, 0, 1),
+                new Vector4(0, 0, 0, 1),
+            }[j % 2];
+            j++;
+
             QuadNode l = GetLeft();
             QuadNode r = GetRight();
             QuadNode u = GetUp();
             QuadNode d = GetDown();
 
-            bool fanLeft =  l != null && l.LoDLevel < LoDLevel;
-            bool fanUp =    u != null && u.LoDLevel < LoDLevel;
+            bool fanLeft  = l != null && l.LoDLevel < LoDLevel;
+            bool fanUp    = u != null && u.LoDLevel < LoDLevel;
             bool fanRight = r != null && r.LoDLevel < LoDLevel;
-            bool fanDown =  d != null && d.LoDLevel < LoDLevel;
-            
-            // TODO: Generate these ahead of time
-            List<short> inds = new List<short>();
+            bool fanDown  = d != null && d.LoDLevel < LoDLevel;
+
             int s = GridSize + 1;
-            short i0, i1, i2, i3, i4, i5, i6, i7, i8;
-            for (int x = 0; x < s - 2; x += 2) {
-                for (int z = 0; z < s - 2; z += 2) {
-                    i0 = (short)((x + 0) * s + z);
-                    i1 = (short)((x + 1) * s + z);
-                    i2 = (short)((x + 2) * s + z);
-                    
-                    i3 = (short)((x + 0) * s + z + 1);
-                    i4 = (short)((x + 1) * s + z + 1);
-                    i5 = (short)((x + 2) * s + z + 1);
-
-                    i6 = (short)((x + 0) * s + z + 2);
-                    i7 = (short)((x + 1) * s + z + 2);
-                    i8 = (short)((x + 2) * s + z + 2);
-
-                    if (fanUp && z == s - 3) {
-                        if (fanRight && x == s - 3) {
-                            #region Fan right/up
-                            //    i6 --- i7 --- i8
-                            //    |  \        /  |
-                            //    |    \    /    |
-                            // z+ i3 --- i4     i5
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i8, i4,
-                                i8, i2, i4,
-                                i6, i4, i3,
-                                i3, i4, i1,
-                                i3, i1, i0,
-                                i4, i2, i1
-                            });
-                            #endregion
-                        } else if (fanLeft && x == 0) {
-                            #region Fan left/up
-                            //    i6 --- i7 --- i8
-                            //    |  \        /  |
-                            //    |    \    /    |
-                            // z+ i3     i4 --- i5
-                            //    |    /  | \    |
-                            //    |  /    |   \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i8, i4,
-                                i6, i4, i0,
-                                i8, i5, i4,
-                                i4, i5, i2,
-                                i4, i2, i1,
-                                i4, i1, i0
-                            });
-                            #endregion
-                        } else {
-                            #region Fan up
-                            //    i6 --- i7 --- i8
-                            //    |  \        /  |
-                            //    |    \    /    |
-                            // z+ i3 --- i4 --- i5
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i4, i3,
-                                i6, i8, i4,
-                                i4, i8, i5,
-
-                                i3, i4, i1,
-                                i3, i1, i0,
-                                i4, i5, i2,
-                                i4, i2, i1
-                            });
-                            #endregion
-                        }
-                    } else if (fanDown && z == 0) {
-                        if (fanRight && x == s - 3) {
-                            #region Fan right/down
-                            //    i6 --- i7 --- i8
-                            //    |  \    |   /  |
-                            //    |    \  | /    |
-                            // z+ i3 --- i4     i5
-                            //    |    /    \    |
-                            //    |  /        \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i7, i4,
-                                i6, i4, i3,
-                                i3, i4, i0,
-                                i0, i4, i2,
-                                i7, i8 ,i4,
-                                i4, i8, i2
-                            });
-                            #endregion
-                        } else if (fanLeft && x == 0) {
-                            #region Fan left/down
-                            //    i6 --- i7 --- i8
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            // z+ i3     i4 --- i5
-                            //    |    /    \    |
-                            //    |  /        \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i7, i4,
-                                i7, i8, i5,
-                                i7, i5, i4,
-                                i4, i5, i2,
-                                i6, i4, i0,
-                                i0, i4, i2
-                            });
-                            #endregion
-                        } else {
-                            #region Fan down
-                            //    i6 --- i7 --- i8
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            // z+ i3 --- i4 --- i5
-                            //    |    /    \    |
-                            //    |  /        \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i7, i4,
-                                i6, i4, i3,
-                                i7, i8, i5,
-                                i7, i5, i4,
-
-                                i3, i4, i0,
-                                i0, i4, i2,
-                                i4, i5, i2
-                            });
-                            #endregion
-                        }
-                    } else if (fanRight && x == s - 3) {
-                        #region Fan right
-                        //    i6 --- i7 --- i8
-                        //    |  \    |   /  |
-                        //    |    \  | /    |
-                        // z+ i3 --- i4     i5
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        //    i0 --- i1 --- i2
-                        //           x+
-                        inds.AddRange(new short[] {
-                            i6, i7, i4,
-                            i6, i4, i3,
-                            i3, i4, i1,
-                            i3, i1, i0,
-
-                            i7, i8, i4,
-                            i8, i2, i4,
-                            i4, i2, i1
-                        });
-                        #endregion
-                    } else if (fanLeft && x == 0) {
-                        #region Fan left
-                        //    i6 --- i7 --- i8
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        // z+ i3     i4 --- i5
-                        //    |    /  | \    |
-                        //    |  /    |   \  |
-                        //    i0 --- i1 --- i2
-                        //           x+
-                        inds.AddRange(new short[] {
-                            i6, i7, i4,
-                            i6, i4, i0,
-                            i7, i8, i5,
-                            i7, i5, i4,
-                            i4, i5, i2,
-                            i4, i2, i1,
-                            i4, i1, i0
-                        });
-                        #endregion
-                    } else {
-                        #region No fan
-                        //    i6 --- i7 --- i8
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        // z+ i3 --- i4 --- i5
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        //    i0 --- i1 --- i2
-                        //           x+
-                        inds.AddRange(new short[] {
-                            i6, i7, i4,
-                            i6, i4, i3,
-                            i7, i8, i5,
-                            i7, i5, i4,
-                            i3, i4, i1,
-                            i3, i1, i0,
-                            i4, i5, i2,
-                            i4, i2, i1
-                        });
-                        #endregion
-                    }
-                }
+            if (l == null) {
+                int x = 0;
+                for (int z = 0; z < s; z++)
+                    verticies[x * s + z].Color = noEdgeColor;
+            }else {
+                int x = 0;
+                for (int z = 0; z < s; z++)
+                    verticies[x * s + z].Color = edgeColor;
             }
-            indicies = inds.ToArray();
+            if (u == null) {
+                int z = s-1;
+                for (int x = 0; x < s; x++)
+                    verticies[x * s + z].Color = noEdgeColor;
+            } else {
+                int z = s-1;
+                for (int x = 0; x < s; x++)
+                    verticies[x * s + z].Color = edgeColor;
+            }
+            if (r == null) {
+                int x = s-1;
+                for (int z = 0; z < s; z++)
+                    verticies[x * s + z].Color = noEdgeColor;
+            } else {
+                int x = s-1;
+                for (int z = 0; z < s; z++)
+                    verticies[x * s + z].Color = edgeColor;
+            }
+            if (d == null) {
+                int z = 0;
+                for (int x = 0; x < s; x++)
+                    verticies[x * s + z].Color = noEdgeColor;
+            } else {
+                int z = 0;
+                for (int x = 0; x < s; x++)
+                    verticies[x * s + z].Color = edgeColor;
+            }
+
+            int index = 0;
+            if (fanLeft)
+                index |= 1;
+            if (fanUp)
+                index |= 2;
+            if (fanRight)
+                index |= 4;
+            if (fanDown)
+                index |= 8;
+            
+            indicies = TriangleCache.IndexCache[index];
+
             dirty = true;
         }
 
@@ -555,6 +633,22 @@ namespace Planetary_Terrain {
             return null;
         }
 
+        void UpdateNeighbors() {
+            QuadNode r = GetRight();
+            QuadNode d = GetDown();
+            QuadNode l = GetLeft();
+            QuadNode u = GetUp();
+
+            if (r != null && r.verticies != null && !r.generating)
+                r.GenerateIndicies();
+            if (l != null && l.verticies != null && !l.generating)
+                l.GenerateIndicies();
+            if (d != null && d.verticies != null && !d.generating)
+                d.GenerateIndicies();
+            if (u != null && u.verticies != null && !u.generating)
+                u.GenerateIndicies();
+        }
+
         public void Split(D3D11.Device device) {
             if (Children != null)
                 return;
@@ -589,10 +683,7 @@ namespace Planetary_Terrain {
             Children[2].Generate();
             Children[3].Generate();
 
-            GetRight()?.RefreshIndicies(0);
-            GetDown()?.RefreshIndicies(1);
-            GetLeft()?.RefreshIndicies(2);
-            GetUp()?.RefreshIndicies(3);
+            UpdateNeighbors();
         }
         public void UnSplit() {
             if (Children == null) return;
@@ -605,10 +696,9 @@ namespace Planetary_Terrain {
             if (vertexBuffer == null && !generating)
                 Generate();
 
-            GetRight()?.RefreshIndicies(0);
-            GetDown()?.RefreshIndicies(1);
-            GetLeft()?.RefreshIndicies(2);
-            GetUp()?.RefreshIndicies(3);
+            GenerateIndicies();
+
+            UpdateNeighbors();
         }
         public void SplitDynamic(Vector3d pos, D3D11.Device device) {
             double dist;
@@ -625,24 +715,6 @@ namespace Planetary_Terrain {
                 }
             } else
                 UnSplit();
-        }
-
-        public void RefreshIndicies(int edgeIndex) {
-            if (generating)
-                return;
-            
-            GenerateIndicies();
-
-            if (Children != null) {
-                int[,] ei = new int[,] {
-                    { 0, 2 }, // left
-                    { 0, 1 }, // up
-                    { 1, 3 }, // right
-                    { 2, 3 }  // down
-                }; // update top 2 children if the top edge is split, etc..
-                for (int i = 0; i < 2; i++)
-                    Children[ei[edgeIndex, i]].RefreshIndicies(edgeIndex);
-            }
         }
         
         public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
@@ -799,7 +871,6 @@ namespace Planetary_Terrain {
         public const int GridSize = 16;
 
         public double Size;
-        public double ArcSize;
         public double VertexSpacing; // meters per vertex
 
         public Atmosphere Atmosphere;
@@ -917,212 +988,18 @@ namespace Planetary_Terrain {
             bool fanRight = r != null && r.LoDLevel < LoDLevel;
             bool fanDown = d != null && d.LoDLevel < LoDLevel;
 
-            // TODO: Generate these ahead of time
-            List<short> inds = new List<short>();
-            int s = GridSize + 1;
-            short i0, i1, i2, i3, i4, i5, i6, i7, i8;
-            for (int x = 0; x < s - 2; x += 2) {
-                for (int z = 0; z < s - 2; z += 2) {
-                    i0 = (short)((x + 0) * s + z);
-                    i1 = (short)((x + 1) * s + z);
-                    i2 = (short)((x + 2) * s + z);
+            int index = 0;
+            if (fanLeft)
+                index |= 1;
+            if (fanUp)
+                index |= 2;
+            if (fanRight)
+                index |= 4;
+            if (fanDown)
+                index |= 8;
 
-                    i3 = (short)((x + 0) * s + z + 1);
-                    i4 = (short)((x + 1) * s + z + 1);
-                    i5 = (short)((x + 2) * s + z + 1);
+            indicies = TriangleCache.IndexCache[index];
 
-                    i6 = (short)((x + 0) * s + z + 2);
-                    i7 = (short)((x + 1) * s + z + 2);
-                    i8 = (short)((x + 2) * s + z + 2);
-
-                    if (fanUp && z == s - 3) {
-                        if (fanRight && x == s - 3) {
-                            #region Fan right/up
-                            //    i6 --- i7 --- i8
-                            //    |  \        /  |
-                            //    |    \    /    |
-                            // z+ i3 --- i4     i5
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i8, i4,
-                                i8, i2, i4,
-                                i6, i4, i3,
-                                i3, i4, i1,
-                                i3, i1, i0,
-                                i4, i2, i1
-                            });
-                            #endregion
-                        } else if (fanLeft && x == 0) {
-                            #region Fan left/up
-                            //    i6 --- i7 --- i8
-                            //    |  \        /  |
-                            //    |    \    /    |
-                            // z+ i3     i4 --- i5
-                            //    |    /  | \    |
-                            //    |  /    |   \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i8, i4,
-                                i6, i4, i0,
-                                i8, i5, i4,
-                                i4, i5, i2,
-                                i4, i2, i1,
-                                i4, i1, i0
-                            });
-                            #endregion
-                        } else {
-                            #region Fan up
-                            //    i6 --- i7 --- i8
-                            //    |  \        /  |
-                            //    |    \    /    |
-                            // z+ i3 --- i4 --- i5
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i4, i3,
-                                i6, i8, i4,
-                                i4, i8, i5,
-
-                                i3, i4, i1,
-                                i3, i1, i0,
-                                i4, i5, i2,
-                                i4, i2, i1
-                            });
-                            #endregion
-                        }
-                    } else if (fanDown && z == 0) {
-                        if (fanRight && x == s - 3) {
-                            #region Fan right/down
-                            //    i6 --- i7 --- i8
-                            //    |  \    |   /  |
-                            //    |    \  | /    |
-                            // z+ i3 --- i4     i5
-                            //    |    /    \    |
-                            //    |  /        \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i7, i4,
-                                i6, i4, i3,
-                                i3, i4, i0,
-                                i0, i4, i2,
-                                i7, i8 ,i4,
-                                i4, i8, i2
-                            });
-                            #endregion
-                        } else if (fanLeft && x == 0) {
-                            #region Fan left/down
-                            //    i6 --- i7 --- i8
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            // z+ i3     i4 --- i5
-                            //    |    /    \    |
-                            //    |  /        \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i7, i4,
-                                i7, i8, i5,
-                                i7, i5, i4,
-                                i4, i5, i2,
-                                i6, i4, i0,
-                                i0, i4, i2
-                            });
-                            #endregion
-                        } else {
-                            #region Fan down
-                            //    i6 --- i7 --- i8
-                            //    |  \    | \    |
-                            //    |    \  |   \  |
-                            // z+ i3 --- i4 --- i5
-                            //    |    /    \    |
-                            //    |  /        \  |
-                            //    i0 --- i1 --- i2
-                            //           x+
-                            inds.AddRange(new short[] {
-                                i6, i7, i4,
-                                i6, i4, i3,
-                                i7, i8, i5,
-                                i7, i5, i4,
-
-                                i3, i4, i0,
-                                i0, i4, i2,
-                                i4, i5, i2
-                            });
-                            #endregion
-                        }
-                    } else if (fanRight && x == s - 3) {
-                        #region Fan right
-                        //    i6 --- i7 --- i8
-                        //    |  \    |   /  |
-                        //    |    \  | /    |
-                        // z+ i3 --- i4     i5
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        //    i0 --- i1 --- i2
-                        //           x+
-                        inds.AddRange(new short[] {
-                            i6, i7, i4,
-                            i6, i4, i3,
-                            i3, i4, i1,
-                            i3, i1, i0,
-
-                            i7, i8, i4,
-                            i8, i2, i4,
-                            i4, i2, i1
-                        });
-                        #endregion
-                    } else if (fanLeft && x == 0) {
-                        #region Fan left
-                        //    i6 --- i7 --- i8
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        // z+ i3     i4 --- i5
-                        //    |    /  | \    |
-                        //    |  /    |   \  |
-                        //    i0 --- i1 --- i2
-                        //           x+
-                        inds.AddRange(new short[] {
-                            i6, i7, i4,
-                            i6, i4, i0,
-                            i7, i8, i5,
-                            i7, i5, i4,
-                            i4, i5, i2,
-                            i4, i2, i1,
-                            i4, i1, i0
-                        });
-                        #endregion
-                    } else {
-                        #region No fan
-                        //    i6 --- i7 --- i8
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        // z+ i3 --- i4 --- i5
-                        //    |  \    | \    |
-                        //    |    \  |   \  |
-                        //    i0 --- i1 --- i2
-                        //           x+
-                        inds.AddRange(new short[] {
-                            i6, i7, i4,
-                            i6, i4, i3,
-                            i7, i8, i5,
-                            i7, i5, i4,
-                            i3, i4, i1,
-                            i3, i1, i0,
-                            i4, i5, i2,
-                            i4, i2, i1
-                        });
-                        #endregion
-                    }
-                }
-            }
-            indicies = inds.ToArray();
             dirty = true;
         }
 
