@@ -27,9 +27,10 @@ namespace Planetary_Terrain {
             LinearVelocity += (Vector3d)Rotation.Backward * Throttle * 500d;
 
             // extremely fake aerodynamic forces (in space)
-            LinearVelocity = (Vector3d)Rotation.Backward * LinearVelocity.Length();
-            if (Throttle < .1)
-                LinearVelocity *= .8;
+            double v = LinearVelocity.Length();
+            LinearVelocity = (Vector3d)Rotation.Backward * v;
+            if (Throttle < 1)
+                LinearVelocity *= .9; // fake drag
 
             Position += LinearVelocity * deltaTime;
             Rotation *= Matrix.RotationAxis(Rotation.Right, AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, AngularVelocity.Z);

@@ -129,8 +129,11 @@ namespace Planetary_Terrain {
         }
 
         public override void Update(D3D11.Device device, Camera camera) {
+            Vector3d dir = camera.Position - Position;
+            double height = dir.Length();
+            dir /= height;
             for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].SplitDynamic(camera.Position, device);
+                BaseQuads[i].SplitDynamic(dir * Radius, height, device);
             Atmosphere?.Update(device, camera);
         }
 

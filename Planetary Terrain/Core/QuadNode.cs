@@ -249,6 +249,8 @@ namespace Planetary_Terrain {
         /// </summary>
         public Vector3d CubePosition;
 
+        public Vector3d SurfacePosition;
+
         /// <summary>
         /// The position of the mesh of which it is drawn at, relative to the planet
         /// </summary>
@@ -309,6 +311,7 @@ namespace Planetary_Terrain {
             constants.World = Matrix.Identity;
 
             MeshCenter = Vector3d.Normalize(CubePosition);
+            SurfacePosition = MeshCenter * Body.Radius;
             MeshCenter *= Body.GetHeight(MeshCenter);
 
             SetupMesh();
@@ -427,23 +430,19 @@ namespace Planetary_Terrain {
                     waterFarVertexBuffer = null;
                 }
 
-                GenerateIndicies();
+                GetIndicies(false);
 
                 generating = false;
                 dirty = true;
             }));
         }
-        int j = 0;
-        public void GenerateIndicies() {
-            Vector4 edgeColor = new Vector4[] {
-                new Vector4(0, 1, 1, 1),
-                new Vector4(1, 0, 1, 1),
-            }[j % 2];
-            Vector4 noEdgeColor = new Vector4[] {
-                new Vector4(1, 0, 0, 1),
-                new Vector4(0, 0, 0, 1),
-            }[j % 2];
-            j++;
+        public void GetIndicies(bool recurse = true) {
+            if (recurse && Children != null)
+                for (int i = 0; i < Children.Length; i++)
+                    Children[i].GetIndicies();
+
+            if (verticies == null)
+                return;
 
             QuadNode l = GetLeft();
             QuadNode r = GetRight();
@@ -454,44 +453,6 @@ namespace Planetary_Terrain {
             bool fanUp    = u != null && u.LoDLevel < LoDLevel;
             bool fanRight = r != null && r.LoDLevel < LoDLevel;
             bool fanDown  = d != null && d.LoDLevel < LoDLevel;
-
-            int s = GridSize + 1;
-            if (l == null) {
-                int x = 0;
-                for (int z = 0; z < s; z++)
-                    verticies[x * s + z].Color = noEdgeColor;
-            }else {
-                int x = 0;
-                for (int z = 0; z < s; z++)
-                    verticies[x * s + z].Color = edgeColor;
-            }
-            if (u == null) {
-                int z = s-1;
-                for (int x = 0; x < s; x++)
-                    verticies[x * s + z].Color = noEdgeColor;
-            } else {
-                int z = s-1;
-                for (int x = 0; x < s; x++)
-                    verticies[x * s + z].Color = edgeColor;
-            }
-            if (r == null) {
-                int x = s-1;
-                for (int z = 0; z < s; z++)
-                    verticies[x * s + z].Color = noEdgeColor;
-            } else {
-                int x = s-1;
-                for (int z = 0; z < s; z++)
-                    verticies[x * s + z].Color = edgeColor;
-            }
-            if (d == null) {
-                int z = 0;
-                for (int x = 0; x < s; x++)
-                    verticies[x * s + z].Color = noEdgeColor;
-            } else {
-                int z = 0;
-                for (int x = 0; x < s; x++)
-                    verticies[x * s + z].Color = edgeColor;
-            }
 
             int index = 0;
             if (fanLeft)
@@ -633,20 +594,20 @@ namespace Planetary_Terrain {
             return null;
         }
 
-        void UpdateNeighbors() {
+        void UpdateNeighborIndicies() {
             QuadNode r = GetRight();
             QuadNode d = GetDown();
             QuadNode l = GetLeft();
             QuadNode u = GetUp();
 
-            if (r != null && r.verticies != null && !r.generating)
-                r.GenerateIndicies();
-            if (l != null && l.verticies != null && !l.generating)
-                l.GenerateIndicies();
-            if (d != null && d.verticies != null && !d.generating)
-                d.GenerateIndicies();
-            if (u != null && u.verticies != null && !u.generating)
-                u.GenerateIndicies();
+            if (r != null && !r.generating)
+                r.GetIndicies();
+            if (l != null && !l.generating)
+                l.GetIndicies();
+            if (d != null && !d.generating)
+                d.GetIndicies();
+            if (u != null && !u.generating)
+                u.GetIndicies();
         }
 
         public void Split(D3D11.Device device) {
@@ -683,7 +644,7 @@ namespace Planetary_Terrain {
             Children[2].Generate();
             Children[3].Generate();
 
-            UpdateNeighbors();
+            UpdateNeighborIndicies();
         }
         public void UnSplit() {
             if (Children == null) return;
@@ -695,20 +656,25 @@ namespace Planetary_Terrain {
 
             if (vertexBuffer == null && !generating)
                 Generate();
+            else
+                GetIndicies();
 
-            GenerateIndicies();
-
-            UpdateNeighbors();
+            UpdateNeighborIndicies();
         }
-        public void SplitDynamic(Vector3d pos, D3D11.Device device) {
+        public void SplitDynamic(Vector3d pos, double height, D3D11.Device device) {
             double dist;
-            Vector3d vert;
-            ClosestVertex(pos, out vert, out dist);
+            Vector3d vertex;
+            ClosestVertex(pos + Body.Position, out vertex, out dist);
 
-            if (dist < Size || Size / GridSize > Body.MaxVertexSpacing) {
+            double h = Body.GetHeight(Vector3d.Normalize(vertex - Body.Position));
+            
+            double arcdist = Body.ArcLength((Body.GetPointOnSurface(vertex) - pos).Length());
+            
+            // TODO: distance function
+            if (arcdist + height - h < ArcSize + Size || Size / GridSize > Body.MaxVertexSpacing) {
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
-                        Children[i].SplitDynamic(pos, device);
+                        Children[i].SplitDynamic(pos, height, device);
                 } else {
                     if ((Size * .5f) / GridSize > Body.MinVertexSpacing)
                         Split(device);
@@ -1131,8 +1097,7 @@ namespace Planetary_Terrain {
         public void Split(D3D11.Device device) {
             if (Children != null)
                 return;
-
-            // TODO: stop generating if we get split
+            
             // BUT then the children won't draw
             //if (generating) {
             //    generating = false;

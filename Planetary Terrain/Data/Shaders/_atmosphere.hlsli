@@ -82,7 +82,7 @@ ScatterOutput GroundScatter(float3 pos) {
 	}
 
 	float fDepth = exp((InnerRadius - OuterRadius) / ScaleDepth);
-	float fCameraAngle = dot(-v3Ray, pos) / length(pos);
+	float fCameraAngle = 1;// dot(-v3Ray, pos) / length(pos);
 	float fLightAngle = dot(-LightDirection, pos) / length(pos);
 	float fCameraScale = scale(fCameraAngle);
 	float fLightScale = scale(fLightAngle);

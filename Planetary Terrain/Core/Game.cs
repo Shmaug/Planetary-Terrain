@@ -84,6 +84,9 @@ namespace Planetary_Terrain {
                 y += h;
             }
             (NavigatorWindow["EarthButton"] as UI.TextButton).Click();
+
+            renderer.Camera.Ship = ship;
+            renderer.Camera.Mode = Camera.CameraMode.Ship;
         }
 
         double zoomd = 0;
@@ -111,7 +114,7 @@ namespace Planetary_Terrain {
             InputState.mousePos = realMousePos;
             #endregion
 
-            #region ship control
+            #region ship/camera control
             Vector3d r = Vector3.Zero;
             if (InputState.ks.IsPressed(DInput.Key.W))
                 r.X -= -1;
@@ -168,9 +171,10 @@ namespace Planetary_Terrain {
                 else
                     renderer.Camera.Rotation += new Vector3(delta.Y, delta.X, 0) * .003f;
             }
-            zoomd += Math.Sign(-InputState.ms.Z);
+            // zoom
+            zoomd = -InputState.ms.Z / 120;
             renderer.Camera.Zoom += zoomd * deltaTime;
-            zoomd *= .9;
+            zoomd *= .8;
             #endregion
 
             if (InputState.ks.IsPressed(DInput.Key.F2) && !InputState.lastks.IsPressed(DInput.Key.F2))
@@ -178,6 +182,9 @@ namespace Planetary_Terrain {
 
             if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
                 renderer.Camera.BodyIndex = (renderer.Camera.BodyIndex + 1) % StarSystem.ActiveSystem.bodies.Count;
+
+            if (InputState.ks.IsPressed(DInput.Key.F) && !InputState.lastks.IsPressed(DInput.Key.F))
+                renderer.DrawWireframe = !renderer.DrawWireframe;
 
             ship.Update(deltaTime);
             StarSystem.ActiveSystem.Update(renderer, renderer.Device, deltaTime);
@@ -201,7 +208,6 @@ namespace Planetary_Terrain {
             renderer.BeginDrawFrame();
             renderer.Clear(Color.Black);
 
-            renderer.DrawWireframe = InputState.ks.IsPressed(DInput.Key.F);
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
 
             StarSystem.ActiveSystem.Draw(renderer, ship.LinearVelocity.Length());
