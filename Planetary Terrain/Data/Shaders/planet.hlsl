@@ -12,22 +12,22 @@ struct v2f {
 	float2 uv : TEXCOORD1;
 	float height : TEXCOORD2;
 	float3 worldPos : TEXCOORD3;
-	float4 color : COLOR0;
+	float3 dir : TEXCOORD4;
 
 	float3 c0 : COLOR1;
 	float3 c1 : COLOR2;
 
 };
 
-v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float height : TEXCOORD1, float4 color : COLOR0) {
+v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float3 dir : TEXCOORD1, float height : TEXCOORD2) {
 	v2f v;
 	float4 worldPosition = mul(vertex, World);
 	v.position = mul(worldPosition, mul(View, Projection));
 	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
+	v.dir = mul(float4(dir, 1), WorldInverseTranspose).xyz;
 	v.uv = uv;
 	v.height = height;
 	v.worldPos = worldPosition.xyz;
-	v.color = color;
 
 	ScatterOutput o = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos);
 	v.c0 = o.c0;
@@ -43,6 +43,7 @@ float4 psmain(v2f i) : SV_TARGET
 
 	if (i.height <= waterHeight && drawWaterFar) {
 		col = waterColor;
+		i.normal = i.dir;
 		spec = true;
 	}
 
@@ -61,5 +62,5 @@ float4 psmain(v2f i) : SV_TARGET
 
 	col = i.c1 + col * i.c0;
 
-	return float4(col, 1) *i.color;
+	return float4(col, 1);
 }

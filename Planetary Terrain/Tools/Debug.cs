@@ -43,8 +43,8 @@ namespace Planetary_Terrain {
             renderer.D2DContext.BeginDraw();
 
             renderer.D2DContext.DrawText(
-                string.Format("{0} verts, {1} fps",
-                VerticiesDrawn.ToString("N0"), FPS),
+                string.Format("{0} verts, {1} fps    [{2} waiting / {3} generating]",
+                VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.SolidWhiteBrush);
 
             double spd = ship.LinearVelocity.Length();

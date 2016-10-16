@@ -133,7 +133,7 @@ namespace Planetary_Terrain {
             double height = dir.Length();
             dir /= height;
             for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].SplitDynamic(dir * Radius, height, device);
+                BaseQuads[i].SplitDynamic(dir, height, device);
             Atmosphere?.Update(device, camera);
         }
 

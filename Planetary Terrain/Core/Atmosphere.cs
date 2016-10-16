@@ -6,8 +6,8 @@ using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
     class Atmosphere : IDisposable {
-        public double MaxVertexSpacing = 2000000; // m/vertex
-        public double MinVertexSpacing = 5000;       // m/vertex
+        public double MaxVertexSpacing = 500000; // m/vertex
+        public double MinVertexSpacing = 20000;       // m/vertex
 
         public Planet Planet;
         public double Radius;

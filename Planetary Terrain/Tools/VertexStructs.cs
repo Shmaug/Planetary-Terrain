@@ -96,26 +96,26 @@ namespace Planetary_Terrain {
         public Vector3 Normal;
         [FieldOffset(24)]
         public Vector2 TexCoord;
-        [FieldOffset(36)]
+        [FieldOffset(32)]
+        public Vector3 Out;
+        [FieldOffset(44)]
         public float Height;
-        [FieldOffset(40)]
-        public Vector4 Color;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
         {
             new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
             new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
             new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0),
-            new D3D11.InputElement("TEXCOORD", 1, Format.R32_Float, 36, 0),
-            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 40, 0),
+            new D3D11.InputElement("TEXCOORD", 1, Format.R32G32B32_Float, 32, 0),
+            new D3D11.InputElement("TEXCOORD", 2, Format.R32_Float, 44, 0),
         };
 
-        public PlanetVertex(Vector3 pos, Vector3 norm, Vector2 texCoord, float height) {
+        public PlanetVertex(Vector3 pos, Vector3 norm, Vector3 dir, Vector2 texCoord, float height) {
             Position = pos;
             Normal = norm;
             TexCoord = texCoord;
             Height = height;
-            Color = Vector4.One;
+            Out = dir;
         }
     }
 }

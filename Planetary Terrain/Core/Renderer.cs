@@ -72,6 +72,8 @@ namespace Planetary_Terrain {
         public bool DrawWireframe = false;
         public bool DrawGUI = true;
 
+        public double TotalTime;
+
         public Camera Camera;
 
         D3D11.Buffer axisBuffer;
@@ -83,8 +85,7 @@ namespace Planetary_Terrain {
             this.game = game;
             int width = renderForm.ClientSize.Width, height = renderForm.ClientSize.Height;
             ResolutionX = width; ResolutionY = height;
-
-
+            
             #region 3d device & context
             DXGI.SwapChainDescription swapChainDesc = new DXGI.SwapChainDescription() {
                 ModeDescription = new DXGI.ModeDescription(width, height, new DXGI.Rational(60, 1), DXGI.Format.R8G8B8A8_UNorm),

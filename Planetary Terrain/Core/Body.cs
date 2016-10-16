@@ -133,6 +133,16 @@ namespace Planetary_Terrain {
             double angle = 2 * Math.Asin(distance / 2 / Radius);
             return Radius * angle;
         }
+        /// <summary>
+        /// Convert a chordal distance to arc length
+        /// </summary>
+        /// <param name="distance"></param>
+        /// <returns></returns>
+        public double ArcLength(Vector3d dir1, Vector3d dir2) {
+            double distance = ((dir1 - dir2) * Radius).Length();
+            double angle = 2 * Math.Asin(distance / 2 / Radius);
+            return Radius * angle;
+        }
         public abstract void Dispose();
     }
 }
