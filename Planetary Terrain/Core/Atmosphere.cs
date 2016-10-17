@@ -94,7 +94,7 @@ namespace Planetary_Terrain {
 
             float kr = .0025f; // rayleigh scattering constant
             float km = .0010f; // mie scattering constant
-            float sun = 15f; // sun brightness
+            float sun = 10f; // sun brightness
             Vector3 wavelength = new Vector3(.65f, .57f, .475f);
             wavelength = wavelength * wavelength * wavelength * wavelength; // wavelength^4
 
@@ -107,7 +107,7 @@ namespace Planetary_Terrain {
 
             constants.g = -.99f; // mie g constant
 
-            constants.Scale = 1f / (constants.OuterRadius - constants.InnerRadius);
+            constants.Scale = 1f / (float)((Radius - Planet.Radius) * scale);
             constants.ScaleDepth = .25f; // height at which the average density is found
             constants.ScaleOverScaleDepth = constants.Scale / constants.ScaleDepth;
             constants.InvScaleDepth = 1f / constants.ScaleDepth;

@@ -49,14 +49,14 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	woX = mul(woX, (float3x3)NodeOrientation); // relative to planet
 	woZ = mul(woZ, (float3x3)NodeOrientation); // relative to planet
 	
-	float4 wp =  mul(vertex, World) + float4(wo, 0);
+	float4 wp = mul(vertex, World) + float4(wo, 0);
 	float4 wpX = mul(vertex, World) + float4(woX,0);
 	float4 wpZ = mul(vertex, World) + float4(woZ,0);
 
 	v.position = mul(wp, mul(View, Projection));
 	v.normal = normalize(cross(wpX - wp, wpZ - wp));
 
-	//v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz + norm;
+	//v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;// +norm;
 
 	ScatterOutput so = GroundScatter(mul(vertex, NodeToPlanet).xyz + wo - planetPos);
 	v.c0 = so.c0;

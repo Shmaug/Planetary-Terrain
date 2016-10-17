@@ -9,9 +9,9 @@ cbuffer AtmoQuadNodeConstants : register(b1) {
 }
 struct v2f {
 	float4 position : SV_POSITION;
-	float3 c0 : COLOR0;
-	float3 c1 : COLOR1;
-	float3 rd : TEXCOORD0;
+	float3 c0 : TEXCOORD0;
+	float3 c1 : TEXCOORD1;
+	float3 rd : TEXCOORD2;
 };
 
 v2f vsmain(float4 vertex : POSITION0) {

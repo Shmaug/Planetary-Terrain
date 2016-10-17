@@ -14,8 +14,8 @@ struct v2f {
 	float3 worldPos : TEXCOORD3;
 	float3 dir : TEXCOORD4;
 
-	float3 c0 : COLOR1;
-	float3 c1 : COLOR2;
+	float3 c0 : TEXCOORD5;
+	float3 c1 : TEXCOORD6;
 
 };
 
