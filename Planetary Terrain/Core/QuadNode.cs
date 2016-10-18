@@ -5,6 +5,7 @@ using System.Threading;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Planetary_Terrain {
     static class TriangleCache {
@@ -234,14 +235,15 @@ namespace Planetary_Terrain {
     class QuadNode : IDisposable {
         public const int GridSize = 16;
         const double waterDetailThreshold = 5000;
-        const int MaxGenerationCount = 5;
+        const int MaxGenerationCount = 10;
 
         public static List<QuadNode> GenerateQueue = new List<QuadNode>();
         public static List<QuadNode> Generating = new List<QuadNode>();
         static List<QuadNode> RemoveQueue = new List<QuadNode>();
-
         public static void Update() {
             if (GenerateQueue.Count > 0) {
+                GenerateQueue = GenerateQueue.OrderByDescending(o => o.LoDLevel).ToList(); // prioritize high-lod nodes
+
                 while (Generating.Count < MaxGenerationCount && GenerateQueue.Count > 0) {
                     QuadNode q = GenerateQueue[GenerateQueue.Count - 1];
                     GenerateQueue.Remove(q);
@@ -253,6 +255,14 @@ namespace Planetary_Terrain {
                         });
                 }
             }
+            for (int i = 0; i < RemoveQueue.Count; i++)
+                Generating.Remove(RemoveQueue[i]);
+            RemoveQueue.Clear();
+
+            // cleanup the Generating queue
+            foreach (QuadNode n in Generating)
+                if (n.Disposed || !n.generating)
+                    RemoveQueue.Add(n);
             for (int i = 0; i < RemoveQueue.Count; i++)
                 Generating.Remove(RemoveQueue[i]);
             RemoveQueue.Clear();
@@ -296,7 +306,7 @@ namespace Planetary_Terrain {
 
         public int LoDLevel;
         
-        [StructLayout(LayoutKind.Explicit, Size = 272)]
+        [StructLayout(LayoutKind.Explicit, Size = 288)]
         struct Constants {
             [FieldOffset(0)]
             public Matrix World;
@@ -307,17 +317,21 @@ namespace Planetary_Terrain {
             [FieldOffset(192)]
             public Matrix NodeOrientation;
             [FieldOffset(256)]
+            public Vector3 Color;
+            [FieldOffset(268)]
             public float Scale;
-            [FieldOffset(260)]
+            [FieldOffset(272)]
             public bool drawWaterFar;
         }
         private Constants constants;
 
-        [StructLayout(LayoutKind.Explicit, Size = 16)]
+        [StructLayout(LayoutKind.Explicit, Size = 32)]
         struct WaterConstants {
             [FieldOffset(0)]
             public Vector3 Offset;
             [FieldOffset(12)]
+            public float FadeDistance;
+            [FieldOffset(16)]
             public float Time;
         }
         private WaterConstants waterConstants;
@@ -333,14 +347,13 @@ namespace Planetary_Terrain {
         bool vertexdirty = false;
         bool generating = false;
         public bool Ready { get {
-                //bool childrenReady = true;
-                //if (Children != null) {
-                //    for (int i = 0; i < Children.Length; i++)
-                //        if (!Children[i].Ready)
-                //            childrenReady = false;
-                //}
-                return //(Children != null && childrenReady) ||
-                    (vertexdirty || vertexBuffer != null);
+                bool childrenReady = true;
+                if (Children != null) {
+                    for (int i = 0; i < Children.Length; i++)
+                        if (!Children[i].Ready)
+                            childrenReady = false;
+                }
+                return (Children != null && childrenReady) || (vertexdirty || vertexBuffer != null);
             } }
 
         public QuadNode(Body body, int siblingIndex, double size, int lod, QuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
@@ -417,7 +430,7 @@ namespace Planetary_Terrain {
 
             for (int x = 0; x < s; x++) {
                 for (int z = 0; z < s; z++) {
-                    if (!generating)
+                    if (!generating) // needs to cancel generation
                         break;
 
                     p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
@@ -457,33 +470,34 @@ namespace Planetary_Terrain {
                         wv = true;
                 }
 
-                if (!generating)
+                if (!generating) // cancel generation
                     break;
             }
-            if (!generating) { // generation cancelled due to split
+            if (!generating) { // generation cancelled
+                vertexBuffer?.Dispose();
+                indexBuffer?.Dispose();
+                waterVertexBuffer?.Dispose();
+                waterFarVertexBuffer?.Dispose();
                 vertexdirty = false;
                 verticies = null;
                 indicies = null;
                 waterVerticies = null;
                 waterFarVerticies = null;
-                vertexBuffer?.Dispose();
                 vertexBuffer = null;
-                indexBuffer?.Dispose();
                 indexBuffer = null;
-                waterVertexBuffer?.Dispose();
                 waterVertexBuffer = null;
-                waterFarVertexBuffer?.Dispose();
                 waterFarVertexBuffer = null;
                 return;
             }
 
             if (!wv) { // no water verticies found
+                waterVertexBuffer?.Dispose();
+                waterFarVertexBuffer?.Dispose();
                 hasWaterVerticies = false;
                 waterVerticies = null;
                 waterFarVerticies = null;
                 waterFarVertexBuffer = null;
-                waterVertexBuffer?.Dispose();
-                waterFarVertexBuffer?.Dispose();
+                waterVertexBuffer = null;
             }
 
             GetIndicies(false);
@@ -670,12 +684,6 @@ namespace Planetary_Terrain {
             if (Children != null)
                 return;
             
-            // TODO: stop generating when split
-            //if (generating) {
-            //    generating = false;
-            //    vertexdirty = false;
-            //    GenerateQueue.Remove(this);
-            //}
             double s = Size * .5;
 
             //  | 0 | 1 |
@@ -828,7 +836,8 @@ namespace Planetary_Terrain {
             constants.NodeOrientation = OrientationFromDirection(Vector3d.Normalize(MeshCenter));
             constants.Scale = (float)scale;
             constants.drawWaterFar = !waterPass && hasWaterVerticies && d > waterDetailThreshold;
-
+            constants.Color = Vector3.One;
+            
             // constant buffer
             if (constantBuffer == null)
                 constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
@@ -844,6 +853,7 @@ namespace Planetary_Terrain {
                 // when teh camera is close, draw waterVertexBuffer
                 if (hasWaterVerticies && d < waterDetailThreshold) { // lod
                     waterConstants.Offset = Vector3.Zero;
+                    waterConstants.FadeDistance = 50;
                     waterConstants.Time = (float)renderer.TotalTime;
 
                     // water constant buffer
@@ -863,9 +873,12 @@ namespace Planetary_Terrain {
                 // when the camera is far away, draw waterFarVertexBuffer and tell the shader to draw the water verticies in blue
                 if (hasWaterVerticies && d > waterDetailThreshold) // water lod
                     renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterFarVertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
-                else
+                else {
                     renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
 
+                    constants.drawWaterFar = false;
+                    renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+                }
                 renderer.Context.DrawIndexed(indicies.Length, 0, 0);
                 
                 Debug.VerticiesDrawn += VertexCount;
@@ -1196,11 +1209,6 @@ namespace Planetary_Terrain {
             if (Children != null)
                 return;
             
-            // BUT then the children won't draw
-            //if (generating) {
-            //    generating = false;
-            //    dirty = false;
-            //}
             double s = Size * .5;
 
             //  | 0 | 1 |

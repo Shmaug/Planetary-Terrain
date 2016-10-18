@@ -9,8 +9,8 @@ cbuffer AtmoQuadNodeConstants : register(b1) {
 }
 struct v2f {
 	float4 position : SV_POSITION;
-	float3 c0 : TEXCOORD0;
-	float3 c1 : TEXCOORD1;
+	float3  c0 : TEXCOORD0;
+	float3  c1 : TEXCOORD1;
 	float3 rd : TEXCOORD2;
 };
 
@@ -74,9 +74,11 @@ v2f vsmain(float4 vertex : POSITION0) {
 		v3SamplePoint += v3SampleRay;
 	}
 
+	v3FrontColor *= 5;
+
 	// Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
-	o.c0 = v3FrontColor * (InvWavelength * KrESun);
-	o.c1 = v3FrontColor * KmESun;
+	o.c0.xyz = v3FrontColor * (InvWavelength * KrESun);
+	o.c1.xyz = v3FrontColor * KmESun;
 
 	o.rd = v3CameraPos - v3Pos;
 
@@ -89,6 +91,8 @@ float4 psmain(v2f i) : SV_TARGET
 	float fCos2 = fCos*fCos;
 	float3 color = getRayleighPhase(fCos2) * i.c0 + getMiePhase(fCos, fCos2, g, g*g) * i.c1;
 
-	return float4(color.rgb, length(color));
+	float4 c = float4(color.rgb, length(color.rgb));
+
+	return 1 - exp(-Exposure * c);
 }
 

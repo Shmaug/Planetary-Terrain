@@ -5,6 +5,7 @@
 
 cbuffer WaterBuffer : register(b4) {
 	float3 SurfaceOffset;
+	float Fade;
 	float Time;
 };
 struct v2f {
@@ -37,26 +38,17 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	v2f v;
 
 	float3 wo = 0;
-	float3 woX = 0;
-	float3 woZ = 0;
 
 	float2 d = normalize(float2(.25, .25));
-	wo  += Wave(NodeScale / vertex + SurfaceOffset, d);
-	woX += Wave(NodeScale / vertex + float3(.1, 0,  0) + SurfaceOffset, d);
-	woZ += Wave(NodeScale / vertex + float3(0,  0, .1) + SurfaceOffset, d);
+	wo += Wave(vertex * NodeScale + SurfaceOffset, d);
 
-	wo  = mul(wo , (float3x3)NodeOrientation); // relative to planet
-	woX = mul(woX, (float3x3)NodeOrientation); // relative to planet
-	woZ = mul(woZ, (float3x3)NodeOrientation); // relative to planet
+	wo  = mul(wo, (float3x3)NodeOrientation); // relative to planet
 	
-	float4 wp = mul(vertex, World) + float4(wo, 0);
-	float4 wpX = mul(vertex, World) + float4(woX,0);
-	float4 wpZ = mul(vertex, World) + float4(woZ,0);
+	float4 wp = mul(vertex, World);
+	//wp.xyz += wo * clamp(1 - (length(wp) / Fade), 0, 1);
 
 	v.position = mul(wp, mul(View, Projection));
-	v.normal = normalize(cross(wpX - wp, wpZ - wp));
-
-	//v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;// +norm;
+	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
 
 	ScatterOutput so = GroundScatter(mul(vertex, NodeToPlanet).xyz + wo - planetPos);
 	v.c0 = so.c0;
@@ -84,5 +76,5 @@ float4 psmain(v2f i) : SV_TARGET
 
 	col = i.c1 + col * i.c0;
 
-	return float4(col, 1);
+	return float4(1 - exp(-Exposure * col), 1);
 }

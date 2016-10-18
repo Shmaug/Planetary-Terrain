@@ -38,7 +38,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float3 col = ColorMapTexture.Sample(ColorMapSampler, i.uv).rgb;
+	float3 col = ColorMapTexture.Sample(ColorMapSampler, i.uv).rgb * NodeColor;
 	bool spec = false;
 
 	if (i.height <= waterHeight && drawWaterFar) {
@@ -62,5 +62,5 @@ float4 psmain(v2f i) : SV_TARGET
 
 	col = i.c1 + col * i.c0;
 
-	return float4(col, 1);
+	return float4(1 - exp(-Exposure * col), 1);
 }

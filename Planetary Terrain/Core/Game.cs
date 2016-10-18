@@ -96,7 +96,7 @@ namespace Planetary_Terrain {
                                 hh = Math.Max(hh, planet.Radius + planet.TerrainHeight * planet.OceanScaleHeight);
                             }
                         }
-                        player.Position = p.Position + d * (hh + 10);
+                        player.Position = p.Position + d * (hh + 50);
                     });
                 y += h;
                 bounds.Bottom += h;

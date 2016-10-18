@@ -57,25 +57,23 @@ namespace Planetary_Terrain {
                 atmosphere.Planet = this;
 
             HasOcean = ocean;
-            OceanScaleHeight = .5;
-            OceanColor = Color.DeepSkyBlue;
+            OceanScaleHeight = .4;
+            OceanColor = new Color(45, 100, 245);
         }
 
         public double min=1, max=-1;
         double height(Vector3d direction) {
             double total = 0;
 
-            double r2 = Math.Min(Math.Pow(Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) + .7, 2), 1);
-            r2 = 1.0 - r2;
+            double rough = (Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) + 1) * .5;
 
-            double rough = 1.0 - Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
+            double mntn = 1.0 - Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
+            double flat = Noise.Fractal(direction * 200 + new Vector3d(-5000), 4, .02f, .3f);
 
-            //rough *= r2;
+            flat *= 1.0 - rough;
+            mntn *= rough;
 
-            double smooth = Noise.Fractal(direction * 200 + new Vector3d(-5000), 4, .02f, .3f);
-            smooth *= 1 - rough;
-
-            total = rough;// smooth + rough;
+            total = mntn + flat;
             
             min = Math.Min(min, total);
             max = Math.Max(max, total);

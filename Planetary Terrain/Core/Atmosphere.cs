@@ -19,7 +19,7 @@ namespace Planetary_Terrain {
         /// </summary>
         public AtmosphereQuadNode[] BaseQuads;
 
-        [StructLayout(LayoutKind.Explicit, Size = 160)]
+        [StructLayout(LayoutKind.Explicit, Size = 112)]
         struct Constants {
             [FieldOffset(0)]
             public float InnerRadius;
@@ -46,12 +46,15 @@ namespace Planetary_Terrain {
             public float ScaleDepth;
             [FieldOffset(40)]
             public float ScaleOverScaleDepth;
-
             [FieldOffset(44)]
             public float InvScaleDepth;
+
             [FieldOffset(48)]
-            public float fSamples;
+            public float Exposure;
+
             [FieldOffset(52)]
+            public float fSamples;
+            [FieldOffset(56)]
             public int nSamples;
 
             [FieldOffset(64)]
@@ -94,25 +97,30 @@ namespace Planetary_Terrain {
 
             float kr = .0025f; // rayleigh scattering constant
             float km = .0010f; // mie scattering constant
-            float sun = 10f; // sun brightness
+            float sun = 15f; // sun brightness
             Vector3 wavelength = new Vector3(.65f, .57f, .475f);
-            wavelength = wavelength * wavelength * wavelength * wavelength; // wavelength^4
 
-            constants.InvWavelength = 1f / wavelength;
+            constants.InvWavelength = 1f / new Vector3(
+                    (float)Math.Pow(wavelength.X, 4),
+                    (float)Math.Pow(wavelength.Y, 4),
+                    (float)Math.Pow(wavelength.Z, 4)
+                );
 
             constants.KrESun = kr * sun;
             constants.KmESun = km * sun;
             constants.Kr4PI = kr * MathUtil.Pi * 4;
             constants.Km4PI = km * MathUtil.Pi * 4;
 
-            constants.g = -.99f; // mie g constant
+            constants.g = -.98f; // mie g constant
 
-            constants.Scale = 1f / (float)((Radius - Planet.Radius) * scale);
+            constants.Scale = (float)(1.0 / ((Radius - Planet.Radius) * scale));
             constants.ScaleDepth = .25f; // height at which the average density is found
-            constants.ScaleOverScaleDepth = constants.Scale / constants.ScaleDepth;
             constants.InvScaleDepth = 1f / constants.ScaleDepth;
+            constants.ScaleOverScaleDepth = constants.Scale * constants.InvScaleDepth;
 
             constants.planetPos = scaledPos;
+
+            constants.Exposure = 1.2f;
         }
 
         public void Update(D3D11.Device device, Camera camera) {
