@@ -79,15 +79,15 @@ namespace Planetary_Terrain {
             ControlPanel = new UI.Frame(null, "Panel1", bounds, renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
             ControlPanel.Draggable = true;
 
-            new UI.TextLabel(ControlPanel, "Title", new RawRectangleF(0, 0, 235, h), "NAVIGATOR", renderer.SegoeUI24, renderer.SolidWhiteBrush);
+            new UI.TextLabel(ControlPanel, "Title", new RawRectangleF(0, 0, 235, h), "NAVIGATOR", renderer.SegoeUI24, renderer.Brushes["White"]);
             float y = h;
             foreach (Body p in StarSystem.ActiveSystem.bodies) {
                 Vector3d d = Vector3d.Normalize(new Vector3d(0, 0.9, -1));
-                new UI.TextButton(ControlPanel, p.Label + "Button", new RawRectangleF(5, y, 170, y + h-2), p.Label, renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
+                new UI.TextButton(ControlPanel, p.Label + "Button", new RawRectangleF(5, y, 170, y + h-2), p.Label, renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     ()=> {
                         player.Position = p.Position + d * (p.SOI + 1000);
                     });
-                new UI.TextButton(ControlPanel, p.Label + "SfcButton", new RawRectangleF(175, y, 230, y + h - 2), "Surface", renderer.SegoeUI14, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
+                new UI.TextButton(ControlPanel, p.Label + "SfcButton", new RawRectangleF(175, y, 230, y + h - 2), "Surface", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     () => {
                         double hh = p.GetHeight(d);
                         if (p is Planet) {
@@ -103,7 +103,7 @@ namespace Planetary_Terrain {
             }
 
             y += 10;
-            new UI.TextButton(ControlPanel, "NewShipButton", new RawRectangleF(5, y, 170, y + h - 2), "Paste Ship", renderer.SegoeUI24, renderer.SolidBlackBrush, renderer.SolidGrayBrush,
+            new UI.TextButton(ControlPanel, "NewShipButton", new RawRectangleF(5, y, 170, y + h - 2), "Paste Ship", renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                    () => {
                        ship2.Position = player.Position;
                        ship2.Rotation = player.Rotation;
@@ -216,8 +216,12 @@ namespace Planetary_Terrain {
                 renderer.DrawWireframe = !renderer.DrawWireframe;
 
             player.Update(deltaTime);
+            Debug.UpdateProfiler.Begin("StarSystem Update");
             StarSystem.ActiveSystem.Update(renderer, renderer.Device, deltaTime);
+            Debug.UpdateProfiler.End("StarSystem Update");
+            Debug.UpdateProfiler.Begin("QuadNode Update");
             QuadNode.Update();
+            Debug.UpdateProfiler.End("QuadNode Update");
             renderer.Camera.Update();
             
             ControlPanel.Update((float)deltaTime, InputState);
@@ -241,17 +245,23 @@ namespace Planetary_Terrain {
 
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
 
+            // 3d
+            Debug.DrawProfiler.Begin("3d Draw");
             StarSystem.ActiveSystem.Draw(renderer, player.LinearVelocity.Length());
-
-            player.Draw(renderer);
-
-            ship2.Draw(renderer);
             
+            player.Draw(renderer);
+            ship2.Draw(renderer);
+
+            Debug.DrawProfiler.End("3d Draw");
+
+            // 2d
+            Debug.DrawProfiler.Begin("2d Draw");
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
                 ControlPanel.Draw(renderer);
                 renderer.D2DContext.EndDraw();
             }
+            Debug.DrawProfiler.End("2d Draw");
 
             Debug.EndFrame();
 

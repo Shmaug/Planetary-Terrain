@@ -6,6 +6,7 @@ using D2D1 = SharpDX.Direct2D1;
 using DWrite = SharpDX.DirectWrite;
 using SharpDX.Direct3D;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     class Renderer : IDisposable {
@@ -27,16 +28,11 @@ namespace Planetary_Terrain {
         public D2D1.Bitmap D2DTarget { get; private set; }
 
         public DWrite.Factory FontFactory { get; private set; }
-        public D2D1.Brush SolidWhiteBrush { get; private set; }
-        public D2D1.Brush SolidGrayBrush { get; private set; }
-        public D2D1.Brush SolidBlackBrush { get; private set; }
-        public D2D1.Brush SolidGreenBrush { get; private set; }
-        public D2D1.Brush SolidRedBrush { get; private set; }
-        public D2D1.Brush SolidBlueBrush { get; private set; }
         public DWrite.TextFormat SegoeUI24 { get; private set; }
         public DWrite.TextFormat SegoeUI14 { get; private set; }
         public DWrite.TextFormat Consolas14 { get; private set; }
 
+        public Dictionary<string, D2D1.Brush> Brushes;
         #endregion
 
         #region 3d vars
@@ -119,12 +115,18 @@ namespace Planetary_Terrain {
             #endregion
 
             #region 2d resources
-            SolidRedBrush = new D2D1.SolidColorBrush(D2DContext, Color.Red);
-            SolidGreenBrush = new D2D1.SolidColorBrush(D2DContext, Color.Green);
-            SolidBlueBrush = new D2D1.SolidColorBrush(D2DContext, Color.Blue);
-            SolidWhiteBrush = new D2D1.SolidColorBrush(D2DContext, Color.White);
-            SolidBlackBrush = new D2D1.SolidColorBrush(D2DContext, Color.Black);
-            SolidGrayBrush = new D2D1.SolidColorBrush(D2DContext, Color.LightGray);
+            Brushes = new Dictionary<string, D2D1.Brush>();
+            Brushes.Add("Red", new D2D1.SolidColorBrush(D2DContext, Color.Red));
+            Brushes.Add("Green", new D2D1.SolidColorBrush(D2DContext, Color.Green));
+            Brushes.Add("Blue", new D2D1.SolidColorBrush(D2DContext, Color.Blue));
+            Brushes.Add("White", new D2D1.SolidColorBrush(D2DContext, Color.White));
+            Brushes.Add("Black", new D2D1.SolidColorBrush(D2DContext, Color.Black));
+            Brushes.Add("LightGray", new D2D1.SolidColorBrush(D2DContext, Color.LightGray));
+            Brushes.Add("OrangeRed", new D2D1.SolidColorBrush(D2DContext, Color.OrangeRed));
+            Brushes.Add("CornflowerBlue", new D2D1.SolidColorBrush(D2DContext, Color.CornflowerBlue));
+            Brushes.Add("Yellow", new D2D1.SolidColorBrush(D2DContext, Color.Yellow));
+            Brushes.Add("Magenta", new D2D1.SolidColorBrush(D2DContext, Color.Magenta));
+            Brushes.Add("RosyBrown", new D2D1.SolidColorBrush(D2DContext, Color.RosyBrown));
 
             FontFactory = new DWrite.Factory();
             SegoeUI24 = new DWrite.TextFormat(FontFactory, "Segoe UI", 24f);
@@ -354,12 +356,8 @@ namespace Planetary_Terrain {
         }
         
         public void Dispose() {
-            SolidWhiteBrush.Dispose();
-            SolidBlackBrush.Dispose();
-            SolidRedBrush.Dispose();
-            SolidGreenBrush.Dispose();
-            SolidBlueBrush.Dispose();
-            SolidGrayBrush.Dispose();
+            foreach (KeyValuePair<string, D2D1.Brush> p in Brushes)
+                p.Value.Dispose();
 
             D2DTarget.Dispose();
             D2DDevice.Dispose();

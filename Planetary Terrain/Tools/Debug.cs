@@ -2,21 +2,96 @@
 using SharpDX.Mathematics.Interop;
 using D2D1 = SharpDX.Direct2D1;
 using DWrite = SharpDX.DirectWrite;
+using System.Diagnostics;
 using SharpDX;
 
 namespace Planetary_Terrain {
+    class Profiler {
+        public double Total
+        {
+            get
+            {
+                double t = 0;
+                foreach (KeyValuePair<string, Stopwatch> p in Times)
+                    t += p.Value.Elapsed.Ticks;
+                foreach (KeyValuePair<string, Profiler> p in Children)
+                    t += p.Value.Total;
+                return t;
+            }
+        }
+        public Dictionary<string, Profiler> Children = new Dictionary<string, Profiler>();
+        public Dictionary<string, Stopwatch> Times = new Dictionary<string, Stopwatch>();
+        static string[] Colors = new string[] {
+                "Red",
+                "OrangeRed",
+                "White",
+                "CornflowerBlue",
+                "Magenta",
+                "Yellow",
+                "RosyBrown"
+            };
+        
+        public string Name;
+        public Profiler(string name) {
+            Name = name;
+        }
+
+        public void Begin(string name) {
+            if (!Times.ContainsKey(name))
+                Times[name] = Stopwatch.StartNew();
+            else
+                Times[name].Start();
+        }
+        public void End(string name) {
+            Times[name].Stop();
+        }
+
+        public void Draw(Renderer renderer, RawRectangleF rect, ref int c, int tx, ref int y) {
+            double t = Total;
+
+            int x = 0;
+
+            D2D1.Brush brush = renderer.Brushes[Colors[c % Colors.Length]];
+
+            int h = 30;
+
+            foreach (KeyValuePair<string, Stopwatch> k in Times) {
+                int w = (int)((k.Value.Elapsed.Ticks / t) * (rect.Right - rect.Left));
+                renderer.D2DContext.FillRectangle(new RawRectangleF(rect.Left + x, rect.Top, rect.Left + x + w, rect.Bottom), brush);
+                renderer.D2DContext.DrawText(
+                    k.Key + " (" + k.Value.Elapsed.TotalMilliseconds + "ms)",
+                    renderer.Consolas14, new RawRectangleF(tx, y, tx+300, y+h), brush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
+
+                x += w;
+                y += h;
+                c++;
+            }
+            foreach (KeyValuePair<string, Profiler> k in Children) {
+                int w = (int)((k.Value.Total / t) * (rect.Right - rect.Left));
+                renderer.D2DContext.DrawText(
+                    k.Value.Name + ":",
+                    renderer.Consolas14, new RawRectangleF(tx, y, tx+300, y+h), brush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
+                y += h;
+                c++;
+                k.Value.Draw(renderer, new RawRectangleF(rect.Left+x, rect.Top, rect.Left+x + w, rect.Bottom), ref c, tx + 6, ref y);
+                x += w;
+                c++;
+            }
+        }
+    }
     static class Debug {
         public static QuadNode ClosestQuadTree;
         public static double ClosestQuadTreeDistance;
         public static double ClosestQuadTreeScale;
         public static int VerticiesDrawn;
         public static int FPS;
+        
+        public static Profiler UpdateProfiler = new Profiler("Update");
+        public static Profiler DrawProfiler = new Profiler("Draw");
 
         static List<string> logs = new List<string>();
         static Dictionary<string, string> labels = new Dictionary<string, string>();
-
-        // TODO: profiler
-
+        
         public static void Log(object l) {
             logs.Add(l.ToString());
             if (logs.Count > 10)
@@ -30,6 +105,11 @@ namespace Planetary_Terrain {
         public static void BeginFrame() {
             VerticiesDrawn = 0;
             ClosestQuadTreeDistance = double.MaxValue;
+
+            UpdateProfiler.Children.Clear();
+            DrawProfiler.Children.Clear();
+            UpdateProfiler.Times.Clear();
+            DrawProfiler.Times.Clear();
         }
 
         public static void EndFrame() {
@@ -45,26 +125,26 @@ namespace Planetary_Terrain {
             renderer.D2DContext.DrawText(
                 string.Format("{0} verts, {1} fps    [{2} waiting / {3} generating]",
                 VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
-                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.SolidWhiteBrush);
+                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.Brushes["White"]);
 
             double spd = ship.LinearVelocity.Length();
             renderer.D2DContext.DrawText(
                 string.Format("{0} m/s ({1}c)",
                 spd.ToString("F1"), (spd / Constants.LIGHT_SPEED).ToString("F4")),
-                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 40), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
+                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 40), renderer.Brushes["White"], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             renderer.D2DContext.DrawText(
                 string.Format("[{0}, {1}, {2}]      [{3},{4},{5}]",
                 renderer.Camera.Position.X.ToString("F1"), renderer.Camera.Position.Y.ToString("F1"), renderer.Camera.Position.Z.ToString("F1"),
                 renderer.Camera.Rotation.X.ToString("F1"), renderer.Camera.Rotation.Y.ToString("F1"), renderer.Camera.Rotation.Z.ToString("F1")),
-                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.SolidWhiteBrush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
+                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.Brushes["White"], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             if (ClosestQuadTree != null) {
                 Planet p = ClosestQuadTree.Body is Planet ? ClosestQuadTree.Body as Planet : null;
                 renderer.D2DContext.DrawText(
                     string.Format("Closest QuadTree: {0} | {1}m/vertex | Scale: {2} | [{3}-{4}]",
                     ClosestQuadTreeDistance.ToString("F2"), ClosestQuadTree.VertexSpacing.ToString("F2"), ClosestQuadTreeScale.ToString("F2"), p?.min.ToString("F1"), p?.max.ToString("F1")),
-                    renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.SolidWhiteBrush);
+                    renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.Brushes["White"]);
             }
             #region logs
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
@@ -78,8 +158,8 @@ namespace Planetary_Terrain {
                 float w = 200;
                 RawRectangleF rect = new RawRectangleF(7, y - 3, 7 + w, y - 3 + h);
 
-                renderer.D2DContext.FillRectangle(rect, renderer.SolidBlackBrush);
-                renderer.D2DContext.DrawText(s, renderer.Consolas14, rect, renderer.SolidWhiteBrush);
+                renderer.D2DContext.FillRectangle(rect, renderer.Brushes["Black"]);
+                renderer.D2DContext.DrawText(s, renderer.Consolas14, rect, renderer.Brushes["White"]);
 
                 y += h + 5;
             }
@@ -89,12 +169,22 @@ namespace Planetary_Terrain {
                 float w = 200;
                 RawRectangleF rect = new RawRectangleF(renderer.ResolutionX * .5f - w - 3, y - 3, renderer.ResolutionX * .5f + w + 3, y + h + 3);
 
-                renderer.D2DContext.FillRectangle(rect, renderer.SolidBlackBrush);
-                renderer.D2DContext.DrawText(l.Value, renderer.Consolas14, rect, renderer.SolidWhiteBrush);
+                renderer.D2DContext.FillRectangle(rect, renderer.Brushes["Black"]);
+                renderer.D2DContext.DrawText(l.Value, renderer.Consolas14, rect, renderer.Brushes["White"]);
 
                 y += h + 5;
             }
             #endregion
+
+            int uc = 0;
+            int uy = 0;
+            RawRectangleF urect = new RawRectangleF(renderer.ResolutionX - 580, 10, renderer.ResolutionX - 330, 30);
+            UpdateProfiler.Draw(renderer, urect, ref uc, (int)urect.Left, ref uy);
+
+            int dc = 0;
+            int dy = 0;
+            RawRectangleF drect = new RawRectangleF(renderer.ResolutionX - 320, 10, renderer.ResolutionX - 70, 30);
+            DrawProfiler.Draw(renderer, drect, ref dc, (int)drect.Left, ref dy);
 
             renderer.D2DContext.EndDraw();
         }

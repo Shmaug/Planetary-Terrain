@@ -102,7 +102,7 @@ namespace Planetary_Terrain {
                     screenPos.Value.X - w, screenPos.Value.Y - 10,
                     screenPos.Value.X + w, screenPos.Value.Y + 10);
 
-                renderer.D2DContext.DrawText(t, renderer.SegoeUI14, rect, renderer.SolidWhiteBrush);
+                renderer.D2DContext.DrawText(t, renderer.SegoeUI14, rect, renderer.Brushes["White"]);
             }
         }
 

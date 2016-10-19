@@ -107,13 +107,13 @@
   <ItemGroup>
     <Compile Include="Core\Atmosphere.cs" />
     <Compile Include="Core\Body.cs" />
-    <Compile Include="Core\Camera.cs" />
+    <Compile Include="Engine\Camera.cs" />
     <Compile Include="Core\Ship.cs" />
     <Compile Include="Core\Skybox.cs" />
     <Compile Include="Core\Star.cs" />
-    <Compile Include="Core\StarSystem.cs" />
-    <Compile Include="Core\Model.cs" />
-    <Compile Include="Core\ModelMesh.cs" />
+    <Compile Include="Engine\StarSystem.cs" />
+    <Compile Include="Engine\Model.cs" />
+    <Compile Include="Engine\ModelMesh.cs" />
     <Content Include="Data\Shaders\skybox.hlsl" />
     <Content Include="Data\Shaders\_quadnode.hlsli" />
     <Compile Include="UI\Frame.cs" />
@@ -133,8 +133,8 @@
     <Compile Include="Tools\Debug.cs" />
     <Compile Include="Tools\Icosphere.cs" />
     <Compile Include="Core\QuadNode.cs" />
-    <Compile Include="Core\Game.cs" />
-    <Compile Include="Core\Renderer.cs" />
+    <Compile Include="Engine\Game.cs" />
+    <Compile Include="Engine\Renderer.cs" />
     <Compile Include="Tools\Noise.cs" />
     <Compile Include="Tools\ResourceUtil.cs" />
     <Compile Include="Core\Planet.cs" />
@@ -142,7 +142,7 @@
     <Compile Include="Tools\Shader.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Core\Shaders.cs" />
+    <Compile Include="Engine\Shaders.cs" />
     <Compile Include="Tools\Vector3d.cs" />
     <Compile Include="Tools\VertexStructs.cs" />
   </ItemGroup>
