@@ -7,20 +7,6 @@ using SharpDX;
 
 namespace Planetary_Terrain {
     class Profiler {
-        public double Total
-        {
-            get
-            {
-                double t = 0;
-                foreach (KeyValuePair<string, Stopwatch> p in Times)
-                    t += p.Value.Elapsed.Ticks;
-                foreach (KeyValuePair<string, Profiler> p in Children)
-                    t += p.Value.Total;
-                return t;
-            }
-        }
-        public Dictionary<string, Profiler> Children = new Dictionary<string, Profiler>();
-        public Dictionary<string, Stopwatch> Times = new Dictionary<string, Stopwatch>();
         static string[] Colors = new string[] {
                 "Red",
                 "OrangeRed",
@@ -30,32 +16,44 @@ namespace Planetary_Terrain {
                 "Yellow",
                 "RosyBrown"
             };
+        public static double Total
+        {
+            get
+            {
+                double t = 0;
+                foreach (KeyValuePair<string, Stopwatch> p in ActiveProfilers)
+                    t += p.Value.Elapsed.Ticks;
+                return t;
+            }
+        }
+        static Dictionary<string, Stopwatch> ActiveProfilers = new Dictionary<string, Stopwatch>();
+        
         
         public string Name;
+        List<Profiler> Children;
+        Profiler Parent;
         public Profiler(string name) {
             Name = name;
+            Children = new List<Profiler>();
         }
 
-        public void Begin(string name) {
-            if (!Times.ContainsKey(name))
-                Times[name] = Stopwatch.StartNew();
-            else
-                Times[name].Start();
+        public static void Begin(string name = "") {
+
         }
-        public void End(string name) {
-            Times[name].Stop();
+        public static void End() {
+
         }
 
-        public void Draw(Renderer renderer, RawRectangleF rect, ref int c, int tx, ref int y) {
+        public static void Draw(Renderer renderer, RawRectangleF rect, ref int c, int tx, ref int y) {
             double t = Total;
 
             int x = 0;
 
-            D2D1.Brush brush = renderer.Brushes[Colors[c % Colors.Length]];
+            D2D1.Brush brush = renderer.Brushes[Colors[0]];
 
             int h = 30;
 
-            foreach (KeyValuePair<string, Stopwatch> k in Times) {
+            foreach (KeyValuePair<string, Stopwatch> k in ActiveProfilers) {
                 int w = (int)((k.Value.Elapsed.Ticks / t) * (rect.Right - rect.Left));
                 renderer.D2DContext.FillRectangle(new RawRectangleF(rect.Left + x, rect.Top, rect.Left + x + w, rect.Bottom), brush);
                 renderer.D2DContext.DrawText(
@@ -64,17 +62,6 @@ namespace Planetary_Terrain {
 
                 x += w;
                 y += h;
-                c++;
-            }
-            foreach (KeyValuePair<string, Profiler> k in Children) {
-                int w = (int)((k.Value.Total / t) * (rect.Right - rect.Left));
-                renderer.D2DContext.DrawText(
-                    k.Value.Name + ":",
-                    renderer.Consolas14, new RawRectangleF(tx, y, tx+300, y+h), brush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
-                y += h;
-                c++;
-                k.Value.Draw(renderer, new RawRectangleF(rect.Left+x, rect.Top, rect.Left+x + w, rect.Bottom), ref c, tx + 6, ref y);
-                x += w;
                 c++;
             }
         }
