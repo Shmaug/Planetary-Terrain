@@ -92,11 +92,6 @@ namespace Planetary_Terrain {
         public static void BeginFrame() {
             VerticiesDrawn = 0;
             ClosestQuadTreeDistance = double.MaxValue;
-
-            UpdateProfiler.Children.Clear();
-            DrawProfiler.Children.Clear();
-            UpdateProfiler.Times.Clear();
-            DrawProfiler.Times.Clear();
         }
 
         public static void EndFrame() {
@@ -162,16 +157,6 @@ namespace Planetary_Terrain {
                 y += h + 5;
             }
             #endregion
-
-            int uc = 0;
-            int uy = 0;
-            RawRectangleF urect = new RawRectangleF(renderer.ResolutionX - 580, 10, renderer.ResolutionX - 330, 30);
-            UpdateProfiler.Draw(renderer, urect, ref uc, (int)urect.Left, ref uy);
-
-            int dc = 0;
-            int dy = 0;
-            RawRectangleF drect = new RawRectangleF(renderer.ResolutionX - 320, 10, renderer.ResolutionX - 70, 30);
-            DrawProfiler.Draw(renderer, drect, ref dc, (int)drect.Left, ref dy);
 
             renderer.D2DContext.EndDraw();
         }
