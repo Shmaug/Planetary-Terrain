@@ -8,7 +8,7 @@ namespace Planetary_Terrain {
     class Program {
         [STAThread]
         static void Main(string[] args) {
-            using (Game game = new Planetary_Terrain.Game()) {
+            using (Game game = new Game()) {
                 game.Run();
             }
         }

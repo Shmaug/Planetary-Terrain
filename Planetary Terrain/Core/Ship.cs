@@ -3,7 +3,7 @@ using SharpDX;
 using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
-    class PlayerShip {
+    class PlayerShip : IDisposable {
         public Vector3d Position;
         public Vector3d LinearVelocity;
         public Matrix Rotation = Matrix.Identity;
@@ -54,6 +54,10 @@ namespace Planetary_Terrain {
             ShipModel.Draw(renderer,
                 light,
                 Rotation * Matrix.Translation(Position - renderer.Camera.Position));
+        }
+
+        public void Dispose() {
+            ShipModel.Dispose();
         }
     }
 }

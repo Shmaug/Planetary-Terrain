@@ -136,6 +136,8 @@ namespace Planetary_Terrain {
         }
 
         public override void Draw(Renderer renderer) {
+            renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
+
             // Get the entire planet's scale and scaled position
             // This ensures the planet is always within the clipping planes
             Vector3d pos;

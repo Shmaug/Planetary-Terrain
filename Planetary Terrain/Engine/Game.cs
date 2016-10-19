@@ -4,30 +4,34 @@ using SharpDX.Windows;
 using D3D11 = SharpDX.Direct3D11;
 using DInput = SharpDX.DirectInput;
 using SharpDX.Mathematics.Interop;
+using System.Diagnostics;
 
 namespace Planetary_Terrain {
     class Game : IDisposable {
+        #region game management
         private RenderForm renderForm;
         private bool resizePending;
 
         public Renderer renderer;
 
-        private System.Diagnostics.Stopwatch frameTimer;
-        private System.Diagnostics.Stopwatch gameTimer;
-
+        private Stopwatch frameTimer;
+        private Stopwatch gameTimer;
+        #endregion
+        #region input
         DInput.Keyboard keyboard;
         DInput.Mouse mouse;
 
         public UI.InputState InputState;
         Vector2 realMousePos;
         bool lockMouse;
-        
+        #endregion
+
         public UI.Frame ControlPanel;
-
         PlayerShip player;
-
         PlayerShip ship2;
-        
+        Skybox skybox;
+        double zoomd = 0;
+
         public Game() {
             renderForm = new RenderForm("D3D11 Planets");
             renderForm.MouseMove += (object sender, System.Windows.Forms.MouseEventArgs e) => {
@@ -52,22 +56,34 @@ namespace Planetary_Terrain {
 
             Shaders.LoadShaders(renderer.Device, renderer.Context);
 
-            InitializeScene();
+            Initialize();
         }
+        int frameCount = 0;
+        double frameTime = 0;
         public void Run() {
-            gameTimer = System.Diagnostics.Stopwatch.StartNew();
+            gameTimer = Stopwatch.StartNew();
+
             RenderLoop.Run(renderForm, () => {
-                Update();
+                frameTimer.Stop();
+                double deltaTime = frameTimer.ElapsedTicks / (double)Stopwatch.Frequency;
+                frameTimer.Reset();
+                frameTimer.Start();
+
+                frameTime += deltaTime;
+                frameCount++;
+                if (frameTime > 1) {
+                    frameTime = 0;
+                    Debug.FPS = frameCount;
+                    frameCount = 0;
+                }
+
+                Update(deltaTime);
                 Draw();
             });
         }
-
-        public void Exit() {
-            renderForm.Close();
-            Dispose();
-        }
-
-        void InitializeScene() {
+        
+        void Initialize() {
+            skybox = new Skybox("Data/Textures/Sky", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
             
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
@@ -118,22 +134,10 @@ namespace Planetary_Terrain {
             renderer.Camera.Mode = Camera.CameraMode.Ship;
         }
 
-        double zoomd = 0;
-        int framec = 0;
-        double ftime = 0;
-        void Update() {
-            #region timing
-            double deltaTime = frameTimer.ElapsedMilliseconds / 1000d;
-            frameTimer.Restart();
-
-            ftime += deltaTime;
-            framec++;
-            if (ftime > 1) {
-                ftime = 0;
-                Debug.FPS = framec;
-                framec = 0;
-            }
-            #endregion
+        double t = 0;
+        void Update(double deltaTime) {
+            t += frameTime;
+            Debug.Track(t.ToString("F2") + "/" + gameTimer.Elapsed.TotalSeconds.ToString("F2"), "time");
 
             #region input state update
             InputState.ks = keyboard.GetCurrentState();
@@ -216,12 +220,12 @@ namespace Planetary_Terrain {
                 renderer.DrawWireframe = !renderer.DrawWireframe;
 
             player.Update(deltaTime);
-            Debug.UpdateProfiler.Begin("StarSystem Update");
+            Profiler.Begin("StarSystem Update");
             StarSystem.ActiveSystem.Update(renderer, renderer.Device, deltaTime);
-            Debug.UpdateProfiler.End("StarSystem Update");
-            Debug.UpdateProfiler.Begin("QuadNode Update");
+            Profiler.End();
+            Profiler.Begin("QuadNode Update");
             QuadNode.Update();
-            Debug.UpdateProfiler.End("QuadNode Update");
+            Profiler.End();
             renderer.Camera.Update();
             
             ControlPanel.Update((float)deltaTime, InputState);
@@ -232,7 +236,6 @@ namespace Planetary_Terrain {
             InputState.lastMousePos = InputState.mousePos;
             #endregion
         }
-
         void Draw() {
             if (resizePending)
                 renderer.Resize(renderForm.ClientSize.Width, renderForm.ClientSize.Height);
@@ -242,26 +245,25 @@ namespace Planetary_Terrain {
             renderer.BeginDrawFrame();
             renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
             renderer.Clear(Color.Black);
-
-            renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
-
+            
             // 3d
-            Debug.DrawProfiler.Begin("3d Draw");
+            Profiler.Begin("3d Draw");
+            skybox.Draw(renderer);
+
             StarSystem.ActiveSystem.Draw(renderer, player.LinearVelocity.Length());
             
             player.Draw(renderer);
             ship2.Draw(renderer);
-
-            Debug.DrawProfiler.End("3d Draw");
+            Profiler.End();
 
             // 2d
-            Debug.DrawProfiler.Begin("2d Draw");
+            Profiler.Begin("2d Draw");
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
                 ControlPanel.Draw(renderer);
                 renderer.D2DContext.EndDraw();
             }
-            Debug.DrawProfiler.End("2d Draw");
+            Profiler.End();
 
             Debug.EndFrame();
 
@@ -272,19 +274,20 @@ namespace Planetary_Terrain {
         }
 
         public void Dispose() {
-            ControlPanel.Dispose();
-
             // scene stuff
             StarSystem.ActiveSystem.Dispose();
+            skybox.Dispose();
+            player?.Dispose();
+            ship2?.Dispose();
+            ControlPanel.Dispose();
 
-            renderer.Dispose();
+            Shaders.Dispose();
             
             // other stuff
             keyboard.Dispose();
             mouse.Dispose();
 
-            Shaders.Dispose();
-
+            renderer.Dispose();
             renderForm.Dispose();
         }
     }

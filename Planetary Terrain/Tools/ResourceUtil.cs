@@ -36,5 +36,22 @@ namespace Planetary_Terrain {
                 }, new DataRectangle(buffer.DataPointer, stride));
             }
         }
+        public static D3D11.Texture2D LoadCubemap(D3D11.Device device, string path) {
+            D3D11.Texture2D tex = new D3D11.Texture2D(device, new D3D11.Texture2DDescription() {
+                Width = 1024,
+                Height = 1024,
+                ArraySize = 6,
+                BindFlags = D3D11.BindFlags.ShaderResource,
+                Usage = D3D11.ResourceUsage.Immutable,
+                CpuAccessFlags = D3D11.CpuAccessFlags.None,
+                Format = Format.R8G8B8A8_UNorm,
+                MipLevels = 1,
+                OptionFlags = D3D11.ResourceOptionFlags.TextureCube,
+                SampleDescription = new SampleDescription(1, 0)
+            });
+
+
+            return tex;
+        }
     }
 }

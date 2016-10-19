@@ -1,6 +1,6 @@
 #include "_constants.hlsli"
 
-Texture3D SkyboxTexture : register(t0);
+TextureCube SkyboxTexture : register(t0);
 SamplerState SkyboxSampler : register(s0);
 
 struct v2f {
