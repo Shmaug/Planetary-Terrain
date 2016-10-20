@@ -118,6 +118,15 @@
     <Compile Include="Core\StarSystem.cs" />
     <Compile Include="Engine\Model.cs" />
     <Compile Include="Engine\ModelMesh.cs" />
+    <Content Include="Data\Models\gun\gun_normal.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\gun\gun_diffuse.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\gun\gun_specular.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Data\Textures\colorcube.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -159,6 +168,9 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="ClassDiagram1.cd" />
+    <None Include="Data\Models\gun\gun.fbx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Models\ship.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
