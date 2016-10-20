@@ -35,22 +35,19 @@ namespace Planetary_Terrain {
             DiffuseTexture?.Dispose();
             DiffuseTextureView?.Dispose();
 
-            DiffuseTexture = ResourceUtil.LoadTexture(device, filePath);
-            DiffuseTextureView = new D3D11.ShaderResourceView(device, DiffuseTexture);
+            DiffuseTexture = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, filePath, out DiffuseTextureView);
         }
         public void SetEmissiveTexture(D3D11.Device device, string filePath) {
             EmissiveTexture?.Dispose();
             EmissiveTextureView?.Dispose();
 
-            EmissiveTexture = ResourceUtil.LoadTexture(device, filePath);
-            EmissiveTextureView = new D3D11.ShaderResourceView(device, EmissiveTexture);
+            EmissiveTexture = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, filePath, out EmissiveTextureView);
         }
         public void SetSpecularTexture(D3D11.Device device, string filePath) {
             SpecularTexture?.Dispose();
             SpecularTextureView?.Dispose();
 
-            SpecularTexture = ResourceUtil.LoadTexture(device, filePath);
-            SpecularTextureView = new D3D11.ShaderResourceView(device, SpecularTexture);
+            SpecularTexture = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, filePath, out SpecularTextureView);
         }
 
         public void Draw(Renderer renderer) {

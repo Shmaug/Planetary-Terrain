@@ -111,13 +111,13 @@ namespace Planetary_Terrain {
             data = new Vector2((float)temp, (float)humid);
         }
 
-        public void SetColormap(D3D11.Texture2D map, D3D11.Device device) {
+        public void SetColormap(string file, D3D11.Device device) {
             colorMapSampler?.Dispose();
             colorMap?.Dispose();
             colorMapView?.Dispose();
 
-            colorMap = map;
-            colorMapView = new D3D11.ShaderResourceView(device, colorMap);
+            colorMap = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, file, out colorMapView);
+
             colorMapSampler = new D3D11.SamplerState(device, new D3D11.SamplerStateDescription() {
                 AddressU = D3D11.TextureAddressMode.Clamp,
                 AddressV = D3D11.TextureAddressMode.Clamp,

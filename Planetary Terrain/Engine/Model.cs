@@ -95,17 +95,12 @@ namespace Planetary_Terrain {
 
                     Material mat = scene.Materials[mesh.MaterialIndex];
                     if (mat != null) {
-                        if (mat.GetMaterialTextureCount(TextureType.Diffuse) > 0) {
+                        if (mat.GetMaterialTextureCount(TextureType.Diffuse) > 0)
                             mm.SetDiffuseTexture(device, modelPath + @"\" + mat.TextureDiffuse.FilePath);
-                        }
-                        if (mat.GetMaterialTextureCount(TextureType.Emissive) > 0) {
+                        if (mat.GetMaterialTextureCount(TextureType.Emissive) > 0) 
                             mm.SetEmissiveTexture(device, modelPath + @"\" + mat.TextureEmissive.FilePath);
-                            Debug.Log("Emissive added " + mat.TextureEmissive.FilePath);
-                        }
-                        if (mat.GetMaterialTextureCount(TextureType.Specular) > 0) {
+                        if (mat.GetMaterialTextureCount(TextureType.Specular) > 0)
                             mm.SetSpecularTexture(device, modelPath + @"\" + mat.TextureSpecular.FilePath);
-                            Debug.Log("Specular added " + mat.TextureSpecular.FilePath);
-                        }
                     }
 
                     //bool hasTexCoords = mesh.HasTextureCoords(0);

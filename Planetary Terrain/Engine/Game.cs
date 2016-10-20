@@ -13,9 +13,9 @@ namespace Planetary_Terrain {
         private bool resizePending;
 
         public Renderer renderer;
-
-        private Stopwatch frameTimer;
+        
         private Stopwatch gameTimer;
+        private Stopwatch frameTimer;
         #endregion
         #region input
         DInput.Keyboard keyboard;
@@ -51,9 +51,7 @@ namespace Planetary_Terrain {
             mouse.Acquire();
             
             renderer = new Renderer(this, renderForm);
-
-            frameTimer = new System.Diagnostics.Stopwatch();
-
+            
             Shaders.LoadShaders(renderer.Device, renderer.Context);
 
             Initialize();
@@ -62,12 +60,11 @@ namespace Planetary_Terrain {
         double frameTime = 0;
         public void Run() {
             gameTimer = Stopwatch.StartNew();
-
+            frameTimer = new Stopwatch();
+            
             RenderLoop.Run(renderForm, () => {
-                frameTimer.Stop();
                 double deltaTime = frameTimer.ElapsedTicks / (double)Stopwatch.Frequency;
-                frameTimer.Reset();
-                frameTimer.Start();
+                frameTimer.Restart();
 
                 frameTime += deltaTime;
                 frameCount++;
@@ -83,7 +80,7 @@ namespace Planetary_Terrain {
         }
         
         void Initialize() {
-            skybox = new Skybox("Data/Textures/Sky", renderer.Device);
+            skybox = new Skybox("Data/Textures/BackgroundCube.dds", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
             
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
@@ -136,8 +133,8 @@ namespace Planetary_Terrain {
 
         double t = 0;
         void Update(double deltaTime) {
-            t += frameTime;
-            Debug.Track(t.ToString("F2") + "/" + gameTimer.Elapsed.TotalSeconds.ToString("F2"), "time");
+            t += deltaTime;
+            Debug.Track(t.ToString("F2") + "/" + gameTimer.Elapsed.TotalSeconds.ToString("F2") + "   (" + deltaTime.ToString("F4") + ")", "time");
 
             #region input state update
             InputState.ks = keyboard.GetCurrentState();

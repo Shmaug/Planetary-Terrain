@@ -43,19 +43,19 @@ namespace Planetary_Terrain {
 
         D3D11.Buffer vertexBuffer;
         D3D11.Buffer indexBuffer;
+        D3D11.Buffer constBuffer;
 
         public D3D11.Texture2D Texture;
         public D3D11.SamplerState Sampler;
         public D3D11.ShaderResourceView TextureView;
 
         public Skybox(string cubemapFile, D3D11.Device device) {
-            //Texture = ResourceUtil.LoadCubemap(device, "Data/Textures/Sky.dds");
-            //TextureView = new D3D11.ShaderResourceView(device, Texture);
+            Texture = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, cubemapFile, out TextureView);
             Sampler = new D3D11.SamplerState(device, new D3D11.SamplerStateDescription() {
                 AddressU = D3D11.TextureAddressMode.Clamp,
                 AddressV = D3D11.TextureAddressMode.Clamp,
                 AddressW = D3D11.TextureAddressMode.Clamp,
-                Filter = D3D11.Filter.Anisotropic,
+                Filter = D3D11.Filter.Anisotropic
             });
 
             vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, CubeVerticies);
@@ -64,6 +64,8 @@ namespace Planetary_Terrain {
         
         public void Draw(Renderer renderer) {
             Shaders.SkyboxShader.Set(renderer);
+            
+            renderer.Context.PixelShader.SetConstantBuffer(0, constBuffer);
 
             renderer.Context.PixelShader.SetSampler(0, Sampler);
             renderer.Context.PixelShader.SetShaderResource(0, TextureView);
@@ -84,12 +86,14 @@ namespace Planetary_Terrain {
         public void Dispose() {
             vertexBuffer?.Dispose();
             indexBuffer?.Dispose();
+            constBuffer?.Dispose();
             TextureView?.Dispose();
             Sampler?.Dispose();
             Texture?.Dispose();
 
             vertexBuffer = null;
             indexBuffer = null;
+            constBuffer = null;
             TextureView = null;
             Sampler = null;
             Texture = null;
