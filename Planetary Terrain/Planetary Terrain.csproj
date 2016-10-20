@@ -182,6 +182,7 @@
     <Content Include="Data\Textures\Earth.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Data\Textures\EmptySpace.dds" />
     <Content Include="Data\Textures\Mars.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
