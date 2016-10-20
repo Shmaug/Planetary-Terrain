@@ -91,8 +91,8 @@ float4 psmain(v2f i) : SV_TARGET
 	float fCos2 = fCos*fCos;
 	float3 color = getRayleighPhase(fCos2) * i.c0 + getMiePhase(fCos, fCos2, g, g*g) * i.c1;
 
-	float4 c = float4(color.rgb, length(color.rgb));
+	color = 1 - exp(-Exposure * color);
 
-	return 1 - exp(-Exposure * c);
+	return float4(color.rgb, length(color.rgb));
 }
 

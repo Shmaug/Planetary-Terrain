@@ -80,7 +80,7 @@ namespace Planetary_Terrain {
         }
         
         void Initialize() {
-            skybox = new Skybox("Data/Textures/BackgroundCube.dds", renderer.Device);
+            skybox = new Skybox("Data/Textures/colorcube.dds", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
             
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);

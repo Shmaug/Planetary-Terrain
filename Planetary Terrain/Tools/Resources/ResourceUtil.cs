@@ -53,6 +53,7 @@ namespace Planetary_Terrain {
             if (buffer == null)
                 throw new ArgumentNullException("buffer");
 
+
             int size = buffer.Length;
 
             // If buffer is allocated on Larget Object Heap, then we are going to pin it instead of making a copy.
@@ -61,9 +62,8 @@ namespace Planetary_Terrain {
                 DDSHelper.CreateDDSTextureFromMemory(device, handle.AddrOfPinnedObject(), size, out result, out srv);
             }
 
-            fixed (void* pbuffer = buffer) {
+            fixed (void* pbuffer = buffer)
                 DDSHelper.CreateDDSTextureFromMemory(device, (IntPtr)pbuffer, size, out result, out srv);
-            }
 
             return result;
         }

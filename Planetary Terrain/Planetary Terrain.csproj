@@ -118,6 +118,9 @@
     <Compile Include="Core\StarSystem.cs" />
     <Compile Include="Engine\Model.cs" />
     <Compile Include="Engine\ModelMesh.cs" />
+    <Content Include="Data\Textures\colorcube.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Shaders\skybox.hlsl" />
     <Content Include="Shaders\_quadnode.hlsli" />
     <Compile Include="Tools\Resources\DDS.cs" />
@@ -155,6 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="ClassDiagram1.cd" />
     <None Include="Data\Models\ship.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
