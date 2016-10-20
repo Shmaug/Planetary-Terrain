@@ -7,10 +7,12 @@ namespace Planetary_Terrain {
     class StarSystem : IDisposable {
         public static StarSystem ActiveSystem;
 
-        public List<Body> bodies;
+        public List<CelestialBody> bodies;
+        public Physics physics;
 
         public StarSystem(D3D11.Device device) {
-            bodies = new List<Body>();
+            bodies = new List<CelestialBody>();
+            physics = new Physics();
             
             Star sun = new Star("Sol", new Vector3d(), 696000000, 1.989e30);
             sun.SetColormap("Data/Textures/Sun.jpg", device);
@@ -24,7 +26,17 @@ namespace Planetary_Terrain {
             //venus.SetColormap(ResourceUtil.LoadTexture(device, "Data/Textures/Venus.jpg"), device);
             //bodies.Add(venus);
 
-            Planet earth = new Planet("Earth", new Vector3d(0, 0, 149600000000), 6371000, 5.972e24, 20000, new Atmosphere(6371000 * 1.025, 101325), true);
+            Planet earth = new Planet(
+                "Earth",
+                new Vector3d(0, 0, 149600000000),
+                6371000,
+                5.972e24,
+                20000,
+                new Atmosphere(6371000 + 50000) {
+                    SurfacePressure = 100, //kPa
+                    SurfaceTemperature = 20 // celsius
+                },
+                true);
             earth.SetColormap("Data/Textures/Earth.jpg", device);
             bodies.Add(earth);
 
@@ -52,12 +64,15 @@ namespace Planetary_Terrain {
             //Planet pluto = new Planet("Pluto", new Vector3d(0, 0, 5945900000000), 1650000, 1.309e22, 100);
             //pluto.SetColormap(ResourceUtil.LoadTexture(device, "Data/Textures/Mars.jpg"), device);
             //bodies.Add(pluto);
+
+            foreach (CelestialBody b in bodies)
+                physics.AddBody(b);
         }
 
-        public Body GetNearestBody(Vector3d pos) {
+        public CelestialBody GetNearestBody(Vector3d pos) {
             double near = double.MaxValue;
-            Body n = null;
-            foreach (Body p in bodies) {
+            CelestialBody n = null;
+            foreach (CelestialBody p in bodies) {
                 double d = (p.Position - pos).Length();
                 if (d < near) {
                     near = d;
@@ -70,7 +85,7 @@ namespace Planetary_Terrain {
         public Star GetNearestStar(Vector3d pos) {
             double near = double.MaxValue;
             Star n = null;
-            foreach (Body p in bodies) {
+            foreach (CelestialBody p in bodies) {
                 if (p is Star) {
                     double d = (p.Position - pos).Length();
                     if (d < near) {
@@ -84,30 +99,24 @@ namespace Planetary_Terrain {
 
 
         public void Update(Renderer renderer, D3D11.Device device, double deltaTime) {
-            foreach (Body b in bodies) {
-                b.Update(device, renderer.Camera);
-
-                //foreach (Body b2 in bodies) {
-                //    if (b != b2)
-                //        b.ApplyGravity(b2, deltaTime);
-                //}
-            }
+            foreach (CelestialBody b in bodies)
+                b.Update(deltaTime, device, renderer.Camera);
         }
 
         public void Draw(Renderer renderer, double playerSpeed) {
-            foreach (Body b in bodies)
+            foreach (CelestialBody b in bodies)
                 b.Draw(renderer);
 
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
-                foreach (Body b in bodies)
+                foreach (CelestialBody b in bodies)
                     b.DrawHUDIcon(renderer, playerSpeed);
                 renderer.D2DContext.EndDraw();
             }
         }
 
         public void Dispose() {
-            foreach (Body p in bodies)
+            foreach (CelestialBody p in bodies)
                 p.Dispose();
         }
     }

@@ -27,8 +27,8 @@ namespace Planetary_Terrain {
         #endregion
 
         public UI.Frame ControlPanel;
-        PlayerShip player;
-        PlayerShip ship2;
+        Ship player;
+        Ship ship2;
         Skybox skybox;
         double zoomd = 0;
 
@@ -80,12 +80,16 @@ namespace Planetary_Terrain {
         }
         
         void Initialize() {
-            skybox = new Skybox("Data/Textures/colorcube.dds", renderer.Device);
+            skybox = new Skybox("Data/Textures/EmptySpace.dds", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
             
             renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
-            player = new PlayerShip(renderer.Device, renderer.Camera);
-            ship2 = new PlayerShip(renderer.Device, renderer.Camera);
+
+            // TODO: redo player/ship (so player is separate)
+            player = new Ship(renderer.Device, renderer.Camera);
+            ship2 = new Ship(renderer.Device, renderer.Camera);
+            StarSystem.ActiveSystem.physics.AddBody(player);
+            StarSystem.ActiveSystem.physics.AddBody(ship2);
 
             float h = 35;
             RawRectangleF bounds = new RawRectangleF(0, 300, 235, 300 + h);
@@ -94,7 +98,7 @@ namespace Planetary_Terrain {
 
             new UI.TextLabel(ControlPanel, "Title", new RawRectangleF(0, 0, 235, h), "NAVIGATOR", renderer.SegoeUI24, renderer.Brushes["White"]);
             float y = h;
-            foreach (Body p in StarSystem.ActiveSystem.bodies) {
+            foreach (CelestialBody p in StarSystem.ActiveSystem.bodies) {
                 Vector3d d = Vector3d.Normalize(new Vector3d(0, 0.9, -1));
                 new UI.TextButton(ControlPanel, p.Label + "Button", new RawRectangleF(5, y, 170, y + h-2), p.Label, renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     ()=> {
@@ -247,7 +251,7 @@ namespace Planetary_Terrain {
             Profiler.Begin("3d Draw");
             skybox.Draw(renderer);
 
-            StarSystem.ActiveSystem.Draw(renderer, player.LinearVelocity.Length());
+            StarSystem.ActiveSystem.Draw(renderer, player.Velocity.Length());
             
             player.Draw(renderer);
             ship2.Draw(renderer);

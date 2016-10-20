@@ -6,38 +6,29 @@ using D2D1 = SharpDX.Direct2D1;
 using DWrite = SharpDX.DirectWrite;
 
 namespace Planetary_Terrain {
-    abstract class Body : IDisposable {
+    abstract class CelestialBody : PhysicsBody, IDisposable {
         public double MaxVertexSpacing = 2000000; // m/vertex
         public double MinVertexSpacing = 1;       // m/vertex
-
-        /// <summary>
-        /// The world-space north pole
-        /// </summary>
-        public Vector3d North { get { return (Vector3d)Vector3.Transform(Vector3.Up, Rotation); } }
-
-        public Quaternion Rotation;
+        
+        // TODO: planet rotation
 
         /// <summary>
         /// The 6 base quadtrees composing the planet
         /// </summary>
         public QuadNode[] BaseQuads;
 
-        public Body OrbitalParent;
-
-        public Vector3d Position;
-        public Vector3d Velocity;
+        public CelestialBody OrbitalParent;
+        
         /// <summary>
         /// Sphere of Influence: Radius of which things are considered to be within this body's influence
         /// </summary>
         public double SOI;
         public double Radius;
-        public double Mass;
         public string Label;
 
-        public Body(Vector3d pos, double radius, double mass) {
+        public CelestialBody(Vector3d pos, double radius, double mass) : base(mass) {
             Position = pos;
             Radius = radius;
-            Mass = mass;
             SOI = Radius * 1.02;
 
             MaxVertexSpacing = radius*.5 / QuadNode.GridSize;
@@ -59,7 +50,9 @@ namespace Planetary_Terrain {
                 BaseQuads[i].Generate();
         }
 
-        public abstract void Update(D3D11.Device device, Camera camera);
+        public virtual void Update(double deltaTime, D3D11.Device device, Camera camera) {
+            // TODO: keplerian orbits
+        }
         public abstract void Draw(Renderer renderer);
         public void DrawHUDIcon(Renderer renderer, double playerSpeed) {
             Vector2? screenPos = renderer.WorldToScreen(Position);
@@ -109,13 +102,6 @@ namespace Planetary_Terrain {
         public abstract double GetHeight(Vector3d direction);
         public abstract void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double height);
 
-        public void ApplyGravity(Body other, double deltaTime) {
-            Vector3d dir = Position - other.Position;
-            double magnitude = Constants.G * (Mass * other.Mass) / dir.LengthSquared();
-            dir.Normalize();
-
-            Velocity += dir * magnitude * deltaTime;
-        }
         /// <summary>
         /// Returns the point on the surface of the planet, along the line from the planet's position to the given point
         /// </summary>

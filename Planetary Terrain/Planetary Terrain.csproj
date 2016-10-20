@@ -130,6 +130,9 @@
     <Content Include="Data\Textures\colorcube.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Data\Textures\EmptySpace.dds">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Shaders\skybox.hlsl" />
     <Content Include="Shaders\_quadnode.hlsli" />
     <Compile Include="Tools\Resources\DDS.cs" />
@@ -148,7 +151,7 @@
     <Content Include="Data\Models\ship_specular.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Compile Include="Tools\Constants.cs" />
+    <Compile Include="Engine\Physics.cs" />
     <Compile Include="Tools\Debug.cs" />
     <Compile Include="Tools\Icosphere.cs" />
     <Compile Include="Core\QuadNode.cs" />

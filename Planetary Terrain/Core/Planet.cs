@@ -7,7 +7,7 @@ using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
 namespace Planetary_Terrain {
-    class Planet : Body, IDisposable {
+    class Planet : CelestialBody, IDisposable {
         /// <summary>
         /// The total possible terrain displacement is Radius +/- TerrainHeight
         /// </summary>
@@ -72,6 +72,7 @@ namespace Planetary_Terrain {
 
             flat *= 1.0 - rough;
             mntn *= rough;
+            mntn *= mntn;
 
             total = mntn + flat;
             
@@ -126,7 +127,9 @@ namespace Planetary_Terrain {
             });
         }
 
-        public override void Update(D3D11.Device device, Camera camera) {
+        public override void Update(double deltaTime, D3D11.Device device, Camera camera) {
+            base.Update(deltaTime, device, camera);
+
             Vector3d dir = camera.Position - Position;
             double height = dir.Length();
             dir /= height;

@@ -7,7 +7,7 @@ using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
 namespace Planetary_Terrain {
-    class Star : Body, IDisposable {
+    class Star : CelestialBody, IDisposable {
         
         /// <summary>
         /// The map of temperature-humidity to color
@@ -63,7 +63,8 @@ namespace Planetary_Terrain {
             });
         }
 
-        public override void Update(D3D11.Device device, Camera camera) {
+        public override void Update(double deltaTime, D3D11.Device device, Camera camera) {
+            base.Update(deltaTime, device, camera);
             Vector3d dir = camera.Position - Position;
             double height = dir.Length();
             dir /= height;

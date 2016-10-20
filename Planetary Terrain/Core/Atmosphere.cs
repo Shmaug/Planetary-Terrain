@@ -12,7 +12,10 @@ namespace Planetary_Terrain {
         public Planet Planet;
         public double Radius;
 
-        public double MaxPressure;
+        public double SurfacePressure; // kg/m^3
+        public double SurfaceTemperature; // celcius
+
+        public Vector3 Wavelengths = new Vector3(.65f, .57f, .475f);
 
         /// <summary>
         /// The 6 base quadtrees composing the planet
@@ -66,9 +69,8 @@ namespace Planetary_Terrain {
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
 
-        public Atmosphere(double radius, double pressure) {
+        public Atmosphere(double radius) {
             Radius = radius;
-            MaxPressure = pressure;
             
             constants = new Constants();
 
@@ -85,6 +87,20 @@ namespace Planetary_Terrain {
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Generate();
         }
+        
+        public void GetMeasurements(double height, out double pressure, out double temperature, out double c) {
+            double x = Math.Max((height - Planet.Radius) / (Radius - Planet.Radius), 0); // height as [0, infinity)
+
+            pressure = SurfacePressure * Math.Exp(-4.0 * x);
+            temperature = SurfaceTemperature * -10 * (x - .0714) * (x - .4714) * (x - .6857) - .23872;
+
+            c = 331.3 + (.6 * temperature);
+        }
+
+        public void Update(D3D11.Device device, Camera camera) {
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].SplitDynamic(camera.Position, device);
+        }
 
         void SetConstants(Vector3d scaledPos, double scale) {
             constants.nSamples = 10;
@@ -98,7 +114,7 @@ namespace Planetary_Terrain {
             float kr = .0025f; // rayleigh scattering constant
             float km = .0010f; // mie scattering constant
             float sun = 15f; // sun brightness
-            Vector3 wavelength = new Vector3(.65f, .57f, .475f);
+            Vector3 wavelength = Wavelengths;
 
             constants.InvWavelength = 1f / new Vector3(
                     (float)Math.Pow(wavelength.X, 4),
@@ -122,12 +138,6 @@ namespace Planetary_Terrain {
 
             constants.Exposure = 1.2f;
         }
-
-        public void Update(D3D11.Device device, Camera camera) {
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].SplitDynamic(camera.Position, device);
-        }
-
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
             Shaders.AtmosphereShader.Set(renderer);
             

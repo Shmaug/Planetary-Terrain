@@ -274,7 +274,7 @@ namespace Planetary_Terrain {
         public double ArcSize;
         public double VertexSpacing; // meters per vertex
 
-        public Body Body;
+        public CelestialBody Body;
         public QuadNode Parent;
         public int SiblingIndex;
         public QuadNode[] Children;
@@ -356,7 +356,7 @@ namespace Planetary_Terrain {
                 return (Children != null && childrenReady) || (vertexdirty || vertexBuffer != null);
             } }
 
-        public QuadNode(Body body, int siblingIndex, double size, int lod, QuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
+        public QuadNode(CelestialBody body, int siblingIndex, double size, int lod, QuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
             SiblingIndex = siblingIndex;
             Size = size;
             Body = body;

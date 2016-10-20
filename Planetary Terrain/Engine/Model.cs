@@ -154,7 +154,6 @@ namespace Planetary_Terrain {
                             (Vector3)Vector3.Transform(new Vector3(verts[i].X, verts[i].Y, verts[i].Z), transform),
                             (Vector3)Vector3.Transform(new Vector3(normals[i].X, normals[i].Y, normals[i].Z), invTranspose),
                             new Vector2(texCoords[i].X, 1f - texCoords[i].Y));
-                        // TODO: import models...better
                     }
 
                     mm.VertexSize = Utilities.SizeOf<VertexNormalTexture>();

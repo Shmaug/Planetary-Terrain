@@ -98,7 +98,7 @@ namespace Planetary_Terrain {
 
         }
 
-        public static void Draw(Renderer renderer, PlayerShip ship) {
+        public static void Draw(Renderer renderer, Ship ship) {
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
 
@@ -109,10 +109,10 @@ namespace Planetary_Terrain {
                 VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.Brushes["White"]);
 
-            double spd = ship.LinearVelocity.Length();
+            double spd = ship.Velocity.Length();
             renderer.D2DContext.DrawText(
                 string.Format("{0} m/s ({1}c)",
-                spd.ToString("F1"), (spd / Constants.LIGHT_SPEED).ToString("F4")),
+                spd.ToString("F1"), (spd / Physics.LIGHT_SPEED).ToString("F4")),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 40), renderer.Brushes["White"], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
             renderer.D2DContext.DrawText(

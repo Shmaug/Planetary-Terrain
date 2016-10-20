@@ -13,7 +13,7 @@ namespace Planetary_Terrain {
         private float _fov, _aspect, _near = 1f, _far = 10000000;
         private Matrix _rotationMatrix = Matrix.Identity;
         private Matrix _view, _proj;
-        public PlayerShip Ship;
+        public Ship Ship;
         private double _zoom = 1;
 
         #region make functions
@@ -108,7 +108,7 @@ namespace Planetary_Terrain {
             }
             _rotationMatrix *= Matrix.RotationAxis(_rotationMatrix.Right, PostRotation.X) * Matrix.RotationAxis(_rotationMatrix.Up, PostRotation.Y);
 
-            Body b = StarSystem.ActiveSystem.GetNearestBody(Position);
+            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
             Vector3d v = _position - b.Position;
             double l = v.Length();
             v /= l;
