@@ -24,7 +24,7 @@ namespace Planetary_Terrain {
         /// </summary>
         public double SOI;
         public double Radius;
-        public string Label;
+        public string Name;
 
         public CelestialBody(Vector3d pos, double radius, double mass) : base(mass) {
             Position = pos;
@@ -51,7 +51,7 @@ namespace Planetary_Terrain {
         }
 
         public virtual void Update(double deltaTime, D3D11.Device device, Camera camera) {
-            // TODO: keplerian orbits
+            base.Update(deltaTime);
         }
         public abstract void Draw(Renderer renderer);
         public void DrawHUDIcon(Renderer renderer, double playerSpeed) {
@@ -61,33 +61,9 @@ namespace Planetary_Terrain {
                 renderer.SegoeUI14.WordWrapping = DWrite.WordWrapping.NoWrap;
                 renderer.SegoeUI14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
 
-                double dist = (renderer.Camera.Position - Position).Length();
+                string text = Name + "\nArrive in " + Physics.CalculateTime((renderer.Camera.Position - Position).Length(), playerSpeed);
 
-                ulong totalSeconds = (ulong)(dist / playerSpeed);
-                ulong totalMinutes = totalSeconds / 60L;
-                ulong totalHours = totalMinutes / 60L;
-                ulong totalDays = totalHours / 24L;
-                ulong totalYears = totalDays / 356L;
-
-                ulong seconds = totalSeconds % 60L;
-                ulong minutes = totalMinutes % 60L;
-                ulong hours = totalHours % 60L;
-                ulong days = totalDays % 24L;
-                ulong years = totalYears % 365L;
-
-                string t = Label;
-                if (totalSeconds < 60L)
-                    t += "\nArrive in " + string.Format("{0} seconds", totalSeconds) + "";
-                else if (totalMinutes < 60L)
-                    t += "\nArrive in " + string.Format("{0}m:{1}s", minutes, seconds) + "";
-                else if (totalHours < 24L)
-                    t += "\nArrive in " + string.Format("{0}h:{1}m", hours, minutes) + "";
-                else if (totalDays < 365L)
-                    t += "\nArrive in " + string.Format("{0}d:{1}h", days, hours) + "";
-                else
-                    t += "\nArrive in " + string.Format("{0}y:{0}d", years, days) + "";
-
-                DWrite.TextLayout layout = new DWrite.TextLayout(renderer.FontFactory, t, renderer.SegoeUI14, 100, 100);
+                DWrite.TextLayout layout = new DWrite.TextLayout(renderer.FontFactory, text, renderer.SegoeUI14, 100, 100);
 
                 float w = layout.DetermineMinWidth();
 
@@ -95,7 +71,7 @@ namespace Planetary_Terrain {
                     screenPos.Value.X - w, screenPos.Value.Y - 10,
                     screenPos.Value.X + w, screenPos.Value.Y + 10);
 
-                renderer.D2DContext.DrawText(t, renderer.SegoeUI14, rect, renderer.Brushes["White"]);
+                renderer.D2DContext.DrawText(text, renderer.SegoeUI14, rect, renderer.Brushes["White"]);
             }
         }
 

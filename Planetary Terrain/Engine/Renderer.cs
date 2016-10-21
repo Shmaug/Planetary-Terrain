@@ -81,7 +81,13 @@ namespace Planetary_Terrain {
             this.game = game;
             int width = renderForm.ClientSize.Width, height = renderForm.ClientSize.Height;
             ResolutionX = width; ResolutionY = height;
-            
+
+            D3D11.DeviceCreationFlags creationFlags = D3D11.DeviceCreationFlags.BgraSupport;
+
+#if DEBUG
+            creationFlags |= D3D11.DeviceCreationFlags.Debug;
+#endif
+
             #region 3d device & context
             DXGI.SwapChainDescription swapChainDesc = new DXGI.SwapChainDescription() {
                 ModeDescription = new DXGI.ModeDescription(width, height, new DXGI.Rational(60, 1), DXGI.Format.R8G8B8A8_UNorm),
@@ -93,7 +99,7 @@ namespace Planetary_Terrain {
                 SwapEffect = DXGI.SwapEffect.Discard
             };
             D3D11.Device device;
-            D3D11.Device.CreateWithSwapChain(DriverType.Hardware, D3D11.DeviceCreationFlags.BgraSupport | D3D11.DeviceCreationFlags.Debug, swapChainDesc, out device, out swapChain);
+            D3D11.Device.CreateWithSwapChain(DriverType.Hardware, creationFlags, swapChainDesc, out device, out swapChain);
             Device = device;
             Context = Device.ImmediateContext;
 

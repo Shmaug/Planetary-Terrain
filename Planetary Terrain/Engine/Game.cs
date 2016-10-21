@@ -100,17 +100,17 @@ namespace Planetary_Terrain {
             float y = h;
             foreach (CelestialBody p in StarSystem.ActiveSystem.bodies) {
                 Vector3d d = Vector3d.Normalize(new Vector3d(0, 0.9, -1));
-                new UI.TextButton(ControlPanel, p.Label + "Button", new RawRectangleF(5, y, 170, y + h-2), p.Label, renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
+                new UI.TextButton(ControlPanel, p.Name + "Button", new RawRectangleF(5, y, 170, y + h-2), p.Name, renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     ()=> {
                         player.Position = p.Position + d * (p.SOI + 1000);
                     });
-                new UI.TextButton(ControlPanel, p.Label + "SfcButton", new RawRectangleF(175, y, 230, y + h - 2), "Surface", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
+                new UI.TextButton(ControlPanel, p.Name + "SfcButton", new RawRectangleF(175, y, 230, y + h - 2), "Surface", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     () => {
                         double hh = p.GetHeight(d);
                         if (p is Planet) {
                             Planet planet = p as Planet;
                             if (planet.HasOcean) {
-                                hh = Math.Max(hh, planet.Radius + planet.TerrainHeight * planet.OceanScaleHeight);
+                                hh = Math.Max(hh, planet.Radius);
                             }
                         }
                         player.Position = p.Position + d * (hh + 50);

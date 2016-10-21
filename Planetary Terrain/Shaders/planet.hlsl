@@ -41,7 +41,7 @@ float4 psmain(v2f i) : SV_TARGET
 	float3 col = ColorMapTexture.Sample(ColorMapSampler, i.uv).rgb * NodeColor;
 	bool spec = false;
 
-	if (i.height <= waterHeight && drawWaterFar) {
+	if (i.height <= 0 && drawWaterFar) {
 		col = waterColor;
 		i.normal = i.dir;
 		spec = true;

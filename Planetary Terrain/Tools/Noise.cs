@@ -297,7 +297,7 @@ namespace Planetary_Terrain {
                 amplitude *= persistence;
             }
 
-            return total / maxAmplifier;
+            return (total / maxAmplifier) * 2 - 1;
         }
 
         public static double Ridged(Vector3d position, int octaves, double frequency, double persistence) {
@@ -312,7 +312,7 @@ namespace Planetary_Terrain {
                 amplitude *= persistence;
             }
 
-            return total / maxAmplifier;
+            return (total / maxAmplifier) * 2 - 1;
         }
 
         public static double Map(double n, double min, double max) {

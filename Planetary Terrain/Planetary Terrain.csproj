@@ -13,6 +13,9 @@
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -25,11 +28,8 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -52,6 +52,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -127,9 +129,6 @@
     <Content Include="Data\Models\gun\gun_specular.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Textures\colorcube.dds">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Data\Textures\EmptySpace.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -142,13 +141,13 @@
     <Compile Include="UI\TextButton.cs" />
     <Compile Include="UI\TextLabel.cs" />
     <Compile Include="UI\UIElement.cs" />
-    <Content Include="Data\Models\ship_diffuse.png">
+    <Content Include="Data\Models\Ship\ship_diffuse.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\ship_emission.png">
+    <Content Include="Data\Models\Ship\ship_emission.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\ship_specular.png">
+    <Content Include="Data\Models\Ship\ship_specular.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Compile Include="Engine\Physics.cs" />
@@ -170,11 +169,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="ClassDiagram1.cd" />
     <None Include="Data\Models\gun\gun.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\Models\ship.fbx">
+    <None Include="Data\Models\Ship\ship.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
@@ -201,9 +199,6 @@
     <Content Include="Shaders\planet.hlsl" />
     <Content Include="Shaders\star.hlsl" />
     <Content Include="Shaders\water.hlsl" />
-    <Content Include="Data\Textures\BackgroundCube.dds">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Data\Textures\Earth.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

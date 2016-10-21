@@ -416,7 +416,7 @@ namespace Planetary_Terrain {
 
             double oceanLevel = 0;
             if (hasWaterVerticies) {
-                oceanLevel = Body.Radius + ((Planet)Body).TerrainHeight * ((Planet)Body).OceanScaleHeight;
+                oceanLevel = Body.Radius;
                 waterVerticies = new VertexNormal[s * s * 6];
                 waterFarVerticies = new PlanetVertex[s * s * 6];
             }
@@ -736,7 +736,7 @@ namespace Planetary_Terrain {
             double arcDist = Body.ArcLength(Vector3.Normalize(vertex - Body.Position), dir);
 
             if (hasWaterVerticies) {
-                double wh = Body.Radius + ((Planet)Body).TerrainHeight * ((Planet)Body).OceanScaleHeight;
+                double wh = Body.Radius;
                 Vector3d d2 = Vector3d.Normalize(vertex - Body.Position);
                 dist = Math.Min(dist, (d2 * wh - dir*height).Length());
             }

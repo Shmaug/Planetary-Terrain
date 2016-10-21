@@ -30,7 +30,7 @@ namespace Planetary_Terrain {
         public D3D11.Buffer constBuffer { get; private set; }
         
         public Star(string name, Vector3d pos, double radius, double mass) : base(pos, radius, mass) {
-            Label = name;
+            Name = name;
             Radius = radius;
         }
         

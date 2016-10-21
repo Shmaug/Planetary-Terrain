@@ -105,26 +105,14 @@ namespace Planetary_Terrain {
             renderer.D2DContext.DrawText(
                 string.Format("{0} verts, {1} fps    [{2} waiting / {3} generating]",
                 VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
-                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 10, 300, renderer.Viewport.Height - 25), renderer.Brushes["White"]);
-
-            double spd = ship.Velocity.Length();
-            renderer.D2DContext.DrawText(
-                string.Format("{0} m/s ({1}c)",
-                spd.ToString("F1"), (spd / Physics.LIGHT_SPEED).ToString("F4")),
-                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 40), renderer.Brushes["White"], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
-
-            renderer.D2DContext.DrawText(
-                string.Format("[{0}, {1}, {2}]      [{3},{4},{5}]",
-                renderer.Camera.Position.X.ToString("F1"), renderer.Camera.Position.Y.ToString("F1"), renderer.Camera.Position.Z.ToString("F1"),
-                renderer.Camera.Rotation.X.ToString("F1"), renderer.Camera.Rotation.Y.ToString("F1"), renderer.Camera.Rotation.Z.ToString("F1")),
-                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 55), renderer.Brushes["White"], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
-
+                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 10), renderer.Brushes["White"]);
+            
             if (ClosestQuadTree != null) {
                 Planet p = ClosestQuadTree.Body is Planet ? ClosestQuadTree.Body as Planet : null;
                 renderer.D2DContext.DrawText(
                     string.Format("Closest QuadTree: {0} | {1}m/vertex | Scale: {2} | [{3}-{4}]",
                     ClosestQuadTreeDistance.ToString("F2"), ClosestQuadTree.VertexSpacing.ToString("F2"), ClosestQuadTreeScale.ToString("F2"), p?.min.ToString("F1"), p?.max.ToString("F1")),
-                    renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 55, 300, renderer.Viewport.Height - 70), renderer.Brushes["White"]);
+                    renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 25), renderer.Brushes["White"]);
             }
             #region logs
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;

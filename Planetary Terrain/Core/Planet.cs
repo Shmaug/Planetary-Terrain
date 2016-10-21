@@ -20,7 +20,6 @@ namespace Planetary_Terrain {
 
         public bool HasOcean;
         public Color OceanColor;
-        public double OceanScaleHeight;
         
         /// <summary>
         /// The map of temperature-humidity to color
@@ -39,8 +38,6 @@ namespace Planetary_Terrain {
         struct Constants {
             [FieldOffset(0)]
             public Vector3 lightDirection;
-            [FieldOffset(12)]
-            public float oceanScaleHeight;
             [FieldOffset(16)]
             public Vector3 oceanColor;
         }
@@ -48,7 +45,7 @@ namespace Planetary_Terrain {
         public D3D11.Buffer constBuffer { get; private set; }
 
         public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null, bool ocean = false) : base(pos, radius, mass) {
-            Label = name;
+            Name = name;
             Radius = radius;
             TerrainHeight = terrainHeight;
             Atmosphere = atmosphere;
@@ -57,7 +54,6 @@ namespace Planetary_Terrain {
                 atmosphere.Planet = this;
 
             HasOcean = ocean;
-            OceanScaleHeight = .4;
             OceanColor = new Color(45, 100, 245);
         }
 
@@ -65,14 +61,14 @@ namespace Planetary_Terrain {
         double height(Vector3d direction) {
             double total = 0;
 
-            double rough = (Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) + 1) * .5;
+            double rough = Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) * .5 + .5;
 
-            double mntn = 1.0 - Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
+            double mntn = Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
             double flat = Noise.Fractal(direction * 200 + new Vector3d(-5000), 4, .02f, .3f);
 
-            flat *= 1.0 - rough;
+            flat *= 1.0 - rough*rough*rough;
             mntn *= rough;
-            mntn *= mntn;
+            mntn = mntn * mntn;
 
             total = mntn + flat;
             
@@ -100,7 +96,7 @@ namespace Planetary_Terrain {
             //humid = Noise.SmoothSimplex(direction * 5, 4, .1f, .8f)*.5d+.5d - .1f;
 
             if (HasOcean)
-                humid += (float)Math.Pow(1.0 - (h - OceanScaleHeight), 2);
+                humid += (float)Math.Pow(1.0 - Math.Max(h, 0.0), 2);
 
             //double mountain = Math.Min(Math.Pow(Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) + .7, 2), 1);
             //mountain = 1.0 - mountain;
@@ -154,7 +150,6 @@ namespace Planetary_Terrain {
                 constants.lightDirection = Vector3d.Normalize(Position - s.Position);
             else
                 constants.lightDirection = new Vector3d();
-            constants.oceanScaleHeight = (float)OceanScaleHeight;
             constants.oceanColor = OceanColor.ToVector3();
 
             // create/update constant buffer

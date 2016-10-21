@@ -94,7 +94,7 @@ namespace Planetary_Terrain {
 
             pressure = SurfacePressure * Math.Exp(-4.0 * x);
             density = SurfaceDensity * Math.Exp(-4.3 * x);
-            temperature = SurfaceTemperature * -10 * (x - .0714) * (x - .4714) * (x - .6857) - .23872;
+            temperature = SurfaceTemperature * (-10 * (x - .0714) * (x - .4714) * (x - .6857) + .7692);
 
             c = 331.3 + (.6 * temperature);
         }

@@ -35,7 +35,7 @@ namespace Planetary_Terrain {
                 new Atmosphere(6371000 + 50000) {
                     SurfacePressure = 100, //kPa
                     SurfaceDensity = 1.2, // kg/m^3
-                    SurfaceTemperature = 20 // celsius
+                    SurfaceTemperature = 22 // celsius
                 },
                 true);
             earth.SetColormap("Data/Textures/Earth.jpg", device);
