@@ -73,8 +73,19 @@ namespace Planetary_Terrain {
                     frameCount = 0;
                 }
 
+                Debug.BeginFrame();
+                Profiler.Begin("Frame");
+
+                Profiler.Begin("Update");
                 Update(deltaTime);
+                Profiler.End();
+
+                Profiler.Begin("Draw");
                 Draw();
+                Profiler.End();
+
+                Profiler.End();
+                Debug.EndFrame();
             });
         }
         
@@ -169,8 +180,6 @@ namespace Planetary_Terrain {
                 renderer.Resize(renderForm.ClientSize.Width, renderForm.ClientSize.Height);
             renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
 
-            Debug.BeginFrame();
-
             renderer.BeginDrawFrame();
             renderer.Clear(Color.Black);
 
@@ -189,14 +198,14 @@ namespace Planetary_Terrain {
                 player.DrawHUD(renderer);
                 ControlPanel.Draw(renderer);
             }
-            Debug.EndFrame();
             Profiler.End();
+
             if (renderer.DrawGUI) {
                 Debug.Draw(renderer);
                 renderer.D2DContext.EndDraw();
             }
 
-            renderer.EndDrawFrame();
+            renderer.Present();
         }
 
         public void Dispose() {

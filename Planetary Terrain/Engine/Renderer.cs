@@ -342,7 +342,7 @@ namespace Planetary_Terrain {
                 Context.ClearDepthStencilView(depthStencilView, D3D11.DepthStencilClearFlags.Depth, 1f, 0);
         }
         
-        public void EndDrawFrame() {
+        public void Present() {
             swapChain.Present(1, DXGI.PresentFlags.None);
         }
 

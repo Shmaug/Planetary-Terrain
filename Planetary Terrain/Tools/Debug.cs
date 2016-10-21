@@ -16,53 +16,60 @@ namespace Planetary_Terrain {
                 "Yellow",
                 "RosyBrown"
             };
-        public static double Total
-        {
-            get
-            {
-                double t = 0;
-                foreach (KeyValuePair<string, Stopwatch> p in ActiveProfilers)
-                    t += p.Value.Elapsed.Ticks;
-                return t;
-            }
-        }
-        static Dictionary<string, Stopwatch> ActiveProfilers = new Dictionary<string, Stopwatch>();
-        
-        
+        public static Profiler ActiveProfiler;
+
+        public Stopwatch Stopwatch;
         public string Name;
-        List<Profiler> Children;
-        Profiler Parent;
+        public List<Profiler> Children;
+        public Profiler Parent;
         public Profiler(string name) {
             Name = name;
             Children = new List<Profiler>();
+            Stopwatch = new Stopwatch();
         }
 
         public static void Begin(string name = "") {
-
+            if (ActiveProfiler == null) {
+                ActiveProfiler = new Profiler(name);
+                ActiveProfiler.Stopwatch.Start();
+            }else {
+                Profiler p = new Profiler(name);
+                p.Parent = ActiveProfiler;
+                ActiveProfiler.Children.Add(p);
+                ActiveProfiler = p;
+                p.Stopwatch.Start();
+            }
         }
         public static void End() {
-
+            ActiveProfiler?.Stopwatch.Stop();
+            ActiveProfiler = ActiveProfiler.Parent;
         }
 
-        public static void Draw(Renderer renderer, RawRectangleF rect, ref int c, int tx, ref int y) {
-            double t = Total;
+        public void Draw(Renderer renderer, RawRectangleF rect) {
+            Draw(renderer, rect, 0, (int)rect.Left, 16);
+        }
+
+        public void Draw(Renderer renderer, RawRectangleF rect, int c, int textx, int texty) {
+            D2D1.Brush brush = renderer.Brushes[Colors[c % Colors.Length]];
+
+            renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
+            renderer.D2DContext.FillRectangle(rect, brush);
+            renderer.D2DContext.DrawText(
+                Name + " (" + Stopwatch.Elapsed.TotalMilliseconds.ToString("F1") + "ms) " + Children.Count,
+                renderer.Consolas14, new RawRectangleF(textx, rect.Bottom + texty, textx + 300, rect.Bottom + texty + 16), brush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
+
+            textx += 5;
+            texty += 16;
 
             int x = 0;
-
-            D2D1.Brush brush = renderer.Brushes[Colors[0]];
-
-            int h = 30;
-
-            foreach (KeyValuePair<string, Stopwatch> k in ActiveProfilers) {
-                int w = (int)((k.Value.Elapsed.Ticks / t) * (rect.Right - rect.Left));
-                renderer.D2DContext.FillRectangle(new RawRectangleF(rect.Left + x, rect.Top, rect.Left + x + w, rect.Bottom), brush);
-                renderer.D2DContext.DrawText(
-                    k.Key + " (" + k.Value.Elapsed.TotalMilliseconds + "ms)",
-                    renderer.Consolas14, new RawRectangleF(tx, y, tx+300, y+h), brush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
-
-                x += w;
-                y += h;
+            foreach (Profiler p in Children) {
                 c++;
+
+                int w = (int)((p.Stopwatch.Elapsed.Ticks / (double)Stopwatch.Elapsed.Ticks) * (rect.Right - rect.Left));
+                p.Draw(renderer, new RawRectangleF(rect.Left + x, rect.Top, rect.Left + x + w, rect.Bottom), c, textx, texty);
+
+                texty += 16;
+                x += w;
             }
         }
     }
@@ -73,9 +80,6 @@ namespace Planetary_Terrain {
         public static int VerticiesDrawn;
         public static int FPS;
         
-        public static Profiler UpdateProfiler = new Profiler("Update");
-        public static Profiler DrawProfiler = new Profiler("Draw");
-
         static List<string> logs = new List<string>();
         static Dictionary<string, string> labels = new Dictionary<string, string>();
         
@@ -107,13 +111,6 @@ namespace Planetary_Terrain {
                 VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 10), renderer.Brushes["White"]);
             
-            if (ClosestQuadTree != null) {
-                Planet p = ClosestQuadTree.Body is Planet ? ClosestQuadTree.Body as Planet : null;
-                renderer.D2DContext.DrawText(
-                    string.Format("Closest QuadTree: {0} | {1}m/vertex | Scale: {2} | [{3}-{4}]",
-                    ClosestQuadTreeDistance.ToString("F2"), ClosestQuadTree.VertexSpacing.ToString("F2"), ClosestQuadTreeScale.ToString("F2"), p?.min.ToString("F1"), p?.max.ToString("F1")),
-                    renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 40, 300, renderer.Viewport.Height - 25), renderer.Brushes["White"]);
-            }
             #region logs
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.WordWrapping = DWrite.WordWrapping.NoWrap;
@@ -141,6 +138,11 @@ namespace Planetary_Terrain {
                 y -= h + 5;
             }
             #endregion
+
+            Profiler pr = Profiler.ActiveProfiler;
+            while (pr.Parent != null)
+                pr = pr.Parent;
+            pr.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 500, 10, renderer.ResolutionX - 100, 40));
         }
     }
 }
