@@ -32,7 +32,7 @@ namespace Planetary_Terrain {
                 6371000,
                 5.972e24,
                 20000,
-                new Atmosphere(6371000 + 50000) {
+                new Atmosphere(6371000 + 80000) {
                     SurfacePressure = 100, //kPa
                     SurfaceDensity = 1.2, // kg/m^3
                     SurfaceTemperature = 22 // celsius
@@ -99,21 +99,14 @@ namespace Planetary_Terrain {
         }
 
 
-        public void Update(Renderer renderer, D3D11.Device device, double deltaTime) {
+        public void UpdateLOD(Renderer renderer, D3D11.Device device, double deltaTime) {
             foreach (CelestialBody b in bodies)
-                b.Update(deltaTime, device, renderer.Camera);
+                b.UpdateLOD(deltaTime, device, renderer.Camera);
         }
 
-        public void Draw(Renderer renderer, double playerSpeed) {
+        public void DrawPlanetHudIcons(Renderer renderer, double playerSpeed) {
             foreach (CelestialBody b in bodies)
-                b.Draw(renderer);
-
-            if (renderer.DrawGUI) {
-                renderer.D2DContext.BeginDraw();
-                foreach (CelestialBody b in bodies)
-                    b.DrawHUDIcon(renderer, playerSpeed);
-                renderer.D2DContext.EndDraw();
-            }
+                b.DrawHUDIcon(renderer, playerSpeed);
         }
 
         public void Dispose() {

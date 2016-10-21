@@ -41,32 +41,41 @@ namespace Planetary_Terrain {
         public double Drag;
         public Orbit Orbit;
 
+        public bool DisablePhysics = false;
+
         public List<Force> Forces = new List<Force>();
-
-
+        
         public PhysicsBody(double mass) {
             Mass = mass;
             Drag = 1;
         }
 
+        public void AddForce(Vector3d force, Vector3d pos) {
+            Forces.Add(new Force(force, pos));
+        }
+
         public virtual void Update(double deltaTime) {
+            if (DisablePhysics) return;
+
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
             double h = b != null ? (b.Position - Position).Length() : 0;
-            if (b != null) {
-                // perform drag
-                if (b is Planet) {
-                    Atmosphere a = (b as Planet).Atmosphere;
-                    if (a != null && h < a.Radius) {
-                        double v = Velocity.LengthSquared();
-                        if (v > .1) {
-                            double temp;
-                            double pressure;
-                            double density;
-                            double c;
-                            a.MeasureProperties(h, out pressure, out density, out temp, out c);
+            if (b != this) {
+                if (b != null) {
+                    // perform drag
+                    if (b is Planet) {
+                        Atmosphere a = (b as Planet).Atmosphere;
+                        if (a != null && h < a.Radius) {
+                            double v = Velocity.LengthSquared();
+                            if (v > .1) {
+                                double temp;
+                                double pressure;
+                                double density;
+                                double c;
+                                a.MeasureProperties(h, out pressure, out density, out temp, out c);
 
-                            double drag = .5 * pressure * v * Drag;
-                            //Forces.Add(new Force(-Vector3d.Normalize(Velocity) * drag, Vector3.Zero));
+                                double drag = .5 * density * v * Drag;
+                                AddForce(-Vector3d.Normalize(Velocity) * drag, Vector3.Zero);
+                            }
                         }
                     }
                 }
@@ -83,20 +92,29 @@ namespace Planetary_Terrain {
 
             Forces.Clear();
 
-            // check collision
-            if (b != null) {
-                Vector3d p = Position - b.Position;
-                p /= h;
-                double t = b.GetHeight(p);
-                if (h < t) {
-                    Position = b.Position + p * t;
+            if (b != this) {
+                // check collision
+                if (b != null) {
+                    Vector3d p = Position - b.Position;
+                    p /= h;
+                    double t = b.GetHeight(p);
+                    if (h < t) {
+                        Position = b.Position + p * t;
 
-                    // vector rejection
-                    Vector3d o = Vector3d.Normalize(Position - b.Position);
-                    Velocity -= o * Vector3d.Dot(Velocity, o);
+                        Vector3d n = b.GetNormal(p);
+                        // vector rejection
+                        Velocity -= n * Vector3d.Dot(Velocity, n);
+
+                        // friction
+                        double grav = Physics.G * b.Mass / (h * h);
+                        AddForce(Vector3d.Normalize(-Velocity) * .2 * Mass * grav, Vector3.Zero);
+                    }
                 }
             }
         }
+        public virtual void PostUpdate() { }
+
+        public virtual void Draw(Renderer renderer) { }
     }
     class Physics {
         public const double LIGHT_SPEED = 299792458;
@@ -160,13 +178,16 @@ namespace Planetary_Terrain {
         /// Calculates gravity force vector
         /// </summary>
         /// <returns>Force vector (from a to b)</returns>
-        public static void Gravity(double deltaTime, PhysicsBody a, PhysicsBody b) {
-            Vector3d dir = a.Position - b.Position;
-            double magnitude = G * (a.Mass * b.Mass) / dir.LengthSquared();
-            dir.Normalize();
+        public static Vector3d Gravity(double deltaTime, PhysicsBody a, PhysicsBody b) {
+            Vector3d dir = b.Position - a.Position;
+            double l2 = dir.LengthSquared();
+            if (l2 > .1) {
+                double magnitude = G * (a.Mass * b.Mass) / l2;
+                dir.Normalize();
 
-            a.Forces.Add(new Force(dir * magnitude, Vector3.Zero));
-            b.Forces.Add(new Force(-dir * magnitude, Vector3.Zero));
+                return dir * magnitude;
+            }
+            return Vector3.Zero;
         }
 
         public void AddBody(PhysicsBody body) {
@@ -179,12 +200,21 @@ namespace Planetary_Terrain {
 
         public void Update(double deltaTime) {
             foreach (PhysicsBody b in bodies)
-                foreach (PhysicsBody b2 in bodies)
-                    if (b != b2)
-                        Gravity(deltaTime, b, b2);
+                if (!b.DisablePhysics)
+                    foreach (PhysicsBody cb in StarSystem.ActiveSystem.bodies)
+                        if (b != cb)
+                            b.AddForce(Gravity(deltaTime, b, cb), Vector3.Zero);
 
             foreach (PhysicsBody b in bodies)
                 b.Update(deltaTime);
+
+            foreach (PhysicsBody b in bodies)
+                b.PostUpdate();
+        }
+
+        public void Draw(Renderer renderer) {
+            foreach (PhysicsBody b in bodies)
+                b.Draw(renderer);
         }
     }
 }

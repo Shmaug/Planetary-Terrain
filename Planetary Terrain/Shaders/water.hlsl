@@ -67,11 +67,11 @@ float4 psmain(v2f i) : SV_TARGET
 		col *= clamp(dot(LightDirection, -i.normal), 0, 1);
 
 		// specular lighting
-		//float3 r = reflect(-LightDirection, i.normal);
-		//float3 v = normalize(i.worldPos);
-		//float dp = dot(r, v);
-		//if (dp > 0)
-		//	col += pow(dp, 200);
+		float3 r = reflect(-LightDirection, i.normal);
+		float3 v = normalize(i.worldPos);
+		float dp = dot(r, v);
+		if (dp > 0)
+			col += pow(dp, 200);
 	}
 
 	col = i.c1 + col * i.c0;

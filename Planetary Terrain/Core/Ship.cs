@@ -10,7 +10,7 @@ namespace Planetary_Terrain {
 
         public double Throttle;
 
-        public Ship(D3D11.Device device, Camera camera) : base(100) {
+        public Ship(D3D11.Device device) : base(100) {
             ShipModel = new Model("Data/Models/ship/ship.fbx", device);
             ShipModel.Meshes[0].SetEmissiveTexture(device, "Data/Models/ship/ship_emission.png");
             ShipModel.Meshes[0].SetSpecularTexture(device, "Data/Models/ship/ship_specular.png");
@@ -22,11 +22,12 @@ namespace Planetary_Terrain {
         }
 
         public override void Update(double deltaTime) {
-            Forces.Add(new Force((Vector3d)Rotation.Backward * 460000 * Throttle, Vector3.Zero));
+            AddForce((Vector3d)Rotation.Backward * 460000 * Throttle, Vector3.Zero);
+
             base.Update(deltaTime);
         }
         
-        public void Draw(Renderer renderer) {
+        public override void Draw(Renderer renderer) {
             Vector3d light = new Vector3d();
             Star star = StarSystem.ActiveSystem.GetNearestStar(Position);
             if (star != null)
@@ -38,10 +39,7 @@ namespace Planetary_Terrain {
                 Rotation * Matrix.Translation(Position - renderer.Camera.Position));
         }
 
-
-        public void DrawFlightUI(Renderer renderer) {
-            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
-            double h = (b.Position - Position).Length();
+        public void DrawHUD(Renderer renderer) {
             double v = Velocity.Length();
 
             float xmid = renderer.ResolutionX * .5f;
@@ -56,45 +54,49 @@ namespace Planetary_Terrain {
                 new RawRectangleF(xmid - 130, 0, xmid, 40),
                 renderer.Brushes["Black"]);
 
-            renderer.D2DContext.DrawText(Physics.FormatDistance(h - b.Radius), renderer.SegoeUI24,
-                new RawRectangleF(xmid, 0, xmid + 150, 40),
-                renderer.Brushes["Black"]);
-            renderer.D2DContext.DrawText("(" + b.Name + ")", renderer.SegoeUI14,
-                new RawRectangleF(xmid, 30, xmid + 150, 50),
-                renderer.Brushes["Black"]);
+            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
+            if (b != null) {
+                double h = (b.Position - Position).Length();
+                renderer.D2DContext.DrawText(Physics.FormatDistance(h - b.Radius), renderer.SegoeUI24,
+                    new RawRectangleF(xmid, 0, xmid + 150, 40),
+                    renderer.Brushes["Black"]);
+                renderer.D2DContext.DrawText("(" + b.Name + ")", renderer.SegoeUI14,
+                    new RawRectangleF(xmid, 30, xmid + 150, 50),
+                    renderer.Brushes["Black"]);
 
-            if (b is Planet) {
-                Atmosphere a = (b as Planet).Atmosphere;
-                if (a != null && h < a.Radius * 1.5) {
-                    double temp;
-                    double pressure;
-                    double density;
-                    double c;
-                    a.MeasureProperties(h, out pressure, out density, out temp, out c);
+                if (b is Planet) {
+                    Atmosphere a = (b as Planet).Atmosphere;
+                    if (a != null && h < a.Radius * 1.5) {
+                        double temp;
+                        double pressure;
+                        double density;
+                        double c;
+                        a.MeasureProperties(h, out pressure, out density, out temp, out c);
 
-                    renderer.D2DContext.FillRectangle(
-                        new RawRectangleF(xmid - 260, 0, xmid - 155, 80),
-                        renderer.Brushes["White"]);
+                        renderer.D2DContext.FillRectangle(
+                            new RawRectangleF(xmid - 260, 0, xmid - 155, 80),
+                            renderer.Brushes["White"]);
 
-                    renderer.D2DContext.DrawText("Atmosphere: ", renderer.SegoeUI14,
-                        new RawRectangleF(xmid - 250, 3, xmid - 155, 10),
-                        renderer.Brushes["Black"]);
+                        renderer.D2DContext.DrawText("Atmosphere: ", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 250, 3, xmid - 155, 10),
+                            renderer.Brushes["Black"]);
 
-                    renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
-                        new RawRectangleF(xmid - 240, 15, xmid - 155, 30),
-                        renderer.Brushes["Black"]);
+                        renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 15, xmid - 155, 30),
+                            renderer.Brushes["Black"]);
 
-                    renderer.D2DContext.DrawText(pressure.ToString("F1") + " kPa", renderer.SegoeUI14,
-                        new RawRectangleF(xmid - 240, 30, xmid - 155, 45),
-                        renderer.Brushes["Black"]);
+                        renderer.D2DContext.DrawText(pressure.ToString("F1") + " kPa", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 30, xmid - 155, 45),
+                            renderer.Brushes["Black"]);
 
-                    renderer.D2DContext.DrawText(density.ToString("F1") + " kg/m^3", renderer.SegoeUI14,
-                        new RawRectangleF(xmid - 240, 45, xmid - 155, 60),
-                        renderer.Brushes["Black"]);
+                        renderer.D2DContext.DrawText(density.ToString("F1") + " kg/m^3", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 45, xmid - 155, 60),
+                            renderer.Brushes["Black"]);
 
-                    renderer.D2DContext.DrawText("Mach " + (Velocity.Length()/c).ToString("F2"), renderer.SegoeUI14,
-                        new RawRectangleF(xmid - 240, 60, xmid - 155, 75),
-                        renderer.Brushes["Black"]);
+                        renderer.D2DContext.DrawText("Mach " + (Velocity.Length() / c).ToString("F2"), renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 60, xmid - 155, 75),
+                            renderer.Brushes["Black"]);
+                    }
                 }
             }
         }

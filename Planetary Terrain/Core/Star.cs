@@ -63,8 +63,7 @@ namespace Planetary_Terrain {
             });
         }
 
-        public override void Update(double deltaTime, D3D11.Device device, Camera camera) {
-            base.Update(deltaTime, device, camera);
+        public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
             Vector3d dir = camera.Position - Position;
             double height = dir.Length();
             dir /= height;

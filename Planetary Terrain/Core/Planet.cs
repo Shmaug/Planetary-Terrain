@@ -19,6 +19,7 @@ namespace Planetary_Terrain {
         public Atmosphere Atmosphere;
 
         public bool HasOcean;
+        public double OceanHeight;
         public Color OceanColor;
         
         /// <summary>
@@ -38,6 +39,8 @@ namespace Planetary_Terrain {
         struct Constants {
             [FieldOffset(0)]
             public Vector3 lightDirection;
+            [FieldOffset(12)]
+            public float oceanLevel;
             [FieldOffset(16)]
             public Vector3 oceanColor;
         }
@@ -54,6 +57,7 @@ namespace Planetary_Terrain {
                 atmosphere.Planet = this;
 
             HasOcean = ocean;
+            OceanHeight = .5;
             OceanColor = new Color(45, 100, 245);
         }
 
@@ -61,15 +65,18 @@ namespace Planetary_Terrain {
         double height(Vector3d direction) {
             double total = 0;
 
-            double rough = Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) * .5 + .5;
+            // TODO: Height function
+
+            double rough = Noise.Simplex(direction * 50 + new Vector3d(-5000));
 
             double mntn = Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
-            double flat = Noise.Fractal(direction * 200 + new Vector3d(-5000), 4, .02f, .3f);
+            double flat = Noise.Ridged(direction * 100 + new Vector3(1000), 2, .01f, .45f);
 
-            flat *= 1.0 - rough*rough*rough;
-            mntn *= rough;
-            mntn = mntn * mntn;
+            rough = rough * rough * rough;
 
+            flat *= rough;
+            mntn *= 1.0 - rough;
+            
             total = mntn + flat;
             
             min = Math.Min(min, total);
@@ -123,15 +130,13 @@ namespace Planetary_Terrain {
             });
         }
 
-        public override void Update(double deltaTime, D3D11.Device device, Camera camera) {
-            base.Update(deltaTime, device, camera);
-
+        public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
             Vector3d dir = camera.Position - Position;
             double height = dir.Length();
             dir /= height;
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].SplitDynamic(dir, height, device);
-            Atmosphere?.Update(device, camera);
+            Atmosphere?.UpdateLOD(device, camera);
         }
 
         public override void Draw(Renderer renderer) {
@@ -150,6 +155,7 @@ namespace Planetary_Terrain {
                 constants.lightDirection = Vector3d.Normalize(Position - s.Position);
             else
                 constants.lightDirection = new Vector3d();
+            constants.oceanLevel = (float)OceanHeight;
             constants.oceanColor = OceanColor.ToVector3();
 
             // create/update constant buffer

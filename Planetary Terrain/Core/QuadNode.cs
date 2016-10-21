@@ -416,7 +416,7 @@ namespace Planetary_Terrain {
 
             double oceanLevel = 0;
             if (hasWaterVerticies) {
-                oceanLevel = Body.Radius;
+                oceanLevel = Body.Radius + (Body as Planet).TerrainHeight * (Body as Planet).OceanHeight;
                 waterVerticies = new VertexNormal[s * s * 6];
                 waterFarVerticies = new PlanetVertex[s * s * 6];
             }
@@ -729,14 +729,11 @@ namespace Planetary_Terrain {
             double dist;
             Vector3d vertex;
             ClosestVertex(dir*height + Body.Position, out vertex, out dist);
-
-            //double theta = Math.Acos(Vector3d.Dot(dir, Vector3d.Normalize(vertex - Body.Position)));
-            //double p = Body.Radius;
-
+            
             double arcDist = Body.ArcLength(Vector3.Normalize(vertex - Body.Position), dir);
 
             if (hasWaterVerticies) {
-                double wh = Body.Radius;
+                double wh = Body.Radius + ((Planet)Body).TerrainHeight * ((Planet)Body).OceanHeight;
                 Vector3d d2 = Vector3d.Normalize(vertex - Body.Position);
                 dist = Math.Min(dist, (d2 * wh - dir*height).Length());
             }
@@ -788,22 +785,7 @@ namespace Planetary_Terrain {
 
             return false;
         }
-
-        Matrix OrientationFromDirection(Vector3d direction) {
-            Quaternion q = Quaternion.Identity;
-            Vector3 pUp = direction;
-
-            float ang = (float)Math.Acos(Vector3.Dot(pUp, Vector3.Up));
-            if (ang != 0f) {
-                Vector3 orthoRay = Vector3.Cross(Vector3.Up, pUp);
-                orthoRay.Normalize();
-                q = Quaternion.RotationAxis(orthoRay, ang);
-            }
-            q.Normalize();
-
-            return Matrix.RotationQuaternion(q);
-        }
-
+        
         public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
             if (indexdirty) {
                 indexBuffer?.Dispose();
@@ -833,7 +815,7 @@ namespace Planetary_Terrain {
 
             constants.World = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
             constants.WorldInverseTranspose = Matrix.Identity;
-            constants.NodeOrientation = OrientationFromDirection(Vector3d.Normalize(MeshCenter));
+            constants.NodeOrientation = Body.OrientationFromDirection(Vector3d.Normalize(MeshCenter));
             constants.Scale = (float)scale;
             constants.drawWaterFar = !waterPass && hasWaterVerticies && d > waterDetailThreshold;
             constants.Color = Vector3.One;

@@ -50,10 +50,7 @@ namespace Planetary_Terrain {
                 BaseQuads[i].Generate();
         }
 
-        public virtual void Update(double deltaTime, D3D11.Device device, Camera camera) {
-            base.Update(deltaTime);
-        }
-        public abstract void Draw(Renderer renderer);
+        public abstract void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera);
         public void DrawHUDIcon(Renderer renderer, double playerSpeed) {
             Vector2? screenPos = renderer.WorldToScreen(Position);
             if (screenPos.HasValue) {
@@ -78,6 +75,12 @@ namespace Planetary_Terrain {
         public abstract double GetHeight(Vector3d direction);
         public abstract void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double height);
 
+        public Vector3d GetNormal(Vector3d direction) {
+            Vector3d p1 = new Vector3d(0, GetHeight(direction), 0);
+            Vector3d p2 = new Vector3d(0.1, GetHeight(direction + new Vector3d(0.001, 0, 0)), 0);
+            Vector3d p3 = new Vector3d(0, GetHeight(direction + new Vector3d(0, 0, 0.001)), 0.1);
+            return Vector3d.Cross(Vector3d.Normalize(p3 - p1), Vector3d.Normalize(p2 - p1));
+        }
         /// <summary>
         /// Returns the point on the surface of the planet, along the line from the planet's position to the given point
         /// </summary>
@@ -85,6 +88,19 @@ namespace Planetary_Terrain {
             p -= Position;
             p.Normalize();
             return p * Radius;
+        }
+
+        /// <summary>
+        /// Returns a matrix describing a rotation such that up is relative to the planet's surface
+        /// </summary>
+        public Matrix OrientationFromDirection(Vector3d direction) {
+            Vector3 pUp = direction;
+
+            float ang = (float)Math.Acos(Vector3.Dot(pUp, Vector3.Up));
+            if (ang != 0f)
+                return Matrix.RotationAxis(Vector3.Normalize(Vector3.Cross(Vector3.Up, pUp)), ang);
+
+            return Matrix.Identity;
         }
         /// <summary>
         /// Convert a chordal distance to arc length

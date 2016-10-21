@@ -98,7 +98,7 @@ namespace Planetary_Terrain {
 
         }
 
-        public static void Draw(Renderer renderer, Ship ship) {
+        public static void Draw(Renderer renderer) {
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
             

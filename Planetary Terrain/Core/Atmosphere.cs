@@ -99,7 +99,7 @@ namespace Planetary_Terrain {
             c = 331.3 + (.6 * temperature);
         }
 
-        public void Update(D3D11.Device device, Camera camera) {
+        public void UpdateLOD(D3D11.Device device, Camera camera) {
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].SplitDynamic(camera.Position, device);
         }
@@ -116,12 +116,11 @@ namespace Planetary_Terrain {
             float kr = .0025f; // rayleigh scattering constant
             float km = .0010f; // mie scattering constant
             float sun = 15f; // sun brightness
-            Vector3 wavelength = Wavelengths;
 
             constants.InvWavelength = 1f / new Vector3(
-                    (float)Math.Pow(wavelength.X, 4),
-                    (float)Math.Pow(wavelength.Y, 4),
-                    (float)Math.Pow(wavelength.Z, 4)
+                    (float)Math.Pow(Wavelengths.X, 4),
+                    (float)Math.Pow(Wavelengths.Y, 4),
+                    (float)Math.Pow(Wavelengths.Z, 4)
                 );
 
             constants.KrESun = kr * sun;

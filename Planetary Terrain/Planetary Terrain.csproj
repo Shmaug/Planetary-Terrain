@@ -112,7 +112,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Core\Atmosphere.cs" />
-    <Compile Include="Core\Body.cs" />
+    <Compile Include="Core\CelestialBody.cs" />
+    <Compile Include="Core\Player.cs" />
     <Compile Include="Engine\Camera.cs" />
     <Compile Include="Core\Ship.cs" />
     <Compile Include="Core\Skybox.cs" />

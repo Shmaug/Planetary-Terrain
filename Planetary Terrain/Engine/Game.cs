@@ -27,10 +27,11 @@ namespace Planetary_Terrain {
         #endregion
 
         public UI.Frame ControlPanel;
-        Ship player;
-        Ship ship2;
+        Player player;
         Skybox skybox;
-        double zoomd = 0;
+
+        int frameCount = 0;
+        double frameTime = 0;
 
         public Game() {
             renderForm = new RenderForm("D3D11 Planets");
@@ -56,8 +57,6 @@ namespace Planetary_Terrain {
 
             Initialize();
         }
-        int frameCount = 0;
-        double frameTime = 0;
         public void Run() {
             gameTimer = Stopwatch.StartNew();
             frameTimer = new Stopwatch();
@@ -82,15 +81,16 @@ namespace Planetary_Terrain {
         void Initialize() {
             skybox = new Skybox("Data/Textures/EmptySpace.dds", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
-            
-            renderer.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
 
-            // TODO: redo player/ship (so player is separate)
-            player = new Ship(renderer.Device, renderer.Camera);
-            ship2 = new Ship(renderer.Device, renderer.Camera);
+            player = new Player();
+            player.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
+            player.Vehicle = new Ship(renderer.Device);
+            player.DisablePhysics = true;
+            renderer.Camera = player.Camera;
             StarSystem.ActiveSystem.physics.AddBody(player);
-            StarSystem.ActiveSystem.physics.AddBody(ship2);
+            StarSystem.ActiveSystem.physics.AddBody(player.Vehicle);
 
+            #region build UI
             float h = 35;
             RawRectangleF bounds = new RawRectangleF(0, 300, 235, 300 + h);
             ControlPanel = new UI.Frame(null, "Panel1", bounds, renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
@@ -99,10 +99,10 @@ namespace Planetary_Terrain {
             new UI.TextLabel(ControlPanel, "Title", new RawRectangleF(0, 0, 235, h), "NAVIGATOR", renderer.SegoeUI24, renderer.Brushes["White"]);
             float y = h;
             foreach (CelestialBody p in StarSystem.ActiveSystem.bodies) {
-                Vector3d d = Vector3d.Normalize(new Vector3d(0, 0.9, -1));
+                Vector3d d = Vector3d.Normalize(new Vector3d(0, 1, -.45));
                 new UI.TextButton(ControlPanel, p.Name + "Button", new RawRectangleF(5, y, 170, y + h-2), p.Name, renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     ()=> {
-                        player.Position = p.Position + d * (p.SOI + 1000);
+                        player.Teleport(p.Position + d * (p.SOI + 1000));
                     });
                 new UI.TextButton(ControlPanel, p.Name + "SfcButton", new RawRectangleF(175, y, 230, y + h - 2), "Surface", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     () => {
@@ -110,36 +110,22 @@ namespace Planetary_Terrain {
                         if (p is Planet) {
                             Planet planet = p as Planet;
                             if (planet.HasOcean) {
-                                hh = Math.Max(hh, planet.Radius);
+                                hh = Math.Max(hh, planet.Radius + planet.TerrainHeight * planet.OceanHeight);
                             }
                         }
-                        player.Position = p.Position + d * (hh + 50);
+                        player.Teleport(p.Position + d * (hh + 50));
                     });
                 y += h;
                 bounds.Bottom += h;
             }
-
-            y += 10;
-            new UI.TextButton(ControlPanel, "NewShipButton", new RawRectangleF(5, y, 170, y + h - 2), "Paste Ship", renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
-                   () => {
-                       ship2.Position = player.Position;
-                       ship2.Rotation = player.Rotation;
-                   });
-            bounds.Bottom += h + 10;
-
+            
             ControlPanel.LocalBounds = bounds;
+            #endregion
 
             (ControlPanel["EarthSfcButton"] as UI.TextButton).Click();
-
-            renderer.Camera.Ship = player;
-            renderer.Camera.Mode = Camera.CameraMode.Ship;
         }
-
-        double t = 0;
+        
         void Update(double deltaTime) {
-            t += deltaTime;
-            Debug.Track(t.ToString("F2") + "/" + gameTimer.Elapsed.TotalSeconds.ToString("F2") + "   (" + deltaTime.ToString("F4") + ")", "time");
-
             #region input state update
             InputState.ks = keyboard.GetCurrentState();
             InputState.ms = mouse.GetCurrentState();
@@ -148,89 +134,30 @@ namespace Planetary_Terrain {
             InputState.mousePos = realMousePos;
             #endregion
 
-            #region ship/camera control
-            Vector3d r = Vector3.Zero;
-            if (InputState.ks.IsPressed(DInput.Key.W))
-                r.X -= -1;
-            else if (InputState.ks.IsPressed(DInput.Key.S))
-                r.X += -1;
-            if (InputState.ks.IsPressed(DInput.Key.A))
-                r.Y -= 1;
-            else if (InputState.ks.IsPressed(DInput.Key.D))
-                r.Y += 1;
-            if (InputState.ks.IsPressed(DInput.Key.Q))
-                r.Z += 1;
-            if (InputState.ks.IsPressed(DInput.Key.E))
-                r.Z -= 1;
-
-            r *= .01;
-            player.AngularVelocity = Vector3.Lerp(player.AngularVelocity, r, (float)deltaTime);
-
-            if (InputState.ks.IsPressed(DInput.Key.LeftShift))
-                player.Throttle += deltaTime * .25;
-            else if (InputState.ks.IsPressed(DInput.Key.LeftControl))
-                player.Throttle -= deltaTime * .25;
-            player.Throttle = MathTools.Clamp01(player.Throttle);
-
-            // Camera view switch
-            if (InputState.ks.IsPressed(DInput.Key.V) && !InputState.lastks.IsPressed(DInput.Key.V)) {
-                if (renderer.Camera.Mode == Camera.CameraMode.Body) {
-                    renderer.Camera.Mode = Camera.CameraMode.Ship;
-                    renderer.Camera.Ship = player;
-                } else
-                    renderer.Camera.Mode = Camera.CameraMode.Body;
-            }
-
-            // Mouse lock
-            if (InputState.ks.IsPressed(DInput.Key.F1) && !InputState.lastks.IsPressed(DInput.Key.F1)) {
-                lockMouse = !lockMouse;
-            
-                if (lockMouse)
-                    System.Windows.Forms.Cursor.Hide();
-                else
-                    System.Windows.Forms.Cursor.Show();
-            }
-            
-            // Mouse look
-            if (lockMouse || InputState.ms.Buttons[1] || InputState.ms.Buttons[2]) {
-                Vector2 delta;
-                if (lockMouse) {
-                    delta = new Vector2(InputState.ms.X, InputState.ms.Y);
-                    System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
-                } else
-                    delta = InputState.mousePos - InputState.lastMousePos;
-
-                if (InputState.ms.Buttons[2])
-                    renderer.Camera.PostRotation += new Vector3(delta.Y, delta.X, 0) * .003f;
-                else
-                    renderer.Camera.Rotation += new Vector3(delta.Y, delta.X, 0) * .003f;
-            }
-            // zoom
-            zoomd = -InputState.ms.Z / 120;
-            renderer.Camera.Zoom += zoomd * deltaTime;
-            zoomd *= .8;
-            #endregion
-
             if (InputState.ks.IsPressed(DInput.Key.F2) && !InputState.lastks.IsPressed(DInput.Key.F2))
                 renderer.DrawGUI = !renderer.DrawGUI;
-
-            if (InputState.ks.IsPressed(DInput.Key.Tab) && !InputState.lastks.IsPressed(DInput.Key.Tab))
-                renderer.Camera.BodyIndex = (renderer.Camera.BodyIndex + 1) % StarSystem.ActiveSystem.bodies.Count;
-
-            if (InputState.ks.IsPressed(DInput.Key.F) && !InputState.lastks.IsPressed(DInput.Key.F))
+            
+            if (InputState.ks.IsPressed(DInput.Key.F1) && !InputState.lastks.IsPressed(DInput.Key.F1))
                 renderer.DrawWireframe = !renderer.DrawWireframe;
 
-            player.Update(deltaTime);
+            Profiler.Begin("Player Update");
+            player.UpdateInput(InputState, deltaTime);
+            if (player.FirstPerson)
+                System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
+            Profiler.End();
             Profiler.Begin("StarSystem Update");
-            StarSystem.ActiveSystem.Update(renderer, renderer.Device, deltaTime);
+            StarSystem.ActiveSystem.UpdateLOD(renderer, renderer.Device, deltaTime);
             Profiler.End();
             Profiler.Begin("QuadNode Update");
             QuadNode.Update();
             Profiler.End();
-            renderer.Camera.Update();
-            
+            Profiler.Begin("Physics Update");
+            StarSystem.ActiveSystem.physics.Update(deltaTime);
+            Profiler.End();
+            Profiler.Begin("ControlPanel Update");
             ControlPanel.Update((float)deltaTime, InputState);
-
+            Profiler.End();
+            
             #region input state update
             InputState.lastks = InputState.ks;
             InputState.lastms = InputState.ms;
@@ -240,34 +167,32 @@ namespace Planetary_Terrain {
         void Draw() {
             if (resizePending)
                 renderer.Resize(renderForm.ClientSize.Width, renderForm.ClientSize.Height);
+            renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
 
             Debug.BeginFrame();
 
             renderer.BeginDrawFrame();
-            renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
             renderer.Clear(Color.Black);
-            
+
+            renderer.Camera = player.Camera;
             // 3d
             Profiler.Begin("3d Draw");
             skybox.Draw(renderer);
-
-            StarSystem.ActiveSystem.Draw(renderer, player.Velocity.Length());
-            
-            player.Draw(renderer);
-            ship2.Draw(renderer);
+            StarSystem.ActiveSystem.physics.Draw(renderer);
             Profiler.End();
 
             // 2d
             Profiler.Begin("2d Draw");
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
-                player.DrawFlightUI(renderer);
+                StarSystem.ActiveSystem.DrawPlanetHudIcons(renderer, player.Velocity.Length());
+                player.DrawHUD(renderer);
                 ControlPanel.Draw(renderer);
             }
             Debug.EndFrame();
             Profiler.End();
             if (renderer.DrawGUI) {
-                Debug.Draw(renderer, player);
+                Debug.Draw(renderer);
                 renderer.D2DContext.EndDraw();
             }
 
@@ -279,7 +204,6 @@ namespace Planetary_Terrain {
             StarSystem.ActiveSystem.Dispose();
             skybox.Dispose();
             player?.Dispose();
-            ship2?.Dispose();
             ControlPanel.Dispose();
 
             Shaders.Dispose();

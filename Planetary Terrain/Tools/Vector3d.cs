@@ -44,6 +44,10 @@ namespace Planetary_Terrain {
             return product;
         }
 
+        public static Vector3d Lerp(Vector3d a, Vector3d b, double t) {
+            return a + (b - a) * t;
+        }
+
         public static Vector3d Transform(Vector3d vector, Matrix3x3 transform) {
             return new Vector3d(
                 vector.X * transform.M11 + vector.Y * transform.M21 + vector.Z * transform.M31,
