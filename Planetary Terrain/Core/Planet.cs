@@ -140,6 +140,7 @@ namespace Planetary_Terrain {
         }
 
         public override void Draw(Renderer renderer) {
+            Profiler.Begin(Name + " Draw");
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
 
             // Get the entire planet's scale and scaled position
@@ -162,8 +163,13 @@ namespace Planetary_Terrain {
             if (constBuffer == null) constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
-            // draw atmosphere behind planet
-            Atmosphere?.Draw(renderer, pos, scale);
+            if (Atmosphere != null){
+                Profiler.Begin(Name + " Atmosphere Draw");
+                // draw atmosphere behind planet
+                Atmosphere?.Draw(renderer, pos, scale);
+                Profiler.End();
+                Profiler.Resume(Name + " Draw");
+            }
 
             Shaders.PlanetShader.Set(renderer);
 
@@ -200,6 +206,8 @@ namespace Planetary_Terrain {
 
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Draw(renderer, true, pos, scale);
+
+            Profiler.End();
         }
 
         public override void Dispose() {

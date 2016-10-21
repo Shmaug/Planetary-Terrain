@@ -72,6 +72,7 @@ namespace Planetary_Terrain {
         }
 
         public override void Draw(Renderer renderer) {
+            Profiler.Begin(Name + " Draw");
             // Get the entire planet's scale and scaled position
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
@@ -98,6 +99,7 @@ namespace Planetary_Terrain {
 
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Draw(renderer, false, pos, scale);
+            Profiler.End();
         }
 
         public override void Dispose() {

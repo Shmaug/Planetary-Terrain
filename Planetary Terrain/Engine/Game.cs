@@ -74,7 +74,7 @@ namespace Planetary_Terrain {
                 }
 
                 Debug.BeginFrame();
-                Profiler.Begin("Frame");
+                Profiler p = Profiler.Begin("Frame");
 
                 Profiler.Begin("Update");
                 Update(deltaTime);
@@ -83,9 +83,16 @@ namespace Planetary_Terrain {
                 Profiler.Begin("Draw");
                 Draw();
                 Profiler.End();
-
+                
                 Profiler.End();
                 Debug.EndFrame();
+
+                if (renderer.DrawGUI) {
+                    renderer.D2DContext.BeginDraw();
+                    Debug.Draw(renderer, p);
+                    renderer.D2DContext.EndDraw();
+                }
+                renderer.Present();
             });
         }
         
@@ -197,15 +204,9 @@ namespace Planetary_Terrain {
                 StarSystem.ActiveSystem.DrawPlanetHudIcons(renderer, player.Velocity.Length());
                 player.DrawHUD(renderer);
                 ControlPanel.Draw(renderer);
-            }
-            Profiler.End();
-
-            if (renderer.DrawGUI) {
-                Debug.Draw(renderer);
                 renderer.D2DContext.EndDraw();
             }
-
-            renderer.Present();
+            Profiler.End();
         }
 
         public void Dispose() {

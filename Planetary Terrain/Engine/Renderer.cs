@@ -110,7 +110,7 @@ namespace Planetary_Terrain {
             DXGI.Device dxgiDevice = Device.QueryInterface<D3D11.Device1>().QueryInterface<DXGI.Device2>();
             D2DDevice = new D2D1.Device(dxgiDevice);
             D2DContext = new D2D1.DeviceContext(D2DDevice, D2D1.DeviceContextOptions.None);
-            D2DFactory = new D2D1.Factory1(D2D1.FactoryType.SingleThreaded);
+            D2DFactory = D2DDevice.Factory;
 
             using (DXGI.Surface surface = swapChain.GetBackBuffer<DXGI.Surface>(0))
                 D2DTarget = new D2D1.Bitmap1(D2DContext, surface,
@@ -120,13 +120,15 @@ namespace Planetary_Terrain {
             D2DContext.Target = D2DTarget;
             #endregion
 
-            #region 2d resources
+            #region 2d brushes/fonts
             Brushes = new Dictionary<string, D2D1.Brush>();
             Brushes.Add("Red", new D2D1.SolidColorBrush(D2DContext, Color.Red));
             Brushes.Add("Green", new D2D1.SolidColorBrush(D2DContext, Color.Green));
             Brushes.Add("Blue", new D2D1.SolidColorBrush(D2DContext, Color.Blue));
             Brushes.Add("White", new D2D1.SolidColorBrush(D2DContext, Color.White));
             Brushes.Add("Black", new D2D1.SolidColorBrush(D2DContext, Color.Black));
+            Brushes.Add("TransparentWhite", new D2D1.SolidColorBrush(D2DContext, new Color(1, 1, 1, .5f)));
+            Brushes.Add("TransparentBlack", new D2D1.SolidColorBrush(D2DContext, new Color(0, 0, 0, .5f)));
             Brushes.Add("LightGray", new D2D1.SolidColorBrush(D2DContext, Color.LightGray));
             Brushes.Add("OrangeRed", new D2D1.SolidColorBrush(D2DContext, Color.OrangeRed));
             Brushes.Add("CornflowerBlue", new D2D1.SolidColorBrush(D2DContext, Color.CornflowerBlue));
