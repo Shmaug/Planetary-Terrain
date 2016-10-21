@@ -145,6 +145,7 @@ namespace Planetary_Terrain {
         }
         
         void Update(double deltaTime) {
+            Profiler.Begin("Input Processing");
             #region input state update
             InputState.ks = keyboard.GetCurrentState();
             InputState.ms = mouse.GetCurrentState();
@@ -159,23 +160,21 @@ namespace Planetary_Terrain {
             if (InputState.ks.IsPressed(DInput.Key.F1) && !InputState.lastks.IsPressed(DInput.Key.F1))
                 renderer.DrawWireframe = !renderer.DrawWireframe;
 
-            Profiler.Begin("Player Update");
             player.UpdateInput(InputState, deltaTime);
             if (player.FirstPerson)
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
             Profiler.End();
-            Profiler.Begin("StarSystem Update");
+            Profiler.Begin("StarSystem LOD Update");
             StarSystem.ActiveSystem.UpdateLOD(renderer, renderer.Device, deltaTime);
             Profiler.End();
-            Profiler.Begin("QuadNode Update");
+            Profiler.Begin("QuadNode generation Update");
             QuadNode.Update();
             Profiler.End();
             Profiler.Begin("Physics Update");
             StarSystem.ActiveSystem.physics.Update(deltaTime);
             Profiler.End();
-            Profiler.Begin("ControlPanel Update");
+
             ControlPanel.Update((float)deltaTime, InputState);
-            Profiler.End();
             
             #region input state update
             InputState.lastks = InputState.ks;
@@ -184,14 +183,14 @@ namespace Planetary_Terrain {
             #endregion
         }
         void Draw() {
-            if (resizePending)
+            if (resizePending) {
                 renderer.Resize(renderForm.ClientSize.Width, renderForm.ClientSize.Height);
+                resizePending = false;
+            }
             renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
-
             renderer.BeginDrawFrame();
             renderer.Clear(Color.Black);
 
-            renderer.Camera = player.Camera;
             // 3d
             Profiler.Begin("3d Draw");
             skybox.Draw(renderer);

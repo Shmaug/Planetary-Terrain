@@ -10,11 +10,10 @@ using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     class Renderer : IDisposable {
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 144)]
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
         struct Constants {
             public Matrix View;
             public Matrix Projection;
-            public Vector3 cameraDirection;
         }
         Constants constants;
         public D3D11.Buffer constantBuffer { get; private set; }
@@ -331,7 +330,6 @@ namespace Planetary_Terrain {
         public void BeginDrawFrame() {
             constants.View = Camera.View;
             constants.Projection = Camera.Projection;
-            constants.cameraDirection = Camera.View.Backward;
 
             Context.UpdateSubresource(ref constants, constantBuffer);
         }
