@@ -1,6 +1,7 @@
 ﻿using System;
 using SharpDX;
 using DInput = SharpDX.DirectInput;
+using SharpDX.Mathematics.Interop;
 
 namespace Planetary_Terrain {
     class Player : PhysicsBody, IDisposable {
@@ -115,11 +116,82 @@ namespace Planetary_Terrain {
         }
 
         public override void Draw(Renderer renderer) {
-
+            if (Vehicle == null) {
+                if (!FirstPerson) {
+                    Models.CylinderModel.Draw(
+                        renderer,
+                        Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
+                        Matrix.Translation(Position - Camera.Position));
+                } else {
+                }
+                Models.GunModel.Draw(
+                    renderer,
+                    Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
+                    Matrix.Translation(Position + new Vector3d(1, 0, 0) - renderer.Camera.Position));
+                // TODO: models rotated?
+            }
         }
+
         public void DrawHUD(Renderer renderer) {
-            if (FirstPerson)
-                Vehicle?.DrawHUD(renderer);
+            double v = Velocity.Length();
+
+            float xmid = renderer.ResolutionX * .5f;
+            renderer.D2DContext.FillRectangle(
+                new RawRectangleF(xmid - 150, 0, xmid + 150, 50),
+                renderer.Brushes["White"]);
+
+            renderer.SegoeUI24.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+            renderer.SegoeUI14.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+
+            renderer.D2DContext.DrawText(Physics.FormatSpeed(v), renderer.SegoeUI24,
+                new RawRectangleF(xmid - 130, 0, xmid, 40),
+                renderer.Brushes["Black"]);
+
+            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
+            if (b != null) {
+                double h = (b.Position - Position).Length();
+                renderer.D2DContext.DrawText(Physics.FormatDistance(h - b.Radius), renderer.SegoeUI24,
+                    new RawRectangleF(xmid, 0, xmid + 150, 40),
+                    renderer.Brushes["Black"]);
+                renderer.D2DContext.DrawText("(" + b.Name + ")", renderer.SegoeUI14,
+                    new RawRectangleF(xmid, 30, xmid + 150, 50),
+                    renderer.Brushes["Black"]);
+
+                if (b is Planet) {
+                    Atmosphere a = (b as Planet).Atmosphere;
+                    if (a != null && h < a.Radius * 1.5) {
+                        double temp;
+                        double pressure;
+                        double density;
+                        double c;
+                        a.MeasureProperties(h, out pressure, out density, out temp, out c);
+
+                        renderer.D2DContext.FillRectangle(
+                            new RawRectangleF(xmid - 260, 0, xmid - 155, 80),
+                            renderer.Brushes["White"]);
+
+                        renderer.D2DContext.DrawText("Atmosphere: ", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 250, 3, xmid - 155, 10),
+                            renderer.Brushes["Black"]);
+
+                        renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 15, xmid - 155, 30),
+                            renderer.Brushes["Black"]);
+
+                        renderer.D2DContext.DrawText(pressure.ToString("F1") + " kPa", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 30, xmid - 155, 45),
+                            renderer.Brushes["Black"]);
+
+                        renderer.D2DContext.DrawText(density.ToString("F1") + " kg/m^3", renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 45, xmid - 155, 60),
+                            renderer.Brushes["Black"]);
+
+                        renderer.D2DContext.DrawText("Mach " + (Velocity.Length() / c).ToString("F2"), renderer.SegoeUI14,
+                            new RawRectangleF(xmid - 240, 60, xmid - 155, 75),
+                            renderer.Brushes["Black"]);
+                    }
+                }
+            }
         }
 
         public void Dispose() {

@@ -17,14 +17,10 @@ namespace Planetary_Terrain {
         public int IndexCount;
         public PrimitiveTopology PrimitiveTopology;
         
-        public D3D11.Texture2D DiffuseTexture;
         public D3D11.ShaderResourceView DiffuseTextureView;
-
-        public D3D11.Texture2D EmissiveTexture;
         public D3D11.ShaderResourceView EmissiveTextureView;
-
-        public D3D11.Texture2D SpecularTexture;
         public D3D11.ShaderResourceView SpecularTextureView;
+        public D3D11.ShaderResourceView NormalTextureView;
 
         public D3D11.ShaderResourceView WhiteTextureView;
         public D3D11.ShaderResourceView BlackTextureView;
@@ -32,22 +28,20 @@ namespace Planetary_Terrain {
         public D3D11.SamplerState AnisotropicSampler;
 
         public void SetDiffuseTexture(D3D11.Device device, string filePath) {
-            DiffuseTexture?.Dispose();
             DiffuseTextureView?.Dispose();
-
-            DiffuseTexture = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, filePath, out DiffuseTextureView);
+            ResourceUtil.LoadFromFile(device, filePath, out DiffuseTextureView).Dispose();
         }
         public void SetEmissiveTexture(D3D11.Device device, string filePath) {
-            EmissiveTexture?.Dispose();
             EmissiveTextureView?.Dispose();
-
-            EmissiveTexture = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, filePath, out EmissiveTextureView);
+            ResourceUtil.LoadFromFile(device, filePath, out EmissiveTextureView).Dispose();
         }
         public void SetSpecularTexture(D3D11.Device device, string filePath) {
-            SpecularTexture?.Dispose();
             SpecularTextureView?.Dispose();
-
-            SpecularTexture = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, filePath, out SpecularTextureView);
+            ResourceUtil.LoadFromFile(device, filePath, out SpecularTextureView).Dispose();
+        }
+        public void SetNormalTexture(D3D11.Device device, string filePath) {
+            NormalTextureView?.Dispose();
+            ResourceUtil.LoadFromFile(device, filePath, out NormalTextureView).Dispose();
         }
 
         public void Draw(Renderer renderer) {
@@ -113,6 +107,11 @@ namespace Planetary_Terrain {
             else
                 renderer.Context.PixelShader.SetShaderResource(2, WhiteTextureView);
 
+            if (NormalTextureView != null)
+                renderer.Context.PixelShader.SetShaderResource(3, NormalTextureView);
+            else
+                renderer.Context.PixelShader.SetShaderResource(3, BlackTextureView);
+
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology;
             renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(VertexBuffer, VertexSize, 0));
             renderer.Context.InputAssembler.SetIndexBuffer(IndexBuffer, Format.R16_UInt, 0);
@@ -130,13 +129,9 @@ namespace Planetary_Terrain {
             AnisotropicSampler?.Dispose();
 
             DiffuseTextureView?.Dispose();
-            DiffuseTexture?.Dispose();
-
-            EmissiveTexture?.Dispose();
             EmissiveTextureView?.Dispose();
-
-            SpecularTexture?.Dispose();
             SpecularTextureView?.Dispose();
+            NormalTextureView?.Dispose();
         }
     }
 }
