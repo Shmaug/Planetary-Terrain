@@ -101,6 +101,8 @@ namespace Planetary_Terrain {
                             mm.SetEmissiveTexture(device, modelPath + @"\" + mat.TextureEmissive.FilePath);
                         if (mat.GetMaterialTextureCount(TextureType.Specular) > 0)
                             mm.SetSpecularTexture(device, modelPath + @"\" + mat.TextureSpecular.FilePath);
+                        if (mat.GetMaterialTextureCount(TextureType.Normals) > 0)
+                            mm.SetNormalTexture(device, modelPath + @"\" + mat.TextureNormal.FilePath);
                     }
 
                     //bool hasTexCoords = mesh.HasTextureCoords(0);
@@ -177,24 +179,28 @@ namespace Planetary_Terrain {
             foreach (Node c in node.Children)
                 AddNode(scene, c, device, transform);
         }
-        
-        public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world) {
+
+        public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world, Shader shader) {
             constants.World = world;
             constants.WorldInverseTranspose = Matrix.Transpose(Matrix.Invert(world));
             constants.lightDirection = lightDirection;
-            
+
             // create/update constant buffer
             if (cbuffer == null)
                 cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, cbuffer);
 
-            Shaders.ModelShader.Set(renderer);
+            shader.Set(renderer);
 
             renderer.Context.VertexShader.SetConstantBuffer(1, cbuffer);
             renderer.Context.PixelShader.SetConstantBuffer(1, cbuffer);
 
             foreach (ModelMesh m in Meshes)
                 m.Draw(renderer);
+        }
+        
+        public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world) {
+            Draw(renderer, lightDirection, world, Shaders.ModelShader);
         }
 
         public void Dispose() {

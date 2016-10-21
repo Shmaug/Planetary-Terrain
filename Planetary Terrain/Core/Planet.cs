@@ -150,7 +150,7 @@ namespace Planetary_Terrain {
             if (scale * Radius < 1)
                 return;
 
-            Star s = StarSystem.ActiveSystem.GetNearestStar(Position);
+            Star s = StarSystem.ActiveSystem.GetStar();
             if (s != null)
                 constants.lightDirection = Vector3d.Normalize(Position - s.Position);
             else

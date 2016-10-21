@@ -12,7 +12,7 @@ namespace Planetary_Terrain {
         public static Shader ModelShader;
         public static Shader SkyboxShader;
 
-        public static void LoadShaders(SharpDX.Direct3D11.Device device, SharpDX.Direct3D11.DeviceContext context) {
+        public static void Load(SharpDX.Direct3D11.Device device, SharpDX.Direct3D11.DeviceContext context) {
             StarShader = new Shader(
                 shaderDirectory + "star",
                 device, context, PlanetVertex.InputElements);

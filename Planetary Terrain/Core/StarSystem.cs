@@ -83,19 +83,11 @@ namespace Planetary_Terrain {
             return n;
         }
 
-        public Star GetNearestStar(Vector3d pos) {
-            double near = double.MaxValue;
-            Star n = null;
-            foreach (CelestialBody p in bodies) {
-                if (p is Star) {
-                    double d = (p.Position - pos).Length();
-                    if (d < near) {
-                        near = d;
-                        n = p as Star;
-                    }
-                }
-            }
-            return n;
+        public Star GetStar() {
+            foreach (CelestialBody p in bodies)
+                if (p is Star)
+                    return p as Star;
+            return null;
         }
 
 

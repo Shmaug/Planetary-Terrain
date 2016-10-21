@@ -13,6 +13,7 @@ SamplerState TextureSampler : register(s0);
 Texture2D DiffuseTexture  : register(t0);
 Texture2D EmissiveTexture : register(t1);
 Texture2D SpecularTexture : register(t2);
+Texture2D NormalTexture : register(t3);
 
 struct v2f {
 	float4 position : SV_POSITION;
@@ -35,6 +36,12 @@ float4 psmain(v2f i) : SV_TARGET
 {
 	float3 col = DiffuseTexture.Sample(TextureSampler, i.uv).rgb;
 	if (length(LightDirection) > 0) {
+		float3 n = (NormalTexture.Sample(TextureSampler, i.uv).xyz-.5) * 2;
+		if (length(n) > 0) {
+			n = normalize(n);
+			n = mul(n, WorldInverseTranspose);
+		}
+
 		float light = dot(LightDirection, -i.normal);
 		col *= clamp(light, 0, 1);
 
