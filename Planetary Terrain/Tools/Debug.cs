@@ -101,9 +101,7 @@ namespace Planetary_Terrain {
         public static void Draw(Renderer renderer, Ship ship) {
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
-
-            renderer.D2DContext.BeginDraw();
-
+            
             renderer.D2DContext.DrawText(
                 string.Format("{0} verts, {1} fps    [{2} waiting / {3} generating]",
                 VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
@@ -140,25 +138,21 @@ namespace Planetary_Terrain {
                 float w = 200;
                 RawRectangleF rect = new RawRectangleF(7, y - 3, 7 + w, y - 3 + h);
 
-                renderer.D2DContext.FillRectangle(rect, renderer.Brushes["Black"]);
                 renderer.D2DContext.DrawText(s, renderer.Consolas14, rect, renderer.Brushes["White"]);
 
                 y += h + 5;
             }
 
-            y = 10;
+            y = renderer.ResolutionY - 10 - h;
             foreach (KeyValuePair<string, string> l in labels) {
                 float w = 200;
-                RawRectangleF rect = new RawRectangleF(renderer.ResolutionX * .5f - w - 3, y - 3, renderer.ResolutionX * .5f + w + 3, y + h + 3);
+                RawRectangleF rect = new RawRectangleF(renderer.ResolutionX * .75f - w - 3, y - 3, renderer.ResolutionX * .75f + w + 3, y + h + 3);
 
-                renderer.D2DContext.FillRectangle(rect, renderer.Brushes["Black"]);
                 renderer.D2DContext.DrawText(l.Value, renderer.Consolas14, rect, renderer.Brushes["White"]);
 
-                y += h + 5;
+                y -= h + 5;
             }
             #endregion
-
-            renderer.D2DContext.EndDraw();
         }
     }
 }

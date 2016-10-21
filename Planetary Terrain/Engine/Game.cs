@@ -261,16 +261,16 @@ namespace Planetary_Terrain {
             Profiler.Begin("2d Draw");
             if (renderer.DrawGUI) {
                 renderer.D2DContext.BeginDraw();
+                player.DrawFlightUI(renderer);
                 ControlPanel.Draw(renderer);
+            }
+            Debug.EndFrame();
+            Profiler.End();
+            if (renderer.DrawGUI) {
+                Debug.Draw(renderer, player);
                 renderer.D2DContext.EndDraw();
             }
-            Profiler.End();
 
-            Debug.EndFrame();
-
-            if (renderer.DrawGUI)
-                Debug.Draw(renderer, player);
-            
             renderer.EndDrawFrame();
         }
 

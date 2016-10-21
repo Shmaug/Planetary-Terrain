@@ -1,7 +1,8 @@
 ﻿using System;
 using SharpDX;
 using D3D11 = SharpDX.Direct3D11;
-using System.Collections.Generic;
+using D2D1 = SharpDX.Direct2D1;
+using SharpDX.Mathematics.Interop;
 
 namespace Planetary_Terrain {
     class Ship : PhysicsBody, IDisposable {
@@ -49,8 +50,41 @@ namespace Planetary_Terrain {
                 Rotation * Matrix.Translation(Position - renderer.Camera.Position));
         }
 
+
+        string FormatSpeed(double meters) {
+            if (meters < Physics.LIGHT_SPEED) {
+                string[] u = { "m/s", "km/s", "Mm/s", "Gm/s" };
+                int i = 0;
+                while (meters / 100 > 1 && i < u.Length - 1) {
+                    i++;
+                    meters /= 100;
+                }
+                return meters.ToString("F2") + u[i];
+            } else {
+                string[] u = { "ls/s", "ld/s", "lm/s", "ly/s" }; // TODO: finish this
+                int i = 0;
+                while (meters / LIGHT_SPEED > 1 && i < u.Length - 1) {
+                    i++;
+                    meters /= LIGHT_SPEED;
+                }
+                return (meters / Physics.LIGHT_SPEED).ToString("F2") +  u[i];
+            }
+        }
         public void DrawFlightUI(Renderer renderer) {
             // TODO: flight ui
+
+            float xmid = renderer.ResolutionX * .5f;
+            renderer.D2DContext.FillRectangle(
+                new RawRectangleF(xmid - 150, 0, xmid + 150, 50),
+                renderer.Brushes["White"]);
+            renderer.D2DContext.DrawRectangle(
+                new RawRectangleF(xmid - 150, 0, xmid + 150, 50),
+                renderer.Brushes["Black"]);
+
+            renderer.SegoeUI24.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+            renderer.D2DContext.DrawText(FormatSpeed(Velocity.Length()) + "/s", renderer.SegoeUI24,
+                new RawRectangleF(xmid - 130, 0, xmid, 50),
+                renderer.Brushes["Black"]);
         }
 
         public void Dispose() {
