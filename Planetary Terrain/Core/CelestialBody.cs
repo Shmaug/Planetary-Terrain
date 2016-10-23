@@ -26,13 +26,15 @@ namespace Planetary_Terrain {
         public double Radius;
         public string Name;
 
+        Vector2 hudDir;
+
         public CelestialBody(Vector3d pos, double radius, double mass) : base(mass) {
             Position = pos;
             Radius = radius;
             SOI = Radius * 1.02;
 
             MaxVertexSpacing = radius*.5 / QuadNode.GridSize;
-
+            
             InitializeQuadTree();
         }
         void InitializeQuadTree() {
@@ -51,24 +53,35 @@ namespace Planetary_Terrain {
         }
 
         public abstract void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera);
-        public void DrawHUDIcon(Renderer renderer, double playerSpeed) {
-            Vector2? screenPos = renderer.WorldToScreen(Position);
-            if (screenPos.HasValue) {
-                renderer.SegoeUI14.TextAlignment = DWrite.TextAlignment.Center;
-                renderer.SegoeUI14.WordWrapping = DWrite.WordWrapping.NoWrap;
-                renderer.SegoeUI14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
+        public void DrawHUDIcon(Renderer renderer, double playerSpeed, Vector2 hudDir) {
+            double h = (Position - renderer.Camera.Position).Length();
+            if (h > SOI) {
+                Vector3 screenPos = renderer.WorldToScreen(Position);
+                double dir = Vector3d.Dot(renderer.Camera.Position - Position, renderer.Camera.Rotation.Forward);
+                
+                if (dir > 0) {
+                    float r = (float)((1f / Math.Tan(renderer.Camera.VerticalFieldOfView * .5) * Radius / Math.Sqrt(h * h - Radius * Radius)) * renderer.ResolutionY * .5f); // TODO: something
+                    float radius = Math.Max(r, 30);
+                    int d = Math.Sign(hudDir.X);
 
-                string text = Name + "\nArrive in " + Physics.CalculateTime((renderer.Camera.Position - Position).Length(), playerSpeed);
+                    renderer.SegoeUI14.TextAlignment = d > 0 ? DWrite.TextAlignment.Leading : DWrite.TextAlignment.Trailing;
 
-                DWrite.TextLayout layout = new DWrite.TextLayout(renderer.FontFactory, text, renderer.SegoeUI14, 100, 100);
+                    Vector2 pt2 = (Vector2)screenPos + hudDir * radius;
+                    Vector2 pt3 = pt2 + hudDir * 60;
+                    Vector2 pt4 = pt3 + new Vector2(d * 10, 0);
 
-                float w = layout.DetermineMinWidth();
+                    string text = Name + "\nArrive in " + Physics.CalculateTime((renderer.Camera.Position - Position).Length(), playerSpeed);
 
-                RawRectangleF rect = new RawRectangleF(
-                    screenPos.Value.X - w, screenPos.Value.Y - 10,
-                    screenPos.Value.X + w, screenPos.Value.Y + 10);
+                    RawRectangleF rect = new RawRectangleF(pt4.X + d * 5, pt4.Y - 1, pt4.X + d * 5, pt4.Y - 1);
 
-                renderer.D2DContext.DrawText(text, renderer.SegoeUI14, rect, renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawEllipse(new D2D1.Ellipse((Vector2)screenPos, radius, radius), renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawLine(pt2, pt3, renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawLine(pt3, pt4, renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawLine(pt4 + new Vector2(0, -20), pt4 + new Vector2(0, 20), renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawLine(pt4 + new Vector2(0, -20), pt4 + new Vector2(d * 5, -20), renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawLine(pt4 + new Vector2(0, 20), pt4 + new Vector2(d * 5, 20), renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawText(text, renderer.SegoeUI14, rect, renderer.Brushes["White"]);
+                }
             }
         }
 

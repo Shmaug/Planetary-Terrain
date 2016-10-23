@@ -4,15 +4,18 @@ using SharpDX;
 namespace Planetary_Terrain {
     class Camera {
         private Vector3d _position;
-        private float _fov, _aspect, _near = 1f, _far = 10000000;
+        private float _fov, _fovy, _aspect, _near = 1f, _far = 10000000;
         private Matrix _rotation = Matrix.Identity, _view, _proj;
+        private BoundingFrustum _frustum;
 
         #region make functions
         private void makeProjection() {
             _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
+            _frustum = new BoundingFrustum(_view * _proj);
         }
         private void makeView() {
             _view = Matrix.LookAtLH(Vector3.Zero, _rotation.Backward, _rotation.Up);
+            _frustum = new BoundingFrustum(_view * _proj);
         }
         #endregion
 
@@ -31,6 +34,8 @@ namespace Planetary_Terrain {
             set
             {
                 _fov = value;
+                _fovy = (float)(2 * Math.Atan(Math.Tan(_fov * .5) * _aspect));
+
                 makeProjection();
             }
         }
@@ -56,10 +61,12 @@ namespace Planetary_Terrain {
         
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
+        public BoundingFrustum Frustum { get { return _frustum; } }
+        public float VerticalFieldOfView { get { return _fovy; } }
 
         public Camera(float fieldOfView, float aspectRatio) {
-            _fov = fieldOfView;
             _aspect = aspectRatio;
+            FieldOfView = fieldOfView;
 
             makeView();
             makeProjection();

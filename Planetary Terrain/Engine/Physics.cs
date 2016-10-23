@@ -163,13 +163,13 @@ namespace Planetary_Terrain {
             if (totalSeconds < 60L)
                 return string.Format("{0} seconds", totalSeconds);
             else if (totalMinutes < 60L)
-                return "\nArrive in " + string.Format("{0}m:{1}s", minutes, seconds);
+                return string.Format("{0}m:{1}s", minutes, seconds);
             else if (totalHours < 24L)
-                return "\nArrive in " + string.Format("{0}h:{1}m", hours, minutes);
+                return string.Format("{0}h:{1}m", hours, minutes);
             else if (totalDays < 365L)
-                return "\nArrive in " + string.Format("{0}d:{1}h", days, hours);
+                return string.Format("{0}d:{1}h", days, hours);
             else
-                return "\nArrive in " + string.Format("{0}y:{0}d", years, days);
+                return string.Format("{0}y:{0}d", years, days);
         }
 
         public List<PhysicsBody> bodies = new List<PhysicsBody>();

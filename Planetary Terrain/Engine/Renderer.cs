@@ -317,14 +317,11 @@ namespace Planetary_Terrain {
             Context.Rasterizer.SetViewport(Viewport);
         }
         
-        public Vector2? WorldToScreen(Vector3d point) {
+        public Vector3 WorldToScreen(Vector3d point) {
             point -= Camera.Position;
             point.Normalize();
 
-            Vector3 vec = Viewport.Project(point, Camera.Projection, Camera.View, Matrix.Identity);
-            if (vec.Z < 0)
-                return new Vector2(vec.X, vec.Y);
-            return null;
+            return Viewport.Project(point, Camera.Projection, Camera.View, Matrix.Identity);
         }
 
         public void BeginDrawFrame() {

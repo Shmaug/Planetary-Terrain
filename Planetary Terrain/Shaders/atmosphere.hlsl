@@ -74,6 +74,8 @@ v2f vsmain(float4 vertex : POSITION0) {
 		v3SamplePoint += v3SampleRay;
 	}
 
+	v3FrontColor *= 5;
+
 	// Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
 	o.c0.xyz = v3FrontColor * (InvWavelength * KrESun);
 	o.c1.xyz = v3FrontColor * KmESun;

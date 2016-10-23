@@ -293,6 +293,7 @@ namespace Planetary_Terrain {
         public Matrix3x3 Orientation;
 
         public Vector3d[] VertexSamples;
+        public OrientedBoundingBox OOB;
 
         PlanetVertex[] verticies;
         VertexNormal[] waterVerticies;
@@ -428,6 +429,8 @@ namespace Planetary_Terrain {
             double rh;
             bool wv = false;
 
+            Vector3[] pts = new Vector3[s * s * 6];
+
             for (int x = 0; x < s; x++) {
                 for (int z = 0; z < s; z++) {
                     if (!generating) // needs to cancel generation
@@ -463,6 +466,7 @@ namespace Planetary_Terrain {
                             Vector3.Cross(Vector3d.Normalize(p2d - p1d), Vector3d.Normalize(p3d - p1d)),
                             d,
                             t, (float)h);
+                    pts[x * s + z] = verticies[x * s + z].Position;
 
                     if (hasWaterVerticies && rh > oceanLevel)
                         waterFarVerticies[x * s + z] = verticies[x * s + z];
@@ -500,6 +504,7 @@ namespace Planetary_Terrain {
                 waterVertexBuffer = null;
             }
 
+            OOB = new OrientedBoundingBox(pts);
             GetIndicies(false);
 
             generating = false;
@@ -809,67 +814,71 @@ namespace Planetary_Terrain {
             vertexdirty = false;
         }
         public void Draw(Renderer renderer, bool waterPass, double scale, Vector3d pos) {
-            double d;
-            Vector3d v;
-            ClosestVertex(renderer.Camera.Position, out v, out d);
+            Matrix world = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
+            OOB.Transformation = world;
+            BoundingBox bbox = OOB.GetBoundingBox();
+            if (renderer.Camera.Frustum.Intersects(ref bbox)) {
+                double d;
+                Vector3d v;
+                ClosestVertex(renderer.Camera.Position, out v, out d);
+                constants.World = world;
+                constants.WorldInverseTranspose = Matrix.Identity;
+                constants.NodeOrientation = Body.OrientationFromDirection(Vector3d.Normalize(MeshCenter));
+                constants.Scale = (float)scale;
+                constants.drawWaterFar = !waterPass && hasWaterVerticies && d > waterDetailThreshold;
+                constants.Color = Vector3.One;
+                
+                // constant buffer
+                if (constantBuffer == null)
+                    constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+                renderer.Context.UpdateSubresource(ref constants, constantBuffer);
 
-            constants.World = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
-            constants.WorldInverseTranspose = Matrix.Identity;
-            constants.NodeOrientation = Body.OrientationFromDirection(Vector3d.Normalize(MeshCenter));
-            constants.Scale = (float)scale;
-            constants.drawWaterFar = !waterPass && hasWaterVerticies && d > waterDetailThreshold;
-            constants.Color = Vector3.One;
-            
-            // constant buffer
-            if (constantBuffer == null)
-                constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
-            renderer.Context.UpdateSubresource(ref constants, constantBuffer);
-            
-            renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
-            renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
-            
-            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+                renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
+                renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
 
-            if (waterPass) {
-                // when teh camera is close, draw waterVertexBuffer
-                if (hasWaterVerticies && d < waterDetailThreshold) { // lod
-                    waterConstants.Offset = Vector3.Zero;
-                    waterConstants.FadeDistance = 50;
-                    waterConstants.Time = (float)renderer.TotalTime;
+                renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
-                    // water constant buffer
-                    if (waterConstantBuffer == null)
-                        waterConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref waterConstants);
-                    renderer.Context.UpdateSubresource(ref waterConstants, waterConstantBuffer);
+                if (waterPass) {
+                    // when teh camera is close, draw waterVertexBuffer
+                    if (hasWaterVerticies && d < waterDetailThreshold) { // lod
+                        waterConstants.Offset = Vector3.Zero;
+                        waterConstants.FadeDistance = 50;
+                        waterConstants.Time = (float)renderer.TotalTime;
 
-                    renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
-                    renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
+                        // water constant buffer
+                        if (waterConstantBuffer == null)
+                            waterConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref waterConstants);
+                        renderer.Context.UpdateSubresource(ref waterConstants, waterConstantBuffer);
 
-                    renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
+                        renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
+                        renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
+
+                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
+                        renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+
+                        Debug.VerticiesDrawn += VertexCount;
+                    }
+                } else {
+                    // when the camera is far away, draw waterFarVertexBuffer and tell the shader to draw the water verticies in blue
+                    if (hasWaterVerticies && d > waterDetailThreshold) // water lod
+                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterFarVertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
+                    else {
+                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
+
+                        constants.drawWaterFar = false;
+                        renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+                    }
                     renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
                     Debug.VerticiesDrawn += VertexCount;
                 }
-            } else {
-                // when the camera is far away, draw waterFarVertexBuffer and tell the shader to draw the water verticies in blue
-                if (hasWaterVerticies && d > waterDetailThreshold) // water lod
-                    renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterFarVertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
-                else {
-                    renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
 
-                    constants.drawWaterFar = false;
-                    renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+                if (d < Debug.ClosestQuadTreeDistance) {
+                    Debug.ClosestQuadTree = this;
+                    Debug.ClosestQuadTreeDistance = d;
+                    Debug.ClosestQuadTreeScale = scale;
                 }
-                renderer.Context.DrawIndexed(indicies.Length, 0, 0);
-                
-                Debug.VerticiesDrawn += VertexCount;
-            }
-
-            if (d < Debug.ClosestQuadTreeDistance) {
-                Debug.ClosestQuadTree = this;
-                Debug.ClosestQuadTreeDistance = d;
-                Debug.ClosestQuadTreeScale = scale;
             }
         }
         public void Draw(Renderer renderer, bool waterPass, Vector3d planetPos, double planetScale) {
