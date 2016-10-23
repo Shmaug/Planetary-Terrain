@@ -901,7 +901,7 @@ namespace Planetary_Terrain {
                     SetData(renderer.Device, renderer.Context);
 
                 if (vertexBuffer != null) {
-                    if (IsAboveHorizon(renderer.Camera.Position)) { // TODO: some sort of occulsion/frustum culling
+                    if (IsAboveHorizon(renderer.Camera.Position)) {
                         double scale = planetScale;
                         Vector3d pos = planetPos + MeshCenter * planetScale;
 
