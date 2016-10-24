@@ -34,7 +34,7 @@ namespace Planetary_Terrain {
                 20000,
                 new Atmosphere(6371000 + 80000) {
                     SurfacePressure = 6, //kPa
-                    SurfaceDensity = .0155, // kg/m^3
+                    SurfaceDensity = 1.2, // kg/m^3
                     SurfaceTemperature = 40 // celsius
                 },
                 true);

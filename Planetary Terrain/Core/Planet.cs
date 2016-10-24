@@ -92,26 +92,18 @@ namespace Planetary_Terrain {
             data = Vector2.Zero;
             h = height(direction);
 
-            double temp, humid;
-            temp = humid = 0;
+            double temp = 0, humid = 0;
 
             float p = MathUtil.Clamp((float)Math.Abs(direction.Y) - .3f, 0, 1);
             p *= p;
             float y = (float)(height(direction) * .1);
 
             temp = Noise.SmoothSimplex(direction * 2, 5, .3f, .8f)*.5d+.5d - p;
-            //humid = Noise.SmoothSimplex(direction * 5, 4, .1f, .8f)*.5d+.5d - .1f;
+            humid = Noise.SmoothSimplex(direction * 5, 4, .1f, .8f)*.5d+.5d; // TODO: better temp/humid function
 
-            if (HasOcean)
-                humid += (float)Math.Pow(1.0 - Math.Max(h, 0.0), 2);
-
-            //double mountain = Math.Min(Math.Pow(Noise.Ridged(direction * 1000 + new Vector3(1000), 2, .01f, .45f) + .7, 2), 1);
-            //mountain = 1.0 - mountain;
-
-            //temp = 1.0 - Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
-
-            //temp *= mountain;
-
+            //if (HasOcean)
+            //    humid += (float)Math.Pow(1.0 - Math.Max(h, 0.0), 2);
+            
             data = new Vector2((float)temp, (float)humid);
         }
 

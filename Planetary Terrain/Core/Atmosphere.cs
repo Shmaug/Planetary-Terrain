@@ -90,10 +90,11 @@ namespace Planetary_Terrain {
         }
         
         public void MeasureProperties(double height, out double pressure, out double density, out double temperature, out double c) {
-            double x = Math.Max((height - Planet.Radius) / (Radius - Planet.Radius), 0); // height as [0, infinity)
+            double x = Math.Min(Math.Max((height - Planet.Radius) / (Radius - Planet.Radius), 0), 1.5); // height as [0, 1.5]
 
-            pressure = SurfacePressure * Math.Exp(-4.0 * x);
-            density = SurfaceDensity * Math.Exp(-4.3 * x);
+            double exp =  Math.Exp(-4.0 * x);
+            pressure = SurfacePressure * exp;
+            density = SurfaceDensity * exp;
             temperature = SurfaceTemperature * (-10 * (x - .0714) * (x - .4714) * (x - .6857) + .7692);
 
             c = 331.3 + (.6 * temperature);

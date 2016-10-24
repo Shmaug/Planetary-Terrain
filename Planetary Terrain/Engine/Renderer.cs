@@ -60,7 +60,7 @@ namespace Planetary_Terrain {
         public D3D11.BlendState blendStateOpaque { get; private set; }
         public D3D11.BlendState blendStateTransparent { get; private set; }
         #endregion
-
+        // TODO: render targets
         int SampleCount = 8;
         int SampleQuality = 0;
 

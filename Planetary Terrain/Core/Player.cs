@@ -165,30 +165,31 @@ namespace Planetary_Terrain {
                         double density;
                         double c;
                         a.MeasureProperties(h, out pressure, out density, out temp, out c);
+                        if (pressure > .1) {
+                            renderer.D2DContext.FillRectangle(
+                                new RawRectangleF(xmid - 260, 0, xmid - 155, 80),
+                                renderer.Brushes["White"]);
 
-                        renderer.D2DContext.FillRectangle(
-                            new RawRectangleF(xmid - 260, 0, xmid - 155, 80),
-                            renderer.Brushes["White"]);
+                            renderer.D2DContext.DrawText("Atmosphere: ", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 250, 3, xmid - 155, 10),
+                                renderer.Brushes["Black"]);
 
-                        renderer.D2DContext.DrawText("Atmosphere: ", renderer.SegoeUI14,
-                            new RawRectangleF(xmid - 250, 3, xmid - 155, 10),
-                            renderer.Brushes["Black"]);
+                            renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 15, xmid - 155, 30),
+                                renderer.Brushes["Black"]);
 
-                        renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
-                            new RawRectangleF(xmid - 240, 15, xmid - 155, 30),
-                            renderer.Brushes["Black"]);
+                            renderer.D2DContext.DrawText(pressure.ToString("F1") + " kPa", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 30, xmid - 155, 45),
+                                renderer.Brushes["Black"]);
 
-                        renderer.D2DContext.DrawText(pressure.ToString("F1") + " kPa", renderer.SegoeUI14,
-                            new RawRectangleF(xmid - 240, 30, xmid - 155, 45),
-                            renderer.Brushes["Black"]);
+                            renderer.D2DContext.DrawText(density.ToString("F1") + " kg/m^3", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 45, xmid - 155, 60),
+                                renderer.Brushes["Black"]);
 
-                        renderer.D2DContext.DrawText(density.ToString("F1") + " kg/m^3", renderer.SegoeUI14,
-                            new RawRectangleF(xmid - 240, 45, xmid - 155, 60),
-                            renderer.Brushes["Black"]);
-
-                        renderer.D2DContext.DrawText("Mach " + (Velocity.Length() / c).ToString("F2"), renderer.SegoeUI14,
-                            new RawRectangleF(xmid - 240, 60, xmid - 155, 75),
-                            renderer.Brushes["Black"]);
+                            renderer.D2DContext.DrawText("Mach " + (Velocity.Length() / c).ToString("F2"), renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 60, xmid - 155, 75),
+                                renderer.Brushes["Black"]);
+                        }
                     }
                 }
             }
