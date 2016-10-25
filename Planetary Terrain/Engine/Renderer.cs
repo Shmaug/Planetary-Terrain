@@ -11,13 +11,28 @@ using System.Collections.Generic;
 namespace Planetary_Terrain {
     class Renderer : IDisposable {
         [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
-        struct Constants {
+        struct RendererConstants {
             public Matrix View;
             public Matrix Projection;
         }
-        Constants constants;
+        RendererConstants constants;
         public D3D11.Buffer constantBuffer { get; private set; }
 
+        [StructLayout(LayoutKind.Explicit, Size = 160)]
+        struct AeroFXConstants {
+            [FieldOffset(0)]
+            public Matrix World;
+            [FieldOffset(64)]
+            public Matrix WorldInverseTranspose;
+            [FieldOffset(128)]
+            public Vector3 VelocityDirection;
+            [FieldOffset(140)]
+            public float Size;
+            [FieldOffset(144)]
+            public float Step;
+        };
+        AeroFXConstants aeroFXConstants;
+        
         public int ResolutionX, ResolutionY;
 
         #region 2d vars
@@ -43,8 +58,12 @@ namespace Planetary_Terrain {
         #region states and views
         public Viewport Viewport { get; private set; }
 
-        public D3D11.DepthStencilView depthStencilView { get; private set; }
         public D3D11.RenderTargetView renderTargetView { get; private set; }
+        public D3D11.DepthStencilView depthStencilView { get; private set; }
+
+        public D3D11.ShaderResourceView aeroFXShaderResourceView { get; private set; }
+        public D3D11.RenderTargetView aeroFXRenderTargetView { get; private set; }
+        public D3D11.DepthStencilView aeroFXDepthStencilView { get; private set; }
 
         public D3D11.DepthStencilState depthStencilStateDefault { get; private set; }
         public D3D11.DepthStencilState depthStencilStateNoDepth { get; private set; }
@@ -56,11 +75,14 @@ namespace Planetary_Terrain {
         public D3D11.RasterizerState rasterizerStateSolidCullFront { get; private set; }
         public D3D11.RasterizerState rasterizerStateWireframeCullFront { get; private set; }
         
+        public D3D11.ShaderResourceView WhiteTextureView { get; private set; }
+        public D3D11.ShaderResourceView BlackTextureView { get; private set; }
+        public D3D11.SamplerState AnisotropicSampler { get; private set; }
 
         public D3D11.BlendState blendStateOpaque { get; private set; }
         public D3D11.BlendState blendStateTransparent { get; private set; }
         #endregion
-        // TODO: render targets
+
         int SampleCount = 8;
         int SampleQuality = 0;
 
@@ -73,6 +95,8 @@ namespace Planetary_Terrain {
 
         D3D11.Buffer axisBuffer;
         D3D11.Buffer axisConsts;
+        D3D11.Buffer aeroFXBuffer;
+        D3D11.Buffer screenBuffer;
 
         Game game;
 
@@ -168,7 +192,7 @@ namespace Planetary_Terrain {
             blendStateTransparent = new D3D11.BlendState(Device, alphaDesc);
             #endregion
 
-            #region depth buffer & depth stencil states
+            #region depth buffer & depth stencil states & render targets
             D3D11.Texture2DDescription depthDescription = new D3D11.Texture2DDescription() {
                 Format = DXGI.Format.D32_Float,
                 ArraySize = 1,
@@ -184,8 +208,9 @@ namespace Planetary_Terrain {
 
             using (D3D11.Texture2D depthTexture = new D3D11.Texture2D(Device, depthDescription))
                 depthStencilView = new D3D11.DepthStencilView(Device, depthTexture);
-
-            Context.OutputMerger.SetTargets(depthStencilView, renderTargetView);
+            
+            using (D3D11.Texture2D depthTexture = new D3D11.Texture2D(Device, depthDescription))
+                aeroFXDepthStencilView = new D3D11.DepthStencilView(Device, depthTexture);
             
             depthStencilStateDefault = new D3D11.DepthStencilState(Device, new D3D11.DepthStencilStateDescription() {
                 IsDepthEnabled = true,
@@ -200,6 +225,22 @@ namespace Planetary_Terrain {
                 DepthComparison = D3D11.Comparison.Less,
                 DepthWriteMask = D3D11.DepthWriteMask.Zero
             });
+
+            using (D3D11.Texture2D rt = new D3D11.Texture2D(Device, new D3D11.Texture2DDescription() {
+                Format = DXGI.Format.R32G32B32A32_Float,
+                ArraySize = 1,
+                MipLevels = 1,
+                Width = width,
+                Height = height,
+                SampleDescription = new DXGI.SampleDescription(SampleCount, SampleQuality),
+                Usage = D3D11.ResourceUsage.Default,
+                BindFlags = D3D11.BindFlags.RenderTarget | D3D11.BindFlags.ShaderResource,
+                CpuAccessFlags = D3D11.CpuAccessFlags.None,
+                OptionFlags = D3D11.ResourceOptionFlags.None
+            })) {
+                aeroFXRenderTargetView = new D3D11.RenderTargetView(Device, rt);
+                aeroFXShaderResourceView = new D3D11.ShaderResourceView(Device, rt);
+            }
 
             Context.OutputMerger.SetDepthStencilState(depthStencilStateDefault);
             #endregion
@@ -249,7 +290,53 @@ namespace Planetary_Terrain {
             });
             #endregion
             
-            constants = new Constants();
+            #region blank textures
+            D3D11.Texture2D wtex = new D3D11.Texture2D(Device, new D3D11.Texture2DDescription() {
+                ArraySize = 1,
+                Width = 1,
+                Height = 1,
+                Format = DXGI.Format.R32G32B32A32_Float,
+                CpuAccessFlags = D3D11.CpuAccessFlags.None,
+                MipLevels = 0,
+                Usage = D3D11.ResourceUsage.Default,
+                SampleDescription = new DXGI.SampleDescription(1, 0),
+                BindFlags = D3D11.BindFlags.ShaderResource,
+                OptionFlags = D3D11.ResourceOptionFlags.None
+            });
+            Context.UpdateSubresource(new Vector4[] { Vector4.One }, wtex);
+            WhiteTextureView = new D3D11.ShaderResourceView(Device, wtex);
+
+            D3D11.Texture2D btex = new D3D11.Texture2D(Device, new D3D11.Texture2DDescription() {
+                ArraySize = 1,
+                Width = 1,
+                Height = 1,
+                Format = DXGI.Format.R32G32B32A32_Float,
+                CpuAccessFlags = D3D11.CpuAccessFlags.None,
+                MipLevels = 0,
+                Usage = D3D11.ResourceUsage.Default,
+                SampleDescription = new DXGI.SampleDescription(1, 0),
+                BindFlags = D3D11.BindFlags.ShaderResource,
+                OptionFlags = D3D11.ResourceOptionFlags.None
+            });
+            Context.UpdateSubresource(new Vector4[] { Vector4.Zero }, btex);
+            BlackTextureView = new D3D11.ShaderResourceView(Device, btex);
+
+            AnisotropicSampler = new D3D11.SamplerState(Device, new D3D11.SamplerStateDescription() {
+                AddressU = D3D11.TextureAddressMode.Clamp,
+                AddressV = D3D11.TextureAddressMode.Clamp,
+                AddressW = D3D11.TextureAddressMode.Clamp,
+                Filter = D3D11.Filter.Anisotropic,
+            });
+            #endregion
+
+            screenBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.VertexBuffer, new VertexTexture[] {
+                new VertexTexture(new Vector3(-1,-1,0), new Vector2(0,1)),
+                new VertexTexture(new Vector3( 1,-1,0), new Vector2(1,1)),
+                new VertexTexture(new Vector3(-1, 1,0), new Vector2(0,0)),
+                new VertexTexture(new Vector3( 1, 1,0), new Vector2(1,0)),
+            });
+
+            constants = new RendererConstants();
             constantBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             
             #region axis lines & line shader
@@ -276,6 +363,8 @@ namespace Planetary_Terrain {
             ResolutionX = width; ResolutionY = height;
             renderTargetView.Dispose();
             depthStencilView.Dispose();
+            aeroFXRenderTargetView.Dispose();
+            aeroFXDepthStencilView.Dispose();
             D2DTarget.Dispose();
             D2DContext.Dispose();
 
@@ -294,7 +383,23 @@ namespace Planetary_Terrain {
             // render target
             using (D3D11.Texture2D backBuffer = swapChain.GetBackBuffer<D3D11.Texture2D>(0))
                 renderTargetView = new D3D11.RenderTargetView(Device, backBuffer);
-            
+
+            using (D3D11.Texture2D rt = new D3D11.Texture2D(Device, new D3D11.Texture2DDescription() {
+                Format = DXGI.Format.R32G32B32A32_Float,
+                ArraySize = 1,
+                MipLevels = 1,
+                Width = width,
+                Height = height,
+                SampleDescription = new DXGI.SampleDescription(SampleCount, SampleQuality),
+                Usage = D3D11.ResourceUsage.Default,
+                BindFlags = D3D11.BindFlags.RenderTarget | D3D11.BindFlags.ShaderResource,
+                CpuAccessFlags = D3D11.CpuAccessFlags.None,
+                OptionFlags = D3D11.ResourceOptionFlags.None
+            })) {
+                aeroFXRenderTargetView = new D3D11.RenderTargetView(Device, rt);
+                aeroFXShaderResourceView = new D3D11.ShaderResourceView(Device, rt);
+            }
+
             // depth buffer
             D3D11.Texture2DDescription depthDescription = new D3D11.Texture2DDescription() {
                 Format = DXGI.Format.D32_Float,
@@ -310,6 +415,9 @@ namespace Planetary_Terrain {
             };
             using (D3D11.Texture2D depthTexture = new D3D11.Texture2D(Device, depthDescription))
                 depthStencilView = new D3D11.DepthStencilView(Device, depthTexture);
+
+            using (D3D11.Texture2D depthTexture = new D3D11.Texture2D(Device, depthDescription))
+                aeroFXDepthStencilView = new D3D11.DepthStencilView(Device, depthTexture);
 
             Context.OutputMerger.SetTargets(depthStencilView, renderTargetView);
 
@@ -343,6 +451,49 @@ namespace Planetary_Terrain {
             swapChain.Present(1, DXGI.PresentFlags.None);
         }
 
+        public delegate void AeroDrawFunc(Renderer renderer);
+        public void DrawAeroFX(Matrix world, Vector3d relativeVelocity, AeroDrawFunc DrawFunc) {
+            double l = relativeVelocity.Length();
+            if (l > 150) {
+                Context.ClearRenderTargetView(aeroFXRenderTargetView, Color.Transparent);
+                Context.OutputMerger.SetRenderTargets(depthStencilView, aeroFXRenderTargetView);
+
+                Shaders.AeroFXShader.Set(this);
+                Context.Rasterizer.State = DrawWireframe ? rasterizerStateWireframeNoCull : rasterizerStateSolidNoCull;
+
+                if (aeroFXBuffer == null)
+                    aeroFXBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref aeroFXConstants);
+
+                aeroFXConstants.World = world;
+                aeroFXConstants.WorldInverseTranspose = Matrix.Transpose(Matrix.Invert(world));
+                aeroFXConstants.VelocityDirection = relativeVelocity / l;
+                
+                aeroFXConstants.Size = 7f * (float)Math.Log(.002 * (l + 500));
+                float steps = 10f;
+                for (int i = 1; i <= steps; i++) {
+                    aeroFXConstants.Step = i / steps;
+                    Context.UpdateSubresource(ref aeroFXConstants, aeroFXBuffer);
+
+                    Context.VertexShader.SetConstantBuffer(1, aeroFXBuffer);
+                    Context.PixelShader.SetConstantBuffer(1, aeroFXBuffer);
+
+                    DrawFunc(this);
+                }
+                // TODO: this still doesnt work
+                // Draw aero FX to the main render target
+                Context.OutputMerger.SetRenderTargets(depthStencilView, renderTargetView);
+
+                Shaders.BlurShader.Set(this);
+                Context.PixelShader.SetSampler(0, AnisotropicSampler);
+                Context.PixelShader.SetShaderResource(0, aeroFXShaderResourceView); // TODO: wtf?
+                Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+                Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(screenBuffer, Utilities.SizeOf<VertexTexture>(), 0));
+                Context.Draw(4, 0);
+
+                Context.Rasterizer.State = DrawWireframe ? rasterizerStateWireframeCullBack : rasterizerStateSolidCullBack;
+            }
+        }
+
         public void DrawAxis() {
             Matrix mat = Matrix.Identity;
             Context.UpdateSubresource(ref mat, axisConsts);
@@ -366,6 +517,14 @@ namespace Planetary_Terrain {
             D2DDevice.Dispose();
             D2DContext.Dispose();
             D2DFactory.Dispose();
+
+            BlackTextureView.Dispose();
+            WhiteTextureView.Dispose();
+            AnisotropicSampler.Dispose();
+
+            aeroFXShaderResourceView.Dispose();
+            aeroFXRenderTargetView.Dispose();
+            aeroFXDepthStencilView.Dispose();
 
             blendStateOpaque.Dispose();
             blendStateTransparent.Dispose();

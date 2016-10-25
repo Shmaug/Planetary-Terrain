@@ -134,6 +134,8 @@
     <Content Include="Data\Textures\EmptySpace.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Shaders\blur.hlsl" />
+    <Content Include="Shaders\aerofx.hlsl" />
     <Content Include="Shaders\skybox.hlsl" />
     <Content Include="Shaders\_quadnode.hlsli" />
     <Compile Include="Tools\Resources\DDS.cs" />

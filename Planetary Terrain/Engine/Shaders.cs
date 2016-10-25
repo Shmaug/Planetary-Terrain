@@ -1,16 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     static class Shaders {
         public const string shaderDirectory = "Data/Shaders/";
-
+        
         public static Shader LineShader;
         public static Shader PlanetShader;
         public static Shader WaterShader;
         public static Shader StarShader;
         public static Shader AtmosphereShader;
-        public static Shader ModelShader;
         public static Shader SkyboxShader;
+        public static Shader ModelShader;
+        public static Shader AeroFXShader;
+        public static Shader BlurShader;
 
         public static void Load(SharpDX.Direct3D11.Device device, SharpDX.Direct3D11.DeviceContext context) {
             StarShader = new Shader(
@@ -40,6 +43,14 @@ namespace Planetary_Terrain {
             SkyboxShader = new Shader(
                 shaderDirectory + "skybox",
                 device, context, new SharpDX.Direct3D11.InputElement("POSITION", 0, SharpDX.DXGI.Format.R32G32B32_Float, 0));
+
+            AeroFXShader = new Shader(
+                shaderDirectory + "aerofx",
+                device, context, VertexNormal.InputElements);
+
+            BlurShader = new Shader(
+                shaderDirectory + "blur",
+                device, context, VertexTexture.InputElements);
         }
 
         public static void Dispose() {

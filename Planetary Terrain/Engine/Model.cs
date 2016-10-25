@@ -203,6 +203,11 @@ namespace Planetary_Terrain {
             Draw(renderer, lightDirection, world, Shaders.ModelShader);
         }
 
+        public void DrawRaw(Renderer renderer) {
+            foreach (ModelMesh m in Meshes)
+                m.DrawRaw(renderer);
+        }
+
         public void Dispose() {
             if (Meshes != null)
                 foreach (ModelMesh m in Meshes)

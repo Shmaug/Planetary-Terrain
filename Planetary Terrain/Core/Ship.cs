@@ -24,10 +24,16 @@ namespace Planetary_Terrain {
             if (star != null)
                 light = Vector3d.Normalize(Position - star.Position);
 
-            // TODO: aero FX
-            Models.ShipModel.Draw(renderer,
-                light,
-                Rotation * Matrix.Translation(Position - renderer.Camera.Position));
+            Matrix world = Rotation * Matrix.Translation(Position - renderer.Camera.Position);
+
+            Models.ShipModel.Draw(renderer, light, world);
+
+            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
+            if (b is Planet && ((Planet)b).Atmosphere != null) {
+                Atmosphere a = ((Planet)b).Atmosphere;
+
+                renderer.DrawAeroFX(world, Velocity, Models.ShipModel.DrawRaw);
+            }
         }
         
         public void Dispose() {
