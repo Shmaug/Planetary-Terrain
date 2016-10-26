@@ -30,10 +30,10 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 float4 psmain(v2f i) : SV_TARGET
 {
 	float v = dot(-VelocityDirection, normalize(i.normal));
-	if (v > 0) {
+	//if (v > 0) {
 		float n = noise(i.worldPos);
 		return float4(1, 0, 0, 1/(10 * Step * Step + 1));
-	}
+	//}
 
 	return 0;
 }

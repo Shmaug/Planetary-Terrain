@@ -96,7 +96,7 @@ namespace Planetary_Terrain {
         D3D11.Buffer axisBuffer;
         D3D11.Buffer axisConsts;
         D3D11.Buffer aeroFXBuffer;
-        D3D11.Buffer screenBuffer;
+        D3D11.Buffer screenVBuffer;
 
         Game game;
 
@@ -329,11 +329,11 @@ namespace Planetary_Terrain {
             });
             #endregion
 
-            screenBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.VertexBuffer, new VertexTexture[] {
-                new VertexTexture(new Vector3(-1,-1,0), new Vector2(0,1)),
-                new VertexTexture(new Vector3( 1,-1,0), new Vector2(1,1)),
-                new VertexTexture(new Vector3(-1, 1,0), new Vector2(0,0)),
-                new VertexTexture(new Vector3( 1, 1,0), new Vector2(1,0)),
+            screenVBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.VertexBuffer, new VertexTexture[] {
+                new VertexTexture(new Vector3(-1,-1,0), new Vector2(0,0)),
+                new VertexTexture(new Vector3( 1,-1,0), new Vector2(1,0)),
+                new VertexTexture(new Vector3(-1, 1,0), new Vector2(0,1)),
+                new VertexTexture(new Vector3( 1, 1,0), new Vector2(1,1)),
             });
 
             constants = new RendererConstants();
@@ -460,6 +460,7 @@ namespace Planetary_Terrain {
 
                 Shaders.AeroFXShader.Set(this);
                 Context.Rasterizer.State = DrawWireframe ? rasterizerStateWireframeNoCull : rasterizerStateSolidNoCull;
+                Context.OutputMerger.BlendState = blendStateTransparent;
 
                 if (aeroFXBuffer == null)
                     aeroFXBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref aeroFXConstants);
@@ -470,7 +471,7 @@ namespace Planetary_Terrain {
                 
                 aeroFXConstants.Size = 7f * (float)Math.Log(.002 * (l + 500));
                 float steps = 10f;
-                for (int i = 1; i <= steps; i++) {
+                for (float i = 1; i <= steps; i++) {
                     aeroFXConstants.Step = i / steps;
                     Context.UpdateSubresource(ref aeroFXConstants, aeroFXBuffer);
 
@@ -482,12 +483,12 @@ namespace Planetary_Terrain {
                 // TODO: this still doesnt work
                 // Draw aero FX to the main render target
                 Context.OutputMerger.SetRenderTargets(depthStencilView, renderTargetView);
-
+                
                 Shaders.BlurShader.Set(this);
                 Context.PixelShader.SetSampler(0, AnisotropicSampler);
-                Context.PixelShader.SetShaderResource(0, aeroFXShaderResourceView); // TODO: wtf?
+                Context.PixelShader.SetShaderResource(0, aeroFXShaderResourceView);
                 Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
-                Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(screenBuffer, Utilities.SizeOf<VertexTexture>(), 0));
+                Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(screenVBuffer, Utilities.SizeOf<VertexTexture>(), 0));
                 Context.Draw(4, 0);
 
                 Context.Rasterizer.State = DrawWireframe ? rasterizerStateWireframeCullBack : rasterizerStateSolidCullBack;
