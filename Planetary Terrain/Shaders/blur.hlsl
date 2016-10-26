@@ -20,7 +20,6 @@ v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0) {
 float4 psmain(v2f i) : SV_TARGET
 {
 	float4 src = ScreenTexture.Sample(ScreenSampler, i.uv);
-	src.rg += i.uv;
 	
 	return src;
 }
