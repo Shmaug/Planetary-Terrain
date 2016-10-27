@@ -35,9 +35,11 @@ namespace Planetary_Terrain {
                 new Atmosphere(6371000 + 80000) {
                     SurfacePressure = 6, //kPa
                     SurfaceDensity = 1.2, // kg/m^3
-                    SurfaceTemperature = 40 // celsius
                 },
-                true);
+                true) {
+                    SurfaceTemperature = 14,
+                    TemperatureRange = 35
+                };
             earth.SetColormap("Data/Textures/Earth.jpg", device);
             bodies.Add(earth);
 
@@ -45,8 +47,10 @@ namespace Planetary_Terrain {
                 new Atmosphere(3397000 + 10000) {
                     SurfacePressure = 100, //kPa
                     SurfaceDensity = 1.2, // kg/m^3
-                    SurfaceTemperature = 22 // celsius
-                });
+                }) {
+                    SurfaceTemperature = -55,
+                    TemperatureRange = 65
+                };
             mars.SetColormap("Data/Textures/Mars.jpg", device);
             bodies.Add(mars);
 

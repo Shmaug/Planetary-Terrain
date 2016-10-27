@@ -58,24 +58,27 @@ namespace Planetary_Terrain {
             if (DisablePhysics) return;
 
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
-            double h = b != null ? (b.Position - Position).Length() : 0;
-            if (b != this) {
-                if (b != null) {
-                    // perform drag
-                    if (b is Planet) {
-                        Atmosphere a = (b as Planet).Atmosphere;
-                        if (a != null && h < a.Radius) {
-                            double v = Velocity.LengthSquared();
-                            if (v > .1) {
-                                double temp;
-                                double pressure;
-                                double density;
-                                double c;
-                                a.MeasureProperties(h, out pressure, out density, out temp, out c);
 
-                                double drag = .5 * density * v * Drag;
-                                AddForce(-Vector3d.Normalize(Velocity) * drag, Vector3.Zero);
-                            }
+            // drag
+            Vector3d dir = Vector3.Zero;
+            double h = 0;
+            if (b != null && b != this) {
+                dir = (Position - b.Position);
+                h = dir.Length();
+                dir /= h;
+                if (b is Planet) {
+                    Atmosphere a = (b as Planet).Atmosphere;
+                    if (a != null && h < a.Radius) {
+                        double v = Velocity.LengthSquared();
+                        if (v > .1) {
+                            double temp;
+                            double pressure;
+                            double density;
+                            double c;
+                            a.MeasureProperties(dir, h, out pressure, out density, out temp, out c);
+
+                            double drag = .5 * density * v * Drag;
+                            AddForce(-Vector3d.Normalize(Velocity) * drag, Vector3.Zero);
                         }
                     }
                 }
@@ -92,23 +95,15 @@ namespace Planetary_Terrain {
 
             Forces.Clear();
 
-            if (b != this) {
+            if (b != null && b != this) {
                 // check collision
-                if (b != null) {
-                    Vector3d p = Position - b.Position;
-                    p /= h;
-                    double t = b.GetHeight(p);
-                    if (h < t) {
-                        Position = b.Position + p * t;
+                double t = b.GetHeight(dir);
+                if (h < t) {
+                    Position = b.Position + dir * t;
 
-                        Vector3d n = b.GetNormal(p);
-                        // vector rejection
-                        Velocity -= n * Vector3d.Dot(Velocity, n);
-
-                        // friction
-                        double grav = Physics.G * b.Mass / (h * h);
-                        AddForce(Vector3d.Normalize(-Velocity) * .2 * Mass * grav, Vector3.Zero);
-                    }
+                    Vector3d n = b.GetNormal(dir);
+                    // vector rejection
+                    Velocity -= n * Vector3d.Dot(Velocity, n);
                 }
             }
         }

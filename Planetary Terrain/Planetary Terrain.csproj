@@ -173,7 +173,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Data\Models\Gun\Gun.fbx">
+    <None Include="Data\Models\Gun\gun.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Models\cylinder.fbx">

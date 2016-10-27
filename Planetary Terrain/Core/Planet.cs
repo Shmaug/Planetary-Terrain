@@ -12,11 +12,13 @@ namespace Planetary_Terrain {
         /// The total possible terrain displacement is Radius +/- TerrainHeight
         /// </summary>
         public double TerrainHeight;
-        
+
         /// <summary>
         /// The planet's atmosphere
         /// </summary>
         public Atmosphere Atmosphere;
+        public double SurfaceTemperature; // in Celsuis
+        public double TemperatureRange; // in Celsuis
 
         public bool HasOcean;
         public double OceanHeight;
@@ -74,37 +76,34 @@ namespace Planetary_Terrain {
 
             rough = rough * rough * rough;
 
-            flat *= rough;
-            mntn *= 1.0 - rough;
+            flat *= 1.0 - rough;
+            mntn *= rough + flat;
             
-            total = mntn + flat;
+            total = mntn;
             
             min = Math.Min(min, total);
             max = Math.Max(max, total);
 
             return total;
         }
-
         public override double GetHeight(Vector3d direction) {
             return Radius + height(direction) * TerrainHeight;
         }
+
+        double temperature(Vector3d dir) {
+            return Noise.SmoothSimplex(dir * 100, 5, .3f, .8f);
+        }
+        public double GetTemperature(Vector3d direction) {
+            return SurfaceTemperature + TemperatureRange * temperature(direction);
+        }
+
         public override void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double h) {
             data = Vector2.Zero;
             h = height(direction);
-
-            double temp = 0, humid = 0;
-
-            float p = MathUtil.Clamp((float)Math.Abs(direction.Y) - .3f, 0, 1);
-            p *= p;
-            float y = (float)(height(direction) * .1);
-
-            temp = Noise.SmoothSimplex(direction * 2, 5, .3f, .8f)*.5d+.5d - p;
-            humid = Noise.SmoothSimplex(direction * 5, 4, .1f, .8f)*.5d+.5d; // TODO: better temp/humid function
-
-            //if (HasOcean)
-            //    humid += (float)Math.Pow(1.0 - Math.Max(h, 0.0), 2);
             
-            data = new Vector2((float)temp, (float)humid);
+            double humid = Noise.SmoothSimplex(direction * 200, 4, .1f, .8f)*.5 + .5; // TODO: better temp/humid function
+            
+            data = new Vector2((float)temperature(direction) * .5f + .5f, (float)humid);
         }
 
         public void SetColormap(string file, D3D11.Device device) {

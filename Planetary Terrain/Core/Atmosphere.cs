@@ -14,7 +14,6 @@ namespace Planetary_Terrain {
 
         public double SurfacePressure; // kPa
         public double SurfaceDensity; // kg/m^3
-        public double SurfaceTemperature; // celcius
 
         public Vector3 Wavelengths = new Vector3(.65f, .57f, .475f);
 
@@ -89,13 +88,15 @@ namespace Planetary_Terrain {
                 BaseQuads[i].Generate();
         }
         
-        public void MeasureProperties(double height, out double pressure, out double density, out double temperature, out double c) {
+        public void MeasureProperties(Vector3d dir, double height, out double pressure, out double density, out double temperature, out double c) {
             double x = Math.Min(Math.Max((height - Planet.Radius) / (Radius - Planet.Radius), 0), 1.5); // height as [0, 1.5]
 
             double exp =  Math.Exp(-4.0 * x);
             pressure = SurfacePressure * exp;
             density = SurfaceDensity * exp;
-            temperature = SurfaceTemperature * (-10 * (x - .0714) * (x - .4714) * (x - .6857) + .7692);
+
+            double temp = Planet.GetTemperature(dir);
+            temperature = temp * (-10 * (x - .0714) * (x - .4714) * (x - .6857) + .7692);
 
             c = 331.3 + (.6 * temperature);
         }

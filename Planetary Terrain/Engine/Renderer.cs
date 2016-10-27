@@ -476,7 +476,7 @@ namespace Planetary_Terrain {
             depthStencilStateDefault.Dispose();
             depthStencilStateNoDepth.Dispose();
             
-            aeroFXBuffer.Dispose();
+            aeroFXBuffer?.Dispose();
             constantBuffer.Dispose();
             axisBuffer.Dispose();
             depthStencilView.Dispose();

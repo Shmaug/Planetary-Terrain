@@ -28,12 +28,12 @@ namespace Planetary_Terrain {
 
             Models.ShipModel.Draw(renderer, light, world);
 
-            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
-            if (b is Planet && ((Planet)b).Atmosphere != null) {
-                Atmosphere a = ((Planet)b).Atmosphere;
-
-                renderer.DrawAeroFX(world, Velocity, Models.ShipModel.DrawRaw);
-            }
+            //CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
+            //if (b is Planet && ((Planet)b).Atmosphere != null) {
+            //    Atmosphere a = ((Planet)b).Atmosphere;
+            //
+            //    renderer.DrawAeroFX(world, Velocity, Models.ShipModel.DrawRaw);
+            //}
         }
         
         public void Dispose() {

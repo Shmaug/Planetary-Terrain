@@ -96,13 +96,13 @@ namespace Planetary_Terrain {
                     Material mat = scene.Materials[mesh.MaterialIndex];
                     if (mat != null) {
                         if (mat.GetMaterialTextureCount(TextureType.Diffuse) > 0)
-                            mm.SetDiffuseTexture(device, modelPath + @"\" + mat.TextureDiffuse.FilePath);
+                            mm.SetDiffuseTexture(device, modelPath + "/" + mat.TextureDiffuse.FilePath);
                         if (mat.GetMaterialTextureCount(TextureType.Emissive) > 0) 
-                            mm.SetEmissiveTexture(device, modelPath + @"\" + mat.TextureEmissive.FilePath);
+                            mm.SetEmissiveTexture(device, modelPath + "/" + mat.TextureEmissive.FilePath);
                         if (mat.GetMaterialTextureCount(TextureType.Specular) > 0)
-                            mm.SetSpecularTexture(device, modelPath + @"\" + mat.TextureSpecular.FilePath);
+                            mm.SetSpecularTexture(device, modelPath + "/" + mat.TextureSpecular.FilePath);
                         if (mat.GetMaterialTextureCount(TextureType.Normals) > 0)
-                            mm.SetNormalTexture(device, modelPath + @"\" + mat.TextureNormal.FilePath);
+                            mm.SetNormalTexture(device, modelPath + "/" + mat.TextureNormal.FilePath);
                     }
 
                     //bool hasTexCoords = mesh.HasTextureCoords(0);
@@ -182,7 +182,7 @@ namespace Planetary_Terrain {
 
         public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world, Shader shader) {
             constants.World = world;
-            constants.WorldInverseTranspose = Matrix.Transpose(Matrix.Invert(world));
+            constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(world));
             constants.lightDirection = lightDirection;
 
             // create/update constant buffer

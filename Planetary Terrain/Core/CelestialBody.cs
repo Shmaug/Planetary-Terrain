@@ -89,9 +89,10 @@ namespace Planetary_Terrain {
         public abstract void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double height);
 
         public Vector3d GetNormal(Vector3d direction) {
+            return direction;
             Vector3d p1 = new Vector3d(0, GetHeight(direction), 0);
-            Vector3d p2 = new Vector3d(0.1, GetHeight(direction + new Vector3d(0.001, 0, 0)), 0);
-            Vector3d p3 = new Vector3d(0, GetHeight(direction + new Vector3d(0, 0, 0.001)), 0.1);
+            Vector3d p2 = new Vector3d(0.01, GetHeight(direction + new Vector3d(0.01, 0, 0)), 0);
+            Vector3d p3 = new Vector3d(0, GetHeight(direction + new Vector3d(0, 0, 0.01)), 0.01);
             return Vector3d.Cross(Vector3d.Normalize(p3 - p1), Vector3d.Normalize(p2 - p1));
         }
         /// <summary>

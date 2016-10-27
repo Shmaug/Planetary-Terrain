@@ -116,19 +116,11 @@ namespace Planetary_Terrain {
         }
 
         public override void Draw(Renderer renderer) {
-            if (Vehicle == null) {
-                if (!FirstPerson) {
-                    Models.CylinderModel.Draw(
-                        renderer,
-                        Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
-                        Matrix.Translation(Position - Camera.Position));
-                } else {
-                }
+            if (FirstPerson && Vehicle == null) {
                 Models.GunModel.Draw(
                     renderer,
                     Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
-                    Matrix.Translation(Position + new Vector3d(1, 0, 0) - renderer.Camera.Position));
-                // TODO: models rotated?
+                    Matrix.Scaling(.02f) * Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * renderer.Camera.Rotation);
             }
         }
 
@@ -149,7 +141,10 @@ namespace Planetary_Terrain {
 
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
             if (b != null) {
-                double h = (b.Position - Position).Length();
+                Vector3d dir = b.Position - Position;
+                double h = dir.Length();
+                dir /= h;
+
                 renderer.D2DContext.DrawText(Physics.FormatDistance(h - b.Radius), renderer.SegoeUI24,
                     new RawRectangleF(xmid, 0, xmid + 150, 40),
                     renderer.Brushes["Black"]);
@@ -158,13 +153,29 @@ namespace Planetary_Terrain {
                     renderer.Brushes["Black"]);
 
                 if (b is Planet) {
+                    if (h < b.Radius * 1.2) {
+                        double temp = (b as Planet).GetTemperature(dir);
+
+                        renderer.D2DContext.FillRectangle(
+                            new RawRectangleF(xmid + 155, 0, xmid + 260, 80),
+                            renderer.Brushes["White"]);
+
+                        renderer.D2DContext.DrawText("Surface: ", renderer.SegoeUI14,
+                            new RawRectangleF(xmid + 155, 3, xmid + 240, 10),
+                            renderer.Brushes["Black"]);
+
+                        renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
+                            new RawRectangleF(xmid + 165, 15, xmid + 240, 30),
+                            renderer.Brushes["Black"]);
+                    }
+
                     Atmosphere a = (b as Planet).Atmosphere;
                     if (a != null && h < a.Radius * 1.5) {
                         double temp;
                         double pressure;
                         double density;
                         double c;
-                        a.MeasureProperties(h, out pressure, out density, out temp, out c);
+                        a.MeasureProperties(dir, h, out pressure, out density, out temp, out c);
                         if (pressure > .1) {
                             renderer.D2DContext.FillRectangle(
                                 new RawRectangleF(xmid - 260, 0, xmid - 155, 80),
