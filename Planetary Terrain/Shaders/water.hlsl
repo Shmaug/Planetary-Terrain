@@ -40,7 +40,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	float3 wo = 0;
 
 	float2 d = normalize(float2(.25, .25));
-	wo += Wave(vertex * NodeScale + SurfaceOffset, d);
+	wo += Wave(vertex.xyz * NodeScale + SurfaceOffset, d);
 
 	wo  = mul(wo, (float3x3)NodeOrientation); // relative to planet
 	

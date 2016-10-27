@@ -14,10 +14,10 @@ namespace Planetary_Terrain {
         public static short[][] IndexCache;
 
         static short[] MakeIndicies(int index) {
-            bool fanLeft  = (index & 1) >= 1;
-            bool fanUp    = (index & 2) >= 1;
+            bool fanLeft = (index & 1) >= 1;
+            bool fanUp = (index & 2) >= 1;
             bool fanRight = (index & 4) >= 1;
-            bool fanDown  = (index & 8) >= 1;
+            bool fanDown = (index & 8) >= 1;
 
             List<short> inds = new List<short>();
             int s = GridSize + 1;
@@ -234,7 +234,11 @@ namespace Planetary_Terrain {
     }
     class QuadNode : IDisposable {
         public const int GridSize = 16;
+        const double TreeLODThreshold = 30; // vertexspacing < TreeLODThreshold has trees
+        const double TreeImposterLODThreshold = 100; // vertexspacing < TreeLODThreshold has trees
         const double waterDetailThreshold = 5000;
+
+        #region Generation/Threading
         const int MaxGenerationCount = 10;
 
         public static List<QuadNode> GenerateQueue = new List<QuadNode>();
@@ -249,10 +253,10 @@ namespace Planetary_Terrain {
                     GenerateQueue.Remove(q);
                     if (!q.Disposed)
                         Generating.Add(q);
-                        ThreadPool.QueueUserWorkItem((object ctx) => {
-                            q.generate();
-                            RemoveQueue.Add(q);
-                        });
+                    ThreadPool.QueueUserWorkItem((object ctx) => {
+                        q.generate();
+                        RemoveQueue.Add(q);
+                    });
                 }
             }
             for (int i = 0; i < RemoveQueue.Count; i++)
@@ -267,12 +271,14 @@ namespace Planetary_Terrain {
                 Generating.Remove(RemoveQueue[i]);
             RemoveQueue.Clear();
         }
+        #endregion
 
         public bool Disposed = false;
-        
+
         public double Size;
         public double ArcSize;
         public double VertexSpacing; // meters per vertex
+        public long NodeID; // Unique ID based off sibling indicies
 
         public CelestialBody Body;
         public QuadNode Parent;
@@ -283,7 +289,9 @@ namespace Planetary_Terrain {
         /// The position on the cube, before being projected into a sphere
         /// </summary>
         public Vector3d CubePosition;
-
+        /// <summary>
+        /// Position on the surface of the planet, along the radius of the planet
+        /// </summary>
         public Vector3d SurfacePosition;
 
         /// <summary>
@@ -300,13 +308,15 @@ namespace Planetary_Terrain {
         PlanetVertex[] waterFarVerticies;
         short[] indicies;
 
+        public Matrix[] Trees;
+
         bool hasWaterVerticies;
 
         public int IndexCount { get; private set; }
         public int VertexCount { get; private set; }
 
         public int LoDLevel;
-        
+
         [StructLayout(LayoutKind.Explicit, Size = 288)]
         struct Constants {
             [FieldOffset(0)]
@@ -343,22 +353,28 @@ namespace Planetary_Terrain {
         public D3D11.Buffer indexBuffer { get; private set; }
         public D3D11.Buffer constantBuffer { get; private set; }
         public D3D11.Buffer waterConstantBuffer { get; private set; }
+        public D3D11.Buffer TreeBuffer { get; private set; }
 
         bool indexdirty = false;
-        bool vertexdirty = false;
+        bool vertexDirty = false;
         bool generating = false;
-        public bool Ready { get {
+        public bool Ready
+        {
+            get
+            {
                 bool childrenReady = true;
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
                         if (!Children[i].Ready)
                             childrenReady = false;
                 }
-                return (Children != null && childrenReady) || (vertexdirty || vertexBuffer != null);
-            } }
+                return (Children != null && childrenReady) || (vertexDirty || vertexBuffer != null);
+            }
+        }
 
         public QuadNode(CelestialBody body, int siblingIndex, double size, int lod, QuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
             SiblingIndex = siblingIndex;
+            NodeID = Convert.ToInt64((parent == null ? "" : parent.NodeID.ToString()) + siblingIndex);
             Size = size;
             Body = body;
             Parent = parent;
@@ -381,17 +397,18 @@ namespace Planetary_Terrain {
 
             hasWaterVerticies = Body is Planet && ((Planet)Body).HasOcean;
         }
+        #region Setup/Generation
         void SetupMesh() {
             VertexSamples = new Vector3d[9];
             int i = 0;
 
             double scale = Size / GridSize;
-            
+
             Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
 
-            for (int x = 0; x <= GridSize; x+=GridSize/2) {
-                for (int z = 0; z <= GridSize; z+=GridSize/2) {
-                    Vector3d p = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));                    
+            for (int x = 0; x <= GridSize; x += GridSize / 2) {
+                for (int z = 0; z <= GridSize; z += GridSize / 2) {
+                    Vector3d p = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
                     p *= Body.GetHeight(p);
                     p -= MeshCenter;
 
@@ -399,7 +416,6 @@ namespace Planetary_Terrain {
                 }
             }
         }
-        
         public void Generate() {
             if (generating) return;
             generating = true;
@@ -468,6 +484,9 @@ namespace Planetary_Terrain {
                             t, (float)h);
                     pts[x * s + z] = verticies[x * s + z].Position;
 
+                    //if (x == 0 || z == 0 || x == s - 1 || z == s - 1)
+                    //    verticies[x * s + z].Color = Color.Red;
+
                     if (hasWaterVerticies && rh > oceanLevel)
                         waterFarVerticies[x * s + z] = verticies[x * s + z];
                     else
@@ -482,7 +501,7 @@ namespace Planetary_Terrain {
                 indexBuffer?.Dispose();
                 waterVertexBuffer?.Dispose();
                 waterFarVertexBuffer?.Dispose();
-                vertexdirty = false;
+                vertexDirty = false;
                 verticies = null;
                 indicies = null;
                 waterVerticies = null;
@@ -507,10 +526,48 @@ namespace Planetary_Terrain {
             OOB = new OrientedBoundingBox(pts);
             GetIndicies(false);
 
+            // trees
+            if (VertexSpacing < TreeImposterLODThreshold) {
+                bool p = true;
+                if (Parent != null && Parent.VertexSpacing < TreeLODThreshold)
+                    p = false;
+
+                if (Body is Planet && p) {
+                    Planet pl = Body as Planet;
+                    if (pl.HasTrees) {
+                        // generate trees if the parent node has no trees (otherwise when we render, the parent renders it's trees)
+                        Random r = new Random((int)NodeID);
+                        int c = (int)(s * s * VertexSpacing * .025); // .025 trees per square meter
+                        double x, z;
+                        Matrix rot;
+                        List<Matrix> trees = new List<Matrix>();
+                        for (int i = 0; i < c; i++) {
+                            x = r.NextDouble() * s;
+                            z = r.NextDouble() * s;
+                            p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
+                            rh = Body.GetHeight(p1d);
+                            
+                            if (pl.GetTemperature(p1d) < 35 && pl.GetHumidity(p1d) > 0.4 // temp above 0 celsius, humidity above .1
+                                && !pl.HasOcean || rh > oceanLevel // above ocean
+                                ) {
+                                rot = Body.OrientationFromDirection(p1d);
+                                trees.Add(
+                                    rot * Matrix.RotationAxis(rot.Up, (float)(r.NextDouble() * Math.PI * 2)) *
+                                    Matrix.Translation((p1d * rh - MeshCenter))
+                                );
+                            }
+                        }
+                        Trees = trees.ToArray();
+                    }
+                }
+            }
+
             generating = false;
-            vertexdirty = true;
+            vertexDirty = true;
         }
-        
+        #endregion
+
+        #region Index/Neighbor Calculations
         public void GetIndicies(bool recurse = true) {
             if (recurse && Children != null)
                 for (int i = 0; i < Children.Length; i++)
@@ -524,10 +581,10 @@ namespace Planetary_Terrain {
             QuadNode u = GetUp();
             QuadNode d = GetDown();
 
-            bool fanLeft  = l != null && l.LoDLevel < LoDLevel;
-            bool fanUp    = u != null && u.LoDLevel < LoDLevel;
+            bool fanLeft = l != null && l.LoDLevel < LoDLevel;
+            bool fanUp = u != null && u.LoDLevel < LoDLevel;
             bool fanRight = r != null && r.LoDLevel < LoDLevel;
-            bool fanDown  = d != null && d.LoDLevel < LoDLevel;
+            bool fanDown = d != null && d.LoDLevel < LoDLevel;
 
             int index = 0;
             if (fanLeft)
@@ -538,7 +595,7 @@ namespace Planetary_Terrain {
                 index |= 4;
             if (fanDown)
                 index |= 8;
-            
+
             indicies = TriangleCache.IndexCache[index];
 
             indexdirty = true;
@@ -684,11 +741,13 @@ namespace Planetary_Terrain {
             if (u != null && !u.generating)
                 u.GetIndicies();
         }
+        #endregion
 
+        #region Splitting/LOD
         public void Split(D3D11.Device device) {
             if (Children != null)
                 return;
-            
+
             double s = Size * .5;
 
             //  | 0 | 1 |
@@ -733,18 +792,18 @@ namespace Planetary_Terrain {
         public void SplitDynamic(Vector3d dir, double height, D3D11.Device device) {
             double dist;
             Vector3d vertex;
-            ClosestVertex(dir*height + Body.Position, out vertex, out dist);
-            
+            ClosestVertex(dir * height + Body.Position, out vertex, out dist);
+
             double arcDist = Body.ArcLength(Vector3.Normalize(vertex - Body.Position), dir);
 
             if (hasWaterVerticies) {
                 double wh = Body.Radius + ((Planet)Body).TerrainHeight * ((Planet)Body).OceanHeight;
                 Vector3d d2 = Vector3d.Normalize(vertex - Body.Position);
-                dist = Math.Min(dist, (d2 * wh - dir*height).Length());
+                dist = Math.Min(dist, (d2 * wh - dir * height).Length());
             }
 
             double x = (arcDist + dist) / 2;
-            
+
             if (x * x < ArcSize * ArcSize || Size / GridSize > Body.MaxVertexSpacing) {
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
@@ -756,7 +815,9 @@ namespace Planetary_Terrain {
             } else
                 UnSplit();
         }
-        
+        #endregion
+
+
         public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
             vert = MeshCenter + Body.Position;
             dist = double.MaxValue;
@@ -764,7 +825,7 @@ namespace Planetary_Terrain {
             if (VertexSamples == null) return;
 
             pos -= MeshCenter + Body.Position;
-            
+
             for (int i = 0; i < VertexSamples.Length; i++) {
                 double d = (pos - VertexSamples[i]).LengthSquared();
                 if (d < dist) {
@@ -790,7 +851,7 @@ namespace Planetary_Terrain {
 
             return false;
         }
-        
+
         public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
             if (indexdirty) {
                 indexBuffer?.Dispose();
@@ -798,7 +859,7 @@ namespace Planetary_Terrain {
                 IndexCount = indicies.Length;
             }
 
-            if (vertexdirty) {
+            if (vertexDirty) {
                 vertexBuffer?.Dispose();
                 vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
                 if (hasWaterVerticies) {
@@ -808,12 +869,21 @@ namespace Planetary_Terrain {
                     waterFarVertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, waterFarVerticies);
                 }
                 VertexCount = verticies.Length;
+
+                if (Trees != null && Trees.Length > 0){
+                    TreeBuffer?.Dispose();
+                    TreeBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, Trees, Marshal.SizeOf<Matrix>() * Trees.Length, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
+                }
             }
 
             indexdirty = false;
-            vertexdirty = false;
+            vertexDirty = false;
         }
-        public void Draw(Renderer renderer, bool waterPass, double scale, Vector3d pos) {
+
+        public enum QuadRenderPass {
+            Ground, Water
+        }
+        public void Draw(Renderer renderer, QuadRenderPass pass, double scale, Vector3d pos) {
             Matrix world = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
             OOB.Transformation = world;
             BoundingBox bbox = OOB.GetBoundingBox();
@@ -821,67 +891,107 @@ namespace Planetary_Terrain {
                 double d;
                 Vector3d v;
                 ClosestVertex(renderer.Camera.Position, out v, out d);
-                constants.World = world;
-                constants.WorldInverseTranspose = Matrix.Identity;
-                constants.NodeOrientation = Body.OrientationFromDirection(Vector3d.Normalize(MeshCenter));
-                constants.Scale = (float)scale;
-                constants.drawWaterFar = !waterPass && hasWaterVerticies && d > waterDetailThreshold;
-                constants.Color = Vector3.One;
-                
-                // constant buffer
-                if (constantBuffer == null)
-                    constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
-                renderer.Context.UpdateSubresource(ref constants, constantBuffer);
-
-                renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
-                renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
-
-                renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-
-                if (waterPass) {
-                    // when teh camera is close, draw waterVertexBuffer
-                    if (hasWaterVerticies && d < waterDetailThreshold) { // lod
-                        waterConstants.Offset = Vector3.Zero;
-                        waterConstants.FadeDistance = 50;
-                        waterConstants.Time = (float)renderer.TotalTime;
-
-                        // water constant buffer
-                        if (waterConstantBuffer == null)
-                            waterConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref waterConstants);
-                        renderer.Context.UpdateSubresource(ref waterConstants, waterConstantBuffer);
-
-                        renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
-                        renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
-
-                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
-                        renderer.Context.DrawIndexed(indicies.Length, 0, 0);
-
-                        Debug.VerticiesDrawn += VertexCount;
-                    }
-                } else {
-                    // when the camera is far away, draw waterFarVertexBuffer and tell the shader to draw the water verticies in blue
-                    if (hasWaterVerticies && d > waterDetailThreshold) // water lod
-                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterFarVertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
-                    else {
-                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
-
-                        constants.drawWaterFar = false;
-                        renderer.Context.UpdateSubresource(ref constants, constantBuffer);
-                    }
-                    renderer.Context.DrawIndexed(indicies.Length, 0, 0);
-
-                    Debug.VerticiesDrawn += VertexCount;
-                }
-
                 if (d < Debug.ClosestQuadTreeDistance) {
                     Debug.ClosestQuadTree = this;
                     Debug.ClosestQuadTreeDistance = d;
                     Debug.ClosestQuadTreeScale = scale;
                 }
+
+                if (pass == QuadRenderPass.Ground || pass == QuadRenderPass.Water) {
+                    constants.World = world;
+                    constants.WorldInverseTranspose = Matrix.Identity;
+                    constants.NodeOrientation = Body.OrientationFromDirection(Vector3d.Normalize(MeshCenter));
+                    constants.Scale = (float)scale;
+                    constants.drawWaterFar = pass != QuadRenderPass.Water && hasWaterVerticies && d > waterDetailThreshold;
+                    constants.Color = Vector3.One;
+
+                    // constant buffer
+                    if (constantBuffer == null)
+                        constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+                    renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+
+                    renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
+                    renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
+
+                    renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                    renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+                }
+
+                switch (pass) {
+                    case QuadRenderPass.Water:
+                        // when the camera is close, draw waterVertexBuffer
+                        if (hasWaterVerticies && d < waterDetailThreshold) { // lod
+                            waterConstants.Offset = Vector3.Zero;
+                            waterConstants.FadeDistance = 50;
+                            waterConstants.Time = (float)renderer.TotalTime;
+
+                            // water constant buffer
+                            if (waterConstantBuffer == null)
+                                waterConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref waterConstants);
+                            renderer.Context.UpdateSubresource(ref waterConstants, waterConstantBuffer);
+
+                            renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
+                            renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
+
+                            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
+                            renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+
+                            Debug.VerticiesDrawn += VertexCount;
+                        }
+                        break;
+                    case QuadRenderPass.Ground:
+                        // when the camera is far away, draw waterFarVertexBuffer and tell the shader to draw the water verticies in blue
+                        if (hasWaterVerticies && d > waterDetailThreshold) // water lod
+                            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterFarVertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
+                        else {
+                            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
+
+                            constants.drawWaterFar = false;
+                            renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+                        }
+                        renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+
+                        Debug.VerticiesDrawn += VertexCount;
+                        break;
+                }
             }
         }
-        public void Draw(Renderer renderer, bool waterPass, Vector3d planetPos, double planetScale) {
+        public bool DrawTrees(Renderer renderer) {
+            if (VertexSpacing < TreeLODThreshold) {
+                if (Trees != null && Trees.Length > 0) {
+                    double scale;
+                    Vector3d pos;
+                    renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
+
+                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Marshal.SizeOf<Matrix>(), 0));
+                    Models.TreeModel.DrawInstanced(
+                        renderer,
+                        Vector3d.Normalize(MeshCenter + Body.Position - StarSystem.ActiveSystem.GetStar().Position),
+                        Matrix.Translation(pos),
+                        Trees.Length);
+                }
+                return true;
+            } else {
+                bool imposter = true;
+                if (Children != null)
+                    for (int i = 0; i < Children.Length; i++)
+                        if (Children[i].DrawTrees(renderer))
+                            imposter = false;
+
+                if (imposter && VertexSpacing < TreeImposterLODThreshold) {
+                    double scale;
+                    Vector3d pos;
+                    renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
+
+                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Marshal.SizeOf<Matrix>(), 0));
+                    // TODO: draw tree imposter
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        public void Draw(Renderer renderer, QuadRenderPass pass, Vector3d planetPos, double planetScale) {
             bool draw = true;
 
             if (Children != null) {
@@ -893,11 +1003,11 @@ namespace Planetary_Terrain {
 
                 if (!draw)
                     for (int i = 0; i < Children.Length; i++)
-                        Children[i].Draw(renderer, waterPass, planetPos, planetScale);
+                        Children[i].Draw(renderer, pass, planetPos, planetScale);
             }
 
             if (draw) {
-                if (vertexdirty || indexdirty)
+                if (vertexDirty || indexdirty)
                     SetData(renderer.Device, renderer.Context);
 
                 if (vertexBuffer != null) {
@@ -908,8 +1018,8 @@ namespace Planetary_Terrain {
                         constants.NodeToPlanetMatrix = Matrix.Scaling((float)(scale * Size)) * Matrix.Translation(pos);
 
                         renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
-                        
-                        Draw(renderer, waterPass, scale * Size, pos);
+
+                        Draw(renderer, pass, scale * Size, pos);
                     }
                 }
             }
@@ -920,7 +1030,7 @@ namespace Planetary_Terrain {
 
             if (generating) {
                 generating = false;
-                vertexdirty = false;
+                vertexDirty = false;
                 GenerateQueue.Remove(this);
             }
 
@@ -929,6 +1039,7 @@ namespace Planetary_Terrain {
             indexBuffer?.Dispose();
             waterFarVertexBuffer?.Dispose();
             waterVertexBuffer?.Dispose();
+            TreeBuffer?.Dispose();
 
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)
@@ -1031,7 +1142,7 @@ namespace Planetary_Terrain {
             int s = GridSize + 1;
             verticies = new Vector3[s * s * 6];
             List<short> inds = new List<short>();
-            
+
             Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
 
             for (int x = 0; x < s; x++) {
@@ -1199,7 +1310,7 @@ namespace Planetary_Terrain {
         public void Split(D3D11.Device device) {
             if (Children != null)
                 return;
-            
+
             double s = Size * .5;
 
             //  | 0 | 1 |
@@ -1299,7 +1410,7 @@ namespace Planetary_Terrain {
         public void SetData(D3D11.Device device, D3D11.DeviceContext context) {
             vertexBuffer?.Dispose();
             vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
-            
+
             indexBuffer?.Dispose();
             indexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies);
 
@@ -1324,7 +1435,7 @@ namespace Planetary_Terrain {
 
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
             renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-            
+
             renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<Vector3>(), 0));
 
             renderer.Context.DrawIndexed(indicies.Length, 0, 0);

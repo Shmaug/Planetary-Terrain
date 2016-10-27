@@ -165,7 +165,12 @@ namespace Planetary_Terrain {
                 string.Format("{0} verts, {1} fps    [{2} waiting / {3} generating]",
                 VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 10), renderer.Brushes["White"]);
-            
+
+            renderer.D2DContext.DrawText(
+                string.Format("[{0}, {1}]",
+                Planet.min, Planet.max),
+                renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 50, 300, renderer.Viewport.Height - 25), renderer.Brushes["White"]);
+
             #region logs
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.WordWrapping = DWrite.WordWrapping.NoWrap;
@@ -195,9 +200,9 @@ namespace Planetary_Terrain {
             #endregion
             
             int py = frameProfiler.TotalChildren()*Profiler.lineHeight + Profiler.lineHeight;
-            renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 505, 5, renderer.ResolutionX - 95, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
+            renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
 
-            frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 500, 10, renderer.ResolutionX - 100, 40));
+            frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
             //frameProfiler.DrawCircle(renderer, new D2D1.Ellipse(new RawVector2(renderer.ResolutionX - 250, renderer.ResolutionY - 250), 200, 200), 0, Math.PI * 2);
         }
     }

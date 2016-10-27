@@ -7,6 +7,7 @@ namespace Planetary_Terrain {
         public static Model ShipModel;
         public static Model GunModel;
         public static Model CylinderModel;
+        public static Model TreeModel;
         
         public static void Load(D3D11.Device device) {
             ShipModel = new Model(modelFolder + "ship/ship.fbx", device);
@@ -28,6 +29,11 @@ namespace Planetary_Terrain {
             CylinderModel.SpecularColor = Color.White;
             CylinderModel.Shininess = 200;
             CylinderModel.SpecularIntensity = 0;
+            
+            TreeModel = new Model(modelFolder + "trees/tree0.fbx", device);
+            TreeModel.SpecularColor = Color.White;
+            TreeModel.Shininess = 0;
+            TreeModel.SpecularIntensity = 0;
         }
 
         public static void Dispose() {

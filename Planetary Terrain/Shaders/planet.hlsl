@@ -17,9 +17,10 @@ struct v2f {
 	float3 c0 : TEXCOORD5;
 	float3 c1 : TEXCOORD6;
 
+	float4 c : COLOR0;
 };
 
-v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float3 dir : TEXCOORD1, float height : TEXCOORD2) {
+v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float3 dir : TEXCOORD1, float height : TEXCOORD2, float4 color : COLOR0) {
 	v2f v;
 	float4 worldPosition = mul(vertex, World);
 	v.position = mul(worldPosition, mul(View, Projection));
@@ -32,6 +33,8 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 	ScatterOutput o = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos);
 	v.c0 = o.c0;
 	v.c1 = o.c1;
+
+	v.c = color;
 
 	return v;
 }
@@ -62,5 +65,5 @@ float4 psmain(v2f i) : SV_TARGET
 
 	col = i.c1 + col * i.c0;
 
-	return float4(1 - exp(-Exposure * col), 1);
+	return float4(1 - exp(-Exposure * col), 1) * i.c;
 }

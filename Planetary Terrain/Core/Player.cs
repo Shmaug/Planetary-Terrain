@@ -109,16 +109,25 @@ namespace Planetary_Terrain {
 
             Camera.Rotation = Rotation * Matrix.RotationAxis(Rotation.Up, CameraEuler.Y);
             Camera.Rotation *= Matrix.RotationAxis(Camera.Rotation.Right, CameraEuler.X);
+
             if (FirstPerson)
                 Camera.Position = Position + (Vector3d)Rotation.Up * .75;
             else
                 Camera.Position = Position + (Vector3d)Camera.Rotation.Forward * 50;
+
+            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Camera.Position);
+            Vector3d dir = Camera.Position - b.Position;
+            double h = dir.Length();
+            dir /= h;
+            double t = b.GetHeight(dir) + .2;
+            if (h < t)
+                Camera.Position = b.Position + dir * t;
         }
 
         public override void Draw(Renderer renderer) {
             if (FirstPerson && Vehicle == null) {
-                Models.GunModel.Draw(
-                    renderer,
+                Shaders.ModelShader.Set(renderer);
+                Models.GunModel.Draw(renderer,
                     Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
                     Matrix.Scaling(.02f) * Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * renderer.Camera.Rotation);
             }
@@ -153,8 +162,10 @@ namespace Planetary_Terrain {
                     renderer.Brushes["Black"]);
 
                 if (b is Planet) {
+                    #region surface info
                     if (h < b.Radius * 1.2) {
                         double temp = (b as Planet).GetTemperature(dir);
+                        double humid = (b as Planet).GetHumidity(dir) * 100;
 
                         renderer.D2DContext.FillRectangle(
                             new RawRectangleF(xmid + 155, 0, xmid + 260, 80),
@@ -167,8 +178,13 @@ namespace Planetary_Terrain {
                         renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
                             new RawRectangleF(xmid + 165, 15, xmid + 240, 30),
                             renderer.Brushes["Black"]);
-                    }
 
+                        renderer.D2DContext.DrawText(humid.ToString("F1") + "%", renderer.SegoeUI14,
+                            new RawRectangleF(xmid + 165, 30, xmid + 240, 45),
+                            renderer.Brushes["Black"]);
+                    }
+                    #endregion
+                    #region atmosphere info
                     Atmosphere a = (b as Planet).Atmosphere;
                     if (a != null && h < a.Radius * 1.5) {
                         double temp;
@@ -202,6 +218,7 @@ namespace Planetary_Terrain {
                                 renderer.Brushes["Black"]);
                         }
                     }
+                    #endregion
                 }
             }
         }

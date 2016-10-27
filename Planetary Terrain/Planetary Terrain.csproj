@@ -131,11 +131,31 @@
     <Content Include="Data\Models\Gun\gun_specular.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Textures\EmptySpace.dds">
+    <Content Include="Data\Models\Trees\tree0.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Textures\Background\NegativeX.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Textures\Background\NegativeY.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Textures\Background\NegativeZ.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Textures\Background\PositiveX.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Textures\Background\PositiveY.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Textures\Background\PositiveZ.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Shaders\blur.hlsl" />
     <Content Include="Shaders\aerofx.hlsl" />
+    <Content Include="Shaders\instancedmodel.hlsl" />
+    <Content Include="Shaders\_model.hlsli" />
     <Content Include="Shaders\skybox.hlsl" />
     <Content Include="Shaders\_quadnode.hlsli" />
     <Compile Include="Tools\Resources\DDS.cs" />
@@ -182,6 +202,9 @@
     <None Include="Data\Models\Ship\ship.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\Models\Trees\tree0.fbx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -207,18 +230,6 @@
     <Content Include="Shaders\star.hlsl" />
     <Content Include="Shaders\water.hlsl" />
     <Content Include="Data\Textures\Earth.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Data\Textures\Mars.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Data\Textures\Venus.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Data\Textures\Mercury.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Data\Textures\height.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Textures\Sun.jpg">

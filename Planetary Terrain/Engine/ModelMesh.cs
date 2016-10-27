@@ -39,7 +39,7 @@ namespace Planetary_Terrain {
             ResourceUtil.LoadFromFile(device, filePath, out NormalTextureView).Dispose();
         }
         
-        public void Draw(Renderer renderer) {
+        public void SetResources(Renderer renderer) {
             renderer.Context.PixelShader.SetSampler(0, renderer.AnisotropicSampler);
 
             if (DiffuseTextureView != null)
@@ -65,10 +65,16 @@ namespace Planetary_Terrain {
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology;
             renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(VertexBuffer, VertexSize, 0));
             renderer.Context.InputAssembler.SetIndexBuffer(IndexBuffer, Format.R16_UInt, 0);
-
+        }
+        public void Draw(Renderer renderer) {
+            SetResources(renderer);
             renderer.Context.DrawIndexed(IndexCount, 0, 0);
         }
-        public void DrawRaw(Renderer renderer) {
+        public void DrawInstanced(Renderer renderer, int instanceCount) {
+            SetResources(renderer);
+            renderer.Context.DrawIndexedInstanced(IndexCount, instanceCount, 0, 0, 0);
+        }
+        public void DrawNoResources(Renderer renderer) {
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology;
             renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(VertexBuffer, VertexSize, 0));
             renderer.Context.InputAssembler.SetIndexBuffer(IndexBuffer, Format.R16_UInt, 0);

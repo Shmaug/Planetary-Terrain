@@ -26,6 +26,7 @@ namespace Planetary_Terrain {
 
             Matrix world = Rotation * Matrix.Translation(Position - renderer.Camera.Position);
 
+            Shaders.ModelShader.Set(renderer);
             Models.ShipModel.Draw(renderer, light, world);
 
             //CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);

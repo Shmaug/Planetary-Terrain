@@ -1,21 +1,25 @@
 #include "_constants.hlsli"
 
-TextureCube SkyboxTexture : register(t0);
+Texture2D SkyboxTexture : register(t0);
 SamplerState SkyboxSampler : register(s0);
+
+cbuffer consts : register(b1) {
+	row_major float4x4 World;
+};
 
 struct v2f {
 	float4 position : SV_POSITION;
-	float3 uvw : TEXCOORD0;
+	float2 uv : TEXCOORD0;
 };
 
-v2f vsmain(float4 vertex : POSITION0) {
+v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD) {
 	v2f v;
-	v.position = mul(vertex, mul(View, Projection));
-	v.uvw = vertex.xyz;
+	v.position = mul(vertex, mul(World, mul(View, Projection)));
+	v.uv = uv;
 	return v;
 }
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	return SkyboxTexture.Sample(SkyboxSampler, i.uvw);
+	return SkyboxTexture.Sample(SkyboxSampler, i.uv);
 }

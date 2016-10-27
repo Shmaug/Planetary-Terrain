@@ -23,7 +23,6 @@ namespace Planetary_Terrain {
 
         public UI.InputState InputState;
         Vector2 realMousePos;
-        bool lockMouse;
         #endregion
 
         public UI.Frame ControlPanel;
@@ -98,7 +97,7 @@ namespace Planetary_Terrain {
         }
         
         void Initialize() {
-            skybox = new Skybox("Data/Textures/EmptySpace.dds", renderer.Device);
+            skybox = new Skybox("Data/Textures/Background", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
 
             player = new Player();

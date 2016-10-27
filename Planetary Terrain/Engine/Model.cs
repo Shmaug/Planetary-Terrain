@@ -180,7 +180,7 @@ namespace Planetary_Terrain {
                 AddNode(scene, c, device, transform);
         }
 
-        public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world, Shader shader) {
+        public void SetResources(Renderer renderer, Vector3d lightDirection, Matrix world) {
             constants.World = world;
             constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(world));
             constants.lightDirection = lightDirection;
@@ -189,23 +189,28 @@ namespace Planetary_Terrain {
             if (cbuffer == null)
                 cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             renderer.Context.UpdateSubresource(ref constants, cbuffer);
-
-            shader.Set(renderer);
-
+            
             renderer.Context.VertexShader.SetConstantBuffer(1, cbuffer);
             renderer.Context.PixelShader.SetConstantBuffer(1, cbuffer);
+        }
 
+        public void Draw(Renderer renderer) {
             foreach (ModelMesh m in Meshes)
                 m.Draw(renderer);
         }
-        
+
         public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world) {
-            Draw(renderer, lightDirection, world, Shaders.ModelShader);
+            SetResources(renderer, lightDirection, world);
+            Draw(renderer);
         }
 
-        public void DrawRaw(Renderer renderer) {
+        public void PrepareInstanced(Renderer renderer, Vector3d lightDirection, Matrix world) { 
+}
+        public void DrawInstanced(Renderer renderer, Vector3d lightDirection, Matrix world, int instanceCount) {
+            SetResources(renderer, lightDirection, world);
+
             foreach (ModelMesh m in Meshes)
-                m.DrawRaw(renderer);
+                m.DrawInstanced(renderer, instanceCount);
         }
 
         public void Dispose() {

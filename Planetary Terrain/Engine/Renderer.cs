@@ -423,7 +423,7 @@ namespace Planetary_Terrain {
                     Context.PixelShader.SetConstantBuffer(1, aeroFXBuffer);
                     DrawFunc(this);
                 }
-                // TODO: this still doesnt work
+                // TODO: aero fx still dont work
                 // Draw aero FX to the main render target
                 //Context.OutputMerger.SetRenderTargets(depthStencilView, renderTargetView);
                 

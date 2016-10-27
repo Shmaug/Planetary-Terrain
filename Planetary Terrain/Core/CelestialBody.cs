@@ -7,7 +7,7 @@ using DWrite = SharpDX.DirectWrite;
 
 namespace Planetary_Terrain {
     abstract class CelestialBody : PhysicsBody, IDisposable {
-        public double MaxVertexSpacing = 2000000; // m/vertex
+        public double MaxVertexSpacing = 10000000; // m/vertex
         public double MinVertexSpacing = 1;       // m/vertex
         
         // TODO: planet rotation
@@ -60,7 +60,7 @@ namespace Planetary_Terrain {
                 double dir = Vector3d.Dot(renderer.Camera.Position - Position, renderer.Camera.Rotation.Forward);
                 
                 if (dir > 0) {
-                    float r = (float)((1f / Math.Tan(renderer.Camera.VerticalFieldOfView * .5) * Radius / Math.Sqrt(h * h - Radius * Radius)) * renderer.ResolutionY * .5f); // TODO: something
+                    float r = (float)((1f / Math.Tan(renderer.Camera.VerticalFieldOfView * .5) * Radius / Math.Sqrt(h * h - Radius * Radius)) * renderer.ResolutionY * .5f); // TODO: fix radius of circle around planets on UI
                     float radius = Math.Max(r, 30);
                     int d = Math.Sign(hudDir.X);
 
@@ -90,10 +90,10 @@ namespace Planetary_Terrain {
 
         public Vector3d GetNormal(Vector3d direction) {
             return direction;
-            Vector3d p1 = new Vector3d(0, GetHeight(direction), 0);
-            Vector3d p2 = new Vector3d(0.01, GetHeight(direction + new Vector3d(0.01, 0, 0)), 0);
-            Vector3d p3 = new Vector3d(0, GetHeight(direction + new Vector3d(0, 0, 0.01)), 0.01);
-            return Vector3d.Cross(Vector3d.Normalize(p3 - p1), Vector3d.Normalize(p2 - p1));
+            //Vector3d p1 = new Vector3d(0, GetHeight(direction), 0);
+            //Vector3d p2 = new Vector3d(0.01, GetHeight(direction + new Vector3d(0.01, 0, 0)), 0);
+            //Vector3d p3 = new Vector3d(0, GetHeight(direction + new Vector3d(0, 0, 0.01)), 0.01);
+            //return Vector3d.Cross(Vector3d.Normalize(p3 - p1), Vector3d.Normalize(p2 - p1));
         }
         /// <summary>
         /// Returns the point on the surface of the planet, along the line from the planet's position to the given point

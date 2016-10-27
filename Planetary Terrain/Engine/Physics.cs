@@ -19,9 +19,9 @@ namespace Planetary_Terrain {
         public double Longitude;
         public double ArgumentPeriapsis;
         public double ArgumentAnomaly;
-        public PhysicsBody Orbitee;
+        public PhysicsBody OrbitalParent;
 
-        // TODO: finish orbits
+        // TODO: keplerian orbits
         public static Orbit FromCartesian(Vector3d position, Vector3d velocity, double mass) {
             return new Orbit() {
 
@@ -98,12 +98,13 @@ namespace Planetary_Terrain {
             if (b != null && b != this) {
                 // check collision
                 double t = b.GetHeight(dir);
-                if (h < t) {
-                    Position = b.Position + dir * t;
-
-                    Vector3d n = b.GetNormal(dir);
-                    // vector rejection
-                    Velocity -= n * Vector3d.Dot(Velocity, n);
+                if (h < t+1) {
+                    Vector3d n = -b.GetNormal(dir);
+                    double vdn = Vector3d.Dot(Velocity, n);
+                    if (vdn > 0) {
+                        Position = b.Position + dir * (t+1);
+                        Velocity -= n * vdn;
+                    }
                 }
             }
         }

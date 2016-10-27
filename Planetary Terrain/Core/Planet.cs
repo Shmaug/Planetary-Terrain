@@ -5,6 +5,7 @@ using D2D1 = SharpDX.Direct2D1;
 using DWrite = SharpDX.DirectWrite;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     class Planet : CelestialBody, IDisposable {
@@ -20,7 +21,8 @@ namespace Planetary_Terrain {
         public double SurfaceTemperature; // in Celsuis
         public double TemperatureRange; // in Celsuis
 
-        public bool HasOcean;
+        public bool HasOcean = false;
+        public bool HasTrees = false;
         public double OceanHeight;
         public Color OceanColor;
         
@@ -48,8 +50,8 @@ namespace Planetary_Terrain {
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
-
-        public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null, bool ocean = false) : base(pos, radius, mass) {
+        
+        public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null) : base(pos, radius, mass) {
             Name = name;
             Radius = radius;
             TerrainHeight = terrainHeight;
@@ -57,29 +59,28 @@ namespace Planetary_Terrain {
 
             if (atmosphere != null)
                 atmosphere.Planet = this;
-
-            HasOcean = ocean;
+            
             OceanHeight = .5;
             OceanColor = new Color(45, 100, 245);
         }
 
-        public double min=1, max=-1;
+        public static double min=1, max=-1;
         double height(Vector3d direction) {
             double total = 0;
 
             // TODO: Height function
 
-            double rough = Noise.Simplex(direction * 50 + new Vector3d(-5000));
+            double rough = Noise.Ridged(direction * 50 + new Vector3d(-5000), 5, .2, .7) * .5 + .5;
 
-            double mntn = Noise.Fractal(direction * 1000 + new Vector3(2000), 11, .03f, .5f);
-            double flat = Noise.Ridged(direction * 100 + new Vector3(1000), 2, .01f, .45f);
+            double mntn = Noise.Fractal(direction * 1000 + new Vector3d(2000), 11, .03f, .5f);
+            double flat = Noise.SmoothSimplex(direction * 100 + new Vector3d(1000), 2, .01f, .45f) * .5 + .5;
 
-            rough = rough * rough * rough;
+            rough = rough * rough;
 
             flat *= 1.0 - rough;
-            mntn *= rough + flat;
+            mntn *= rough;
             
-            total = mntn;
+            total = mntn + flat;
             
             min = Math.Min(min, total);
             max = Math.Max(max, total);
@@ -96,14 +97,13 @@ namespace Planetary_Terrain {
         public double GetTemperature(Vector3d direction) {
             return SurfaceTemperature + TemperatureRange * temperature(direction);
         }
+        public double GetHumidity(Vector3d direction) {
+            return Noise.SmoothSimplex(direction * 200, 4, .1f, .8f) * .5 + .5; // TODO: better temp/humid function
+        }
 
         public override void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double h) {
-            data = Vector2.Zero;
             h = height(direction);
-            
-            double humid = Noise.SmoothSimplex(direction * 200, 4, .1f, .8f)*.5 + .5; // TODO: better temp/humid function
-            
-            data = new Vector2((float)temperature(direction) * .5f + .5f, (float)humid);
+            data = new Vector2((float)temperature(direction) * .5f + .5f, (float)GetHumidity(direction));
         }
 
         public void SetColormap(string file, D3D11.Device device) {
@@ -179,24 +179,40 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetSampler(0, colorMapSampler);
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
-
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Draw(renderer, false, pos, scale);
-
-            // set water shader
-            Shaders.WaterShader.Set(renderer);
-
-            renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
-            renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
             
-            // atmosphere constants
-            if (Atmosphere != null) {
-                renderer.Context.VertexShader.SetConstantBuffers(3, Atmosphere.constBuffer);
-                renderer.Context.PixelShader.SetConstantBuffers(3, Atmosphere.constBuffer);
-            }
-
             for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Draw(renderer, true, pos, scale);
+                BaseQuads[i].Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
+
+            if (HasOcean) {
+                Profiler.Begin(Name + " Water Draw");
+                // set water shader
+                Shaders.WaterShader.Set(renderer);
+
+                renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
+                renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
+
+                // atmosphere constants
+                if (Atmosphere != null) {
+                    renderer.Context.VertexShader.SetConstantBuffers(3, Atmosphere.constBuffer);
+                    renderer.Context.PixelShader.SetConstantBuffers(3, Atmosphere.constBuffer);
+                }
+
+                for (int i = 0; i < BaseQuads.Length; i++)
+                    BaseQuads[i].Draw(renderer, QuadNode.QuadRenderPass.Water, pos, scale);
+
+                Profiler.End();
+                Profiler.Resume(Name + " Draw");
+            }
+            if (HasTrees) {
+                Profiler.Begin(Name + " Tree Draw");
+                // tree pass
+                Shaders.InstancedModel.Set(renderer);
+                for (int i = 0; i < BaseQuads.Length; i++)
+                    BaseQuads[i].DrawTrees(renderer);
+                
+                Profiler.End();
+                Profiler.Resume(Name + " Draw");
+            }
 
             Profiler.End();
         }

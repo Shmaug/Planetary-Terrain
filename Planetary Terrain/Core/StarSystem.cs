@@ -18,13 +18,13 @@ namespace Planetary_Terrain {
             sun.SetColormap("Data/Textures/Sun.jpg", device);
             bodies.Add(sun);
 
-            Planet mercury = new Planet("Mercury", new Vector3d(0, 0, 57910000000), 2440000, 3.285e23, 10000);
-            mercury.SetColormap("Data/Textures/Mercury.jpg", device);
-            bodies.Add(mercury);
+            //Planet mercury = new Planet("Mercury", new Vector3d(0, 0, 57910000000), 2440000, 3.285e23, 10000);
+            //mercury.SetColormap("Data/Textures/Mercury.jpg", device);
+            //bodies.Add(mercury);
 
-            Planet venus = new Planet("Venus",new Vector3d(0, 0, 108200000000), 6500000, 4.867e24, 40000);
-            venus.SetColormap("Data/Textures/Venus.jpg", device);
-            bodies.Add(venus);
+            //Planet venus = new Planet("Venus",new Vector3d(0, 0, 108200000000), 6500000, 4.867e24, 40000);
+            //venus.SetColormap("Data/Textures/Venus.jpg", device);
+            //bodies.Add(venus);
 
             Planet earth = new Planet(
                 "Earth",
@@ -35,45 +35,46 @@ namespace Planetary_Terrain {
                 new Atmosphere(6371000 + 80000) {
                     SurfacePressure = 6, //kPa
                     SurfaceDensity = 1.2, // kg/m^3
-                },
-                true) {
+                }) {
+                    HasOcean = true,
+                    HasTrees = true,
                     SurfaceTemperature = 14,
                     TemperatureRange = 35
                 };
             earth.SetColormap("Data/Textures/Earth.jpg", device);
             bodies.Add(earth);
 
-            Planet mars = new Planet("Mars", new Vector3d(0, 0, 227940000000), 3397000, 6.39e23, 10000,
-                new Atmosphere(3397000 + 10000) {
-                    SurfacePressure = 100, //kPa
-                    SurfaceDensity = 1.2, // kg/m^3
-                }) {
-                    SurfaceTemperature = -55,
-                    TemperatureRange = 65
-                };
-            mars.SetColormap("Data/Textures/Mars.jpg", device);
-            bodies.Add(mars);
+            //Planet mars = new Planet("Mars", new Vector3d(0, 0, 227940000000), 3397000, 6.39e23, 10000,
+            //    new Atmosphere(3397000 + 10000) {
+            //        SurfacePressure = 100, //kPa
+            //        SurfaceDensity = 1.2, // kg/m^3
+            //    }) {
+            //        SurfaceTemperature = -55,
+            //        TemperatureRange = 65
+            //    };
+            //mars.SetColormap("Data/Textures/Mars.jpg", device);
+            //bodies.Add(mars);
 
-            // Gas giants
-            Planet jupiter = new Planet("Jupiter", new Vector3d(0, 0, 778330000000), 71400000, 1.898e27, 0, null);
-            jupiter.SetColormap("Data/Textures/Mars.jpg", device);
-            bodies.Add(jupiter);
+            //// Gas giants
+            //Planet jupiter = new Planet("Jupiter", new Vector3d(0, 0, 778330000000), 71400000, 1.898e27, 0, null);
+            //jupiter.SetColormap("Data/Textures/Mars.jpg", device);
+            //bodies.Add(jupiter);
 
-            Planet saturn = new Planet("Saturn", new Vector3d(0, 0, 1424600000000), 60330000, 5.683e26, 0);
-            saturn.SetColormap("Data/Textures/Mars.jpg", device);
-            bodies.Add(saturn);
+            //Planet saturn = new Planet("Saturn", new Vector3d(0, 0, 1424600000000), 60330000, 5.683e26, 0);
+            //saturn.SetColormap("Data/Textures/Mars.jpg", device);
+            //bodies.Add(saturn);
 
-            Planet uranus = new Planet("Uranus", new Vector3d(0, 0, 2873550000000), 25900000, 8.681e25, 0);
-            uranus.SetColormap("Data/Textures/Mars.jpg", device);
-            bodies.Add(uranus);
+            //Planet uranus = new Planet("Uranus", new Vector3d(0, 0, 2873550000000), 25900000, 8.681e25, 0);
+            //uranus.SetColormap("Data/Textures/Mars.jpg", device);
+            //bodies.Add(uranus);
 
-            Planet neptune = new Planet("Neptune", new Vector3d(0, 0, 4501000000000), 24750000, 1.024e26, 0);
-            neptune.SetColormap("Data/Textures/Mars.jpg", device);
-            bodies.Add(neptune);
+            //Planet neptune = new Planet("Neptune", new Vector3d(0, 0, 4501000000000), 24750000, 1.024e26, 0);
+            //neptune.SetColormap("Data/Textures/Mars.jpg", device);
+            //bodies.Add(neptune);
 
-            Planet pluto = new Planet("Pluto", new Vector3d(0, 0, 5945900000000), 1650000, 1.309e22, 100);
-            pluto.SetColormap("Data/Textures/Mars.jpg", device);
-            bodies.Add(pluto);
+            //Planet pluto = new Planet("Pluto", new Vector3d(0, 0, 5945900000000), 1650000, 1.309e22, 100);
+            //pluto.SetColormap("Data/Textures/Mars.jpg", device);
+            //bodies.Add(pluto);
 
             foreach (CelestialBody b in bodies)
                 physics.AddBody(b);

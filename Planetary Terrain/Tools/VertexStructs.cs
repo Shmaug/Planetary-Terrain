@@ -119,6 +119,8 @@ namespace Planetary_Terrain {
         public Vector3 Out;
         [FieldOffset(44)]
         public float Height;
+        [FieldOffset(48)]
+        public Color4 Color;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
         {
@@ -127,6 +129,7 @@ namespace Planetary_Terrain {
             new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0),
             new D3D11.InputElement("TEXCOORD", 1, Format.R32G32B32_Float, 32, 0),
             new D3D11.InputElement("TEXCOORD", 2, Format.R32_Float, 44, 0),
+            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 48, 0),
         };
 
         public PlanetVertex(Vector3 pos, Vector3 norm, Vector3 dir, Vector2 texCoord, float height) {
@@ -135,6 +138,7 @@ namespace Planetary_Terrain {
             TexCoord = texCoord;
             Height = height;
             Out = dir;
+            Color = Color4.White;
         }
     }
 }

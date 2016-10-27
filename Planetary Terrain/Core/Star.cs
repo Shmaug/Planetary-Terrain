@@ -98,7 +98,7 @@ namespace Planetary_Terrain {
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
             for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Draw(renderer, false, pos, scale);
+                BaseQuads[i].Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
             Profiler.End();
         }
 
