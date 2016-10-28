@@ -918,7 +918,7 @@ namespace Planetary_Terrain {
                 }
 
                 switch (pass) {
-                    case QuadRenderPass.Water:
+                    case QuadRenderPass.Water: // TODO: water draw is taking a while..
                         // when the camera is close, draw waterVertexBuffer
                         if (hasWaterVerticies && d < waterDetailThreshold) { // lod
                             waterConstants.Offset = Vector3.Zero;

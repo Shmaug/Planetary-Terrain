@@ -130,7 +130,7 @@ namespace Planetary_Terrain {
                 
                 Models.GunModel.Draw(renderer,
                     Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
-                    Matrix.Scaling(.02f) * Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * Rotation); // TODO: Rotation is fucked
+                    Matrix.Scaling(.02f) * (Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * Camera.Rotation)); // TODO: Rotation is fucked
             }
         }
 

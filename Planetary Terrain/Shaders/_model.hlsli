@@ -22,11 +22,11 @@ struct v2f {
 	float3 worldPos : TEXCOORD2;
 };
 
-v2f modelvs(float4 vertex, float3 normal, float2 uv, float4x4 world) {
+v2f modelvs(float4 vertex, float3 normal, float2 uv, float4x4 world, float3x3 normWorld) {
 	v2f v;
 	float4 wp = mul(vertex, world);
 	v.position = mul(wp, mul(View, Projection));
-	v.normal = mul(normal, (float3x3)world);
+	v.normal = mul(normal, normWorld);
 	v.uv = uv;
 	v.worldPos = wp.xyz;
 	return v;
