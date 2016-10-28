@@ -1,6 +1,4 @@
-﻿//#define COMPILE_AT_RUNTIME
-
-using System;
+﻿using System;
 using System.IO;
 using SharpDX;
 using SharpDX.D3DCompiler;
