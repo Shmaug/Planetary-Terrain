@@ -9,6 +9,7 @@ namespace Planetary_Terrain {
         D3D11.Buffer indexBuffer;
         D3D11.Buffer constBuffer;
 
+        public D3D11.SamplerState Sampler;
         public D3D11.ShaderResourceView[] TextureViews;
         public Matrix[] sides;
 
@@ -29,6 +30,12 @@ namespace Planetary_Terrain {
                 Matrix.RotationY(MathUtil.Pi)         * Matrix.Translation( 0,  0,  1)
             };
 
+            Sampler = new D3D11.SamplerState(device, new D3D11.SamplerStateDescription() {
+                AddressU = D3D11.TextureAddressMode.Clamp,
+                AddressV = D3D11.TextureAddressMode.Clamp,
+                AddressW = D3D11.TextureAddressMode.Clamp,
+                Filter = D3D11.Filter.Anisotropic
+            });
             
             vertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, new float[] {
                     -1, -1, 0,      0, 0,
@@ -49,6 +56,8 @@ namespace Planetary_Terrain {
         public void Draw(Renderer renderer) {
             Shaders.SkyboxShader.Set(renderer);
             
+            renderer.Context.PixelShader.SetSampler(0, Sampler);
+
             renderer.Context.Rasterizer.State = renderer.rasterizerStateSolidNoCull;
             renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
             
@@ -57,7 +66,7 @@ namespace Planetary_Terrain {
             renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
             for (int i = 0; i < 6; i++) {
-                renderer.Context.PixelShader.SetShaderResource(1, TextureViews[i]);
+                renderer.Context.PixelShader.SetShaderResource(0, TextureViews[i]);
                 renderer.Context.UpdateSubresource(ref sides[i], constBuffer);
                 renderer.Context.VertexShader.SetConstantBuffer(1, constBuffer);
                 renderer.Context.DrawIndexed(6, 0, 0);
@@ -73,10 +82,12 @@ namespace Planetary_Terrain {
             constBuffer?.Dispose();
             for (int i = 0; i < TextureViews.Length; i++)
                 TextureViews[i]?.Dispose();
+            Sampler?.Dispose();
 
             vertexBuffer = null;
             indexBuffer = null;
             constBuffer = null;
+            Sampler = null;
         }
     }
 }

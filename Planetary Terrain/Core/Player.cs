@@ -60,7 +60,7 @@ namespace Planetary_Terrain {
                     Vehicle.Throttle -= deltaTime * .5;
                 Vehicle.Throttle = MathTools.Clamp01(Vehicle.Throttle);
 
-                Vehicle.Torque = new Vector3d(move.Z, move.X, move.Y) * .03;
+                Vehicle.AngularVelocity = Vector3d.Lerp(Vehicle.AngularVelocity, new Vector3d(move.Z, move.X, move.Y) * .03, deltaTime);
             } else {
                 CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
                 Vector3d d = Vector3d.Normalize(Position - b.Position);

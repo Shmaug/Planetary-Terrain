@@ -101,7 +101,7 @@ namespace Planetary_Terrain {
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
 
             player = new Player();
-            player.Camera = Camera.PerspectiveCamera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
+            player.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
             player.Vehicle = new Ship(renderer.Device);
             player.DisablePhysics = true;
             renderer.Camera = player.Camera;
@@ -111,7 +111,7 @@ namespace Planetary_Terrain {
             #region build UI
             float h = 35;
             RawRectangleF bounds = new RawRectangleF(0, 300, 235, 300 + h);
-            ControlPanel = new UI.Frame(null, "Panel1", bounds, renderer.Brushes["TransparentBlack"]);
+            ControlPanel = new UI.Frame(null, "Panel1", bounds, renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
             ControlPanel.Draggable = true;
 
             new UI.TextLabel(ControlPanel, "Title", new RawRectangleF(0, 0, 235, h), "NAVIGATOR", renderer.SegoeUI24, renderer.Brushes["White"]);
@@ -185,15 +185,13 @@ namespace Planetary_Terrain {
             if (resizePending) {
                 renderer.Resize(renderForm.ClientSize.Width, renderForm.ClientSize.Height);
                 resizePending = false;
-                player.Camera.AspectRatio = renderForm.ClientSize.Width / (float)renderForm.ClientSize.Height;
             }
             renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
             renderer.BeginDrawFrame();
-            
+            renderer.Clear(Color.Black);
+
             // 3d
             Profiler.Begin("3d Draw");
-            renderer.Camera = player.Camera;
-            renderer.SetDefaultTargets();
             skybox.Draw(renderer);
             StarSystem.ActiveSystem.physics.Draw(renderer);
             Profiler.End();

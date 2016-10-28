@@ -7,15 +7,10 @@ namespace Planetary_Terrain {
         private float _fov, _fovy, _aspect, _near = 1f, _far = 10000000;
         private Matrix _rotation = Matrix.Identity, _view, _proj;
         private BoundingFrustum _frustum;
-        float _orthoSize;
 
         #region make functions
         private void makeProjection() {
-            if (Orthographic)
-                _proj = Matrix.OrthoOffCenterLH(-_orthoSize*.5f*_aspect, -_orthoSize * .5f, _orthoSize * .5f * _aspect, _orthoSize * .5f, _near, _far);
-            else
-                _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
-
+            _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
             _frustum = new BoundingFrustum(_view * _proj);
         }
         private void makeView() {
@@ -63,44 +58,20 @@ namespace Planetary_Terrain {
             }
         }
         #endregion
-
-        public bool Orthographic;
-        public float OrthographicSize { get { return _orthoSize; } set { _orthoSize = value; makeProjection(); } }
         
-        public Matrix View {
-            get { return _view; }
-            set {
-                _view = value;
-                _frustum = new BoundingFrustum(_view * _proj);
-            }
-        }
+        public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
         public BoundingFrustum Frustum { get { return _frustum; } }
         public float VerticalFieldOfView { get { return _fovy; } }
 
-        public static Camera PerspectiveCamera(float fieldOfView, float aspectRatio) {
-            Camera c = new Camera();
-            c._aspect = aspectRatio;
-            c.FieldOfView = fieldOfView;
-            c.Orthographic = false;
+        public Camera(float fieldOfView, float aspectRatio) {
+            _aspect = aspectRatio;
+            FieldOfView = fieldOfView;
 
-            c.makeView();
-            c.makeProjection();
-
-            return c;
+            makeView();
+            makeProjection();
         }
-        public static Camera OrthoCamera(float orthoSize, float aspectRatio) {
-            Camera c = new Camera();
-            c._aspect = aspectRatio;
-            c._orthoSize = orthoSize;
-            c.Orthographic = true;
-
-            c.makeView();
-            c.makeProjection();
-
-            return c;
-        }
-
+        
         public void GetScaledSpace(Vector3d location, out Vector3d pos, out double scale) {
             scale = 1.0;
             pos = location - Position;

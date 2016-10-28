@@ -40,10 +40,27 @@ namespace Planetary_Terrain {
         }
         
         public void SetResources(Renderer renderer) {
-            renderer.Context.PixelShader.SetShaderResource(1, DiffuseTextureView ?? renderer.WhiteTextureView);
-            renderer.Context.PixelShader.SetShaderResource(2, EmissiveTextureView ?? renderer.BlackTextureView);
-            renderer.Context.PixelShader.SetShaderResource(3, SpecularTextureView ?? renderer.WhiteTextureView);
-            renderer.Context.PixelShader.SetShaderResource(4, NormalTextureView ?? renderer.BlackTextureView);
+            renderer.Context.PixelShader.SetSampler(0, renderer.AnisotropicSampler);
+
+            if (DiffuseTextureView != null)
+                renderer.Context.PixelShader.SetShaderResource(0, DiffuseTextureView);
+            else
+                renderer.Context.PixelShader.SetShaderResource(0, renderer.WhiteTextureView);
+
+            if (EmissiveTextureView != null)
+                renderer.Context.PixelShader.SetShaderResource(1, EmissiveTextureView);
+            else
+                renderer.Context.PixelShader.SetShaderResource(1, renderer.BlackTextureView);
+
+            if (SpecularTextureView != null)
+                renderer.Context.PixelShader.SetShaderResource(2, SpecularTextureView);
+            else
+                renderer.Context.PixelShader.SetShaderResource(2, renderer.WhiteTextureView);
+
+            if (NormalTextureView != null)
+                renderer.Context.PixelShader.SetShaderResource(3, NormalTextureView);
+            else
+                renderer.Context.PixelShader.SetShaderResource(3, renderer.BlackTextureView);
 
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology;
             renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(VertexBuffer, VertexSize, 0));

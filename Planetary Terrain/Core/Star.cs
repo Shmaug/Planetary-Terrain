@@ -92,7 +92,8 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
 
             // color map
-            renderer.Context.PixelShader.SetShaderResource(1, colorMapView);
+            renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
+            renderer.Context.PixelShader.SetSampler(0, colorMapSampler);
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
