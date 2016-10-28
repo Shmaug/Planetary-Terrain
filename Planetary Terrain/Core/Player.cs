@@ -127,9 +127,10 @@ namespace Planetary_Terrain {
         public override void Draw(Renderer renderer) {
             if (FirstPerson && Vehicle == null) {
                 Shaders.ModelShader.Set(renderer);
+                
                 Models.GunModel.Draw(renderer,
                     Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
-                    Matrix.Scaling(.02f) * Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * renderer.Camera.Rotation);
+                    Matrix.Scaling(.02f) * Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * Rotation); // TODO: Rotation is fucked
             }
         }
 
