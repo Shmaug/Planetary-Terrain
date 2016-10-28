@@ -76,8 +76,11 @@ namespace Planetary_Terrain {
             WaterShader.Dispose();
             StarShader.Dispose();
             AtmosphereShader.Dispose();
-            ModelShader.Dispose();
             SkyboxShader.Dispose();
+            ModelShader.Dispose();
+            InstancedModel.Dispose();
+            AeroFXShader.Dispose();
+            BlurShader.Dispose();
         }
     }
 }

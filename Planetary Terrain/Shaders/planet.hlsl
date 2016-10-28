@@ -3,8 +3,7 @@
 #include "_planet.hlsli"
 #include "_atmosphere.hlsli"
 
-Texture2D ColorMapTexture : register(t0);
-SamplerState ColorMapSampler : register(s0);
+Texture2D ColorMapTexture : register(t1);
 
 struct v2f {
 	float4 position : SV_POSITION;
@@ -41,7 +40,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float3 col = ColorMapTexture.Sample(ColorMapSampler, i.uv).rgb * NodeColor;
+	float3 col = ColorMapTexture.Sample(AnisotropicSampler, i.uv).rgb * NodeColor;
 	bool spec = false;
 
 	if (i.height <= waterLevel && drawWaterFar) {

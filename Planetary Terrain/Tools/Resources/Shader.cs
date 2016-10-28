@@ -1,6 +1,4 @@
-﻿//#define COMPILE_AT_RUNTIME
-
-using System;
+﻿using System;
 using System.IO;
 using SharpDX;
 using SharpDX.D3DCompiler;
@@ -31,6 +29,7 @@ namespace Planetary_Terrain {
 
             renderer.Context.VertexShader.SetConstantBuffer(0, renderer.constantBuffer);
             renderer.Context.PixelShader.SetConstantBuffer(0, renderer.constantBuffer);
+            renderer.Context.PixelShader.SetSampler(0, renderer.AnisotropicSampler);
         }
 
         public void Dispose() {

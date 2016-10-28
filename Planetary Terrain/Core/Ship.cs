@@ -7,6 +7,7 @@ using SharpDX.Mathematics.Interop;
 namespace Planetary_Terrain {
     class Ship : PhysicsBody, IDisposable {
         public double Throttle;
+        public bool Landing;
 
         public Ship(D3D11.Device device) : base(100) {
             Drag = 1;
@@ -14,7 +15,6 @@ namespace Planetary_Terrain {
 
         public override void Update(double deltaTime) {
             AddForce((Vector3d)Rotation.Backward * 460000 * Throttle, Vector3.Zero);
-
             base.Update(deltaTime);
         }
         

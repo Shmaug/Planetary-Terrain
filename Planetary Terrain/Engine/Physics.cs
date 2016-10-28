@@ -36,6 +36,7 @@ namespace Planetary_Terrain {
         public Vector3d Position;
         public Vector3d Velocity;
         public Matrix Rotation = Matrix.Identity;
+        public Vector3d Torque;
         public Vector3d AngularVelocity;
         public double Mass;
         public double Drag;
@@ -54,18 +55,20 @@ namespace Planetary_Terrain {
             Forces.Add(new Force(force, pos));
         }
 
+        private Vector3d lastAcceleration, acceleration;
         public virtual void Update(double deltaTime) {
             if (DisablePhysics) return;
 
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
 
-            // drag
+            // Drag
             Vector3d dir = Vector3.Zero;
             double h = 0;
             if (b != null && b != this) {
                 dir = (Position - b.Position);
                 h = dir.Length();
                 dir /= h;
+
                 if (b is Planet) {
                     Atmosphere a = (b as Planet).Atmosphere;
                     if (a != null && h < a.Radius) {
@@ -84,25 +87,29 @@ namespace Planetary_Terrain {
                 }
             }
 
-            foreach (Force f in Forces) {
-                Velocity += (f.ForceVector / Mass) * deltaTime;
+            Vector3d netForce = Vector3.Zero;
+            foreach (Force f in Forces)
+                netForce += f.ForceVector;
 
-                // TODO: calculate and apply torque
-            }
+            lastAcceleration = acceleration;
+            Position += Velocity * deltaTime + (.5 * lastAcceleration * deltaTime * deltaTime);
+            acceleration = netForce / Mass;
+            Velocity += (lastAcceleration + acceleration) * .5 * deltaTime;
 
-            Position += Velocity * deltaTime;
+            AngularVelocity += Torque * deltaTime;
             Rotation *= Matrix.RotationAxis(Rotation.Right, (float)AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, (float)AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, (float)AngularVelocity.Z);
 
             Forces.Clear();
 
+
+            // Collision detection
             if (b != null && b != this) {
-                // check collision
                 double t = b.GetHeight(dir);
                 if (h < t+1) {
                     Vector3d n = -b.GetNormal(dir);
                     double vdn = Vector3d.Dot(Velocity, n);
                     if (vdn > 0) {
-                        Position = b.Position + dir * (t+1);
+                        Position = b.Position + dir * (t + 1);
                         Velocity -= n * vdn;
                     }
                 }

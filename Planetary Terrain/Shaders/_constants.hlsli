@@ -6,3 +6,6 @@ cbuffer WorldConstants : register(b0) {
 	row_major float4x4 View;
 	row_major float4x4 Projection;
 };
+
+Texture2D ShadowDepthTexture : register(t0);
+SamplerState AnisotropicSampler : register(s0);
