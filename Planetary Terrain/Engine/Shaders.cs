@@ -5,12 +5,12 @@ namespace Planetary_Terrain {
     static class Shaders {
         public const string shaderDirectory = "Data/Shaders/";
         
-        public static Shader LineShader;
+        public static Shader BasicShader;
+        public static Shader TexturedShader;
         public static Shader PlanetShader;
         public static Shader WaterShader;
-        public static Shader StarShader;
         public static Shader AtmosphereShader;
-        public static Shader SkyboxShader;
+        public static Shader StarShader;
         public static Shader ModelShader;
         public static Shader InstancedModel;
         public static Shader AeroFXShader;
@@ -33,8 +33,8 @@ namespace Planetary_Terrain {
                 shaderDirectory + "atmosphere",
                 device, context, VertexNormal.InputElements);
 
-            LineShader = new Shader(
-                shaderDirectory + "line",
+            BasicShader = new Shader(
+                shaderDirectory + "basic",
                 device, context, VertexColor.InputElements);
 
             ModelShader = new Shader(
@@ -54,8 +54,8 @@ namespace Planetary_Terrain {
                 new D3D11.InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, D3D11.InputClassification.PerInstanceData, 1)
             );
 
-            SkyboxShader = new Shader(
-                shaderDirectory + "skybox",
+            TexturedShader = new Shader(
+                shaderDirectory + "textured",
                 device, context,
                 new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
                 new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 12, 0)
@@ -71,13 +71,13 @@ namespace Planetary_Terrain {
         }
 
         public static void Dispose() {
-            LineShader.Dispose();
+            BasicShader.Dispose();
             PlanetShader.Dispose();
             WaterShader.Dispose();
             StarShader.Dispose();
             AtmosphereShader.Dispose();
             ModelShader.Dispose();
-            SkyboxShader.Dispose();
+            TexturedShader.Dispose();
         }
     }
 }

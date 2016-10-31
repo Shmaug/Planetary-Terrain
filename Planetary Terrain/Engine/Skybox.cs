@@ -54,7 +54,7 @@ namespace Planetary_Terrain {
         }
         
         public void Draw(Renderer renderer) {
-            Shaders.SkyboxShader.Set(renderer);
+            Shaders.TexturedShader.Set(renderer);
             
             renderer.Context.PixelShader.SetSampler(0, Sampler);
 

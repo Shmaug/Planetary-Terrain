@@ -8,7 +8,6 @@ cbuffer ModelConstants : register (b1) {
 	float Shininess;
 	float SpecularIntensity;
 }
-SamplerState TextureSampler : register(s0);
 
 Texture2D DiffuseTexture  : register(t0);
 Texture2D EmissiveTexture : register(t1);
@@ -34,11 +33,11 @@ v2f modelvs(float4 vertex, float3 normal, float2 uv, float4x4 world, float3x3 no
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float4 col = DiffuseTexture.Sample(TextureSampler, i.uv);
+	float4 col = DiffuseTexture.Sample(AnisotropicSampler, i.uv);
 	clip(col.a - .1);
 
 	if (length(LightDirection) > 0) {
-		float3 n = (NormalTexture.Sample(TextureSampler, i.uv).xyz-.5) * 2;
+		float3 n = (NormalTexture.Sample(AnisotropicSampler, i.uv).xyz-.5) * 2;
 		if (length(n) > 0) {
 			n = normalize(n);
 			n = mul(n, (float3x3)WorldInverseTranspose);
@@ -52,12 +51,12 @@ float4 psmain(v2f i) : SV_TARGET
 			float3 v = normalize(i.worldPos);
 			float dp = dot(r, v);
 			if (dp > 0) {
-				float s = SpecularTexture.Sample(TextureSampler, i.uv).r;
+				float s = SpecularTexture.Sample(AnisotropicSampler, i.uv).r;
 				col.rgb += SpecularColor * SpecularIntensity * pow(dp, Shininess) * s;
 			}
 		}
 	}
-	col.rgb += EmissiveTexture.Sample(TextureSampler, i.uv).rgb;
+	col.rgb += EmissiveTexture.Sample(AnisotropicSampler, i.uv).rgb;
 
 	return col;
 }

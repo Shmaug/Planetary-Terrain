@@ -1,7 +1,6 @@
 #include "_constants.hlsli"
 
-Texture2D SkyboxTexture : register(t0);
-SamplerState SkyboxSampler : register(s0);
+Texture2D Texture : register(t0);
 
 cbuffer consts : register(b1) {
 	row_major float4x4 World;
@@ -21,5 +20,5 @@ v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD) {
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	return SkyboxTexture.Sample(SkyboxSampler, i.uv);
+	return Texture.Sample(AnisotropicSampler, i.uv);
 }

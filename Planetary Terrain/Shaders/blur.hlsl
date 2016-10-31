@@ -1,7 +1,8 @@
-SamplerState ScreenSampler : register(s0);
+#include "_constants.hlsli"
+
 Texture2D ScreenTexture  : register(t0);
 
-cbuffer BlurConstants : register (b0) {
+cbuffer BlurConstants : register (b1) {
 	float radius;
 }
 
@@ -19,7 +20,7 @@ v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0) {
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float4 src = ScreenTexture.Sample(ScreenSampler, i.uv);
+	float4 src = ScreenTexture.Sample(AnisotropicSampler, i.uv);
 	
 	return src;
 }

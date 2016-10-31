@@ -36,19 +36,19 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\bin\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>true</UseVSHostingProcess>
-    <Prefer32Bit>true</Prefer32Bit>
+    <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -117,7 +117,7 @@
     <Compile Include="Core\Player.cs" />
     <Compile Include="Engine\Camera.cs" />
     <Compile Include="Core\Ship.cs" />
-    <Compile Include="Core\Skybox.cs" />
+    <Compile Include="Engine\Skybox.cs" />
     <Compile Include="Core\Star.cs" />
     <Compile Include="Core\StarSystem.cs" />
     <Compile Include="Engine\Model.cs" />
@@ -156,7 +156,7 @@
     <Content Include="Shaders\aerofx.hlsl" />
     <Content Include="Shaders\instancedmodel.hlsl" />
     <Content Include="Shaders\_model.hlsli" />
-    <Content Include="Shaders\skybox.hlsl" />
+    <Content Include="Shaders\textured.hlsl" />
     <Content Include="Shaders\_quadnode.hlsli" />
     <Compile Include="Tools\Resources\DDS.cs" />
     <Compile Include="Tools\Resources\DDSHelper.cs" />
@@ -224,7 +224,7 @@
     <Content Include="Shaders\_atmosphere.hlsli" />
     <Content Include="Shaders\_planet.hlsli" />
     <Content Include="Shaders\_constants.hlsli" />
-    <Content Include="Shaders\line.hlsl" />
+    <Content Include="Shaders\basic.hlsl" />
     <Content Include="Shaders\model.hlsl" />
     <Content Include="Shaders\planet.hlsl" />
     <Content Include="Shaders\star.hlsl" />

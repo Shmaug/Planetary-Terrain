@@ -442,7 +442,7 @@ namespace Planetary_Terrain {
             Matrix mat = Matrix.Identity;
             Context.UpdateSubresource(ref mat, axisConsts);
 
-            Shaders.LineShader.Set(this);
+            Shaders.BasicShader.Set(this);
 
             Context.VertexShader.SetConstantBuffer(1, axisConsts);
             Context.PixelShader.SetConstantBuffer(1, axisConsts);
