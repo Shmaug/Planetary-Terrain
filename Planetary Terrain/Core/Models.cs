@@ -8,8 +8,22 @@ namespace Planetary_Terrain {
         public static Model GunModel;
         public static Model CylinderModel;
         public static Model TreeModel;
+
+        public static D3D11.Buffer QuadVertexBuffer;
+        public static D3D11.Buffer QuadIndexBuffer;
         
         public static void Load(D3D11.Device device) {
+            QuadVertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, new float[] {
+                    -1, -1, 0,      0, 0,
+                     1, -1, 0,      1, 0,
+                    -1,  1, 0,      0, 1,
+                     1,  1, 0,      1, 1,
+            });
+            QuadIndexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, new short[] {
+                    0, 1, 2,
+                    1, 3, 2,
+            });
+
             ShipModel = new Model(modelFolder + "ship/ship.fbx", device);
             ShipModel.Meshes[0].SetEmissiveTexture(device, modelFolder + "ship/ship_emission.png");
             ShipModel.Meshes[0].SetSpecularTexture(device, modelFolder + "ship/ship_specular.png");
@@ -40,6 +54,9 @@ namespace Planetary_Terrain {
             ShipModel.Dispose();
             GunModel.Dispose();
             CylinderModel.Dispose();
+            TreeModel.Dispose();
+            QuadIndexBuffer.Dispose();
+            QuadVertexBuffer.Dispose();
         }
     }
 }

@@ -29,6 +29,8 @@ namespace Planetary_Terrain {
 
             renderer.Context.VertexShader.SetConstantBuffer(0, renderer.constantBuffer);
             renderer.Context.PixelShader.SetConstantBuffer(0, renderer.constantBuffer);
+
+            renderer.Context.PixelShader.SetSampler(0, renderer.AnisotropicSampler);
         }
 
         public void Dispose() {

@@ -129,9 +129,6 @@ namespace Planetary_Terrain {
         }
     }
     static class Debug {
-        public static QuadNode ClosestQuadTree;
-        public static double ClosestQuadTreeDistance;
-        public static double ClosestQuadTreeScale;
         public static int VerticiesDrawn;
         public static int FPS;
         
@@ -150,7 +147,6 @@ namespace Planetary_Terrain {
 
         public static void BeginFrame() {
             VerticiesDrawn = 0;
-            ClosestQuadTreeDistance = double.MaxValue;
         }
 
         public static void EndFrame() {

@@ -152,6 +152,7 @@
     <Content Include="Data\Textures\Background\PositiveZ.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Shaders\imposter.hlsl" />
     <Content Include="Shaders\blur.hlsl" />
     <Content Include="Shaders\aerofx.hlsl" />
     <Content Include="Shaders\instancedmodel.hlsl" />

@@ -203,9 +203,7 @@ namespace Planetary_Terrain {
             SetResources(renderer, lightDirection, world);
             Draw(renderer);
         }
-
-        public void PrepareInstanced(Renderer renderer, Vector3d lightDirection, Matrix world) { 
-}
+        
         public void DrawInstanced(Renderer renderer, Vector3d lightDirection, Matrix world, int instanceCount) {
             SetResources(renderer, lightDirection, world);
 

@@ -428,7 +428,6 @@ namespace Planetary_Terrain {
                 //Context.OutputMerger.SetRenderTargets(depthStencilView, renderTargetView);
                 
                 //Shaders.BlurShader.Set(this);
-                //Context.PixelShader.SetSampler(0, AnisotropicSampler);
                 //Context.PixelShader.SetShaderResource(0, aeroFXShaderResourceView);
                 //Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
                 //Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(screenVBuffer, Utilities.SizeOf<VertexTexture>(), 0));

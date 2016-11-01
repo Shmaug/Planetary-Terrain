@@ -17,10 +17,6 @@ namespace Planetary_Terrain {
         /// The map of temperature-humidity to color
         /// </summary>
         D3D11.ShaderResourceView colorMapView;
-        /// <summary>
-        /// The map of temperature-humidity to color
-        /// </summary>
-        D3D11.SamplerState colorMapSampler;
 
         [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 16)]
         struct Constants {
@@ -49,18 +45,10 @@ namespace Planetary_Terrain {
         }
 
         public void SetColormap(string file, D3D11.Device device) {
-            colorMapSampler?.Dispose();
             colorMap?.Dispose();
             colorMapView?.Dispose();
 
             colorMap = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, file, out colorMapView);
-
-            colorMapSampler = new D3D11.SamplerState(device, new D3D11.SamplerStateDescription() {
-                AddressU = D3D11.TextureAddressMode.Clamp,
-                AddressV = D3D11.TextureAddressMode.Clamp,
-                AddressW = D3D11.TextureAddressMode.Clamp,
-                Filter = D3D11.Filter.Anisotropic,
-            });
         }
 
         public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
@@ -93,7 +81,6 @@ namespace Planetary_Terrain {
 
             // color map
             renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
-            renderer.Context.PixelShader.SetSampler(0, colorMapSampler);
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
@@ -103,7 +90,6 @@ namespace Planetary_Terrain {
         }
 
         public override void Dispose() {
-            colorMapSampler?.Dispose();
             colorMap?.Dispose();
             colorMapView?.Dispose();
 

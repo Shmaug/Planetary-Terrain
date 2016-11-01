@@ -34,10 +34,6 @@ namespace Planetary_Terrain {
         /// The map of temperature-humidity to color
         /// </summary>
         D3D11.ShaderResourceView colorMapView;
-        /// <summary>
-        /// The map of temperature-humidity to color
-        /// </summary>
-        D3D11.SamplerState colorMapSampler;
 
         [StructLayout(LayoutKind.Explicit, Size = 32)]
         struct Constants {
@@ -107,18 +103,10 @@ namespace Planetary_Terrain {
         }
 
         public void SetColormap(string file, D3D11.Device device) {
-            colorMapSampler?.Dispose();
             colorMap?.Dispose();
             colorMapView?.Dispose();
 
             colorMap = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, file, out colorMapView);
-
-            colorMapSampler = new D3D11.SamplerState(device, new D3D11.SamplerStateDescription() {
-                AddressU = D3D11.TextureAddressMode.Clamp,
-                AddressV = D3D11.TextureAddressMode.Clamp,
-                AddressW = D3D11.TextureAddressMode.Clamp,
-                Filter = D3D11.Filter.Anisotropic,
-            });
         }
 
         public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
@@ -180,12 +168,14 @@ namespace Planetary_Terrain {
 
             // color map
             renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
-            renderer.Context.PixelShader.SetSampler(0, colorMapSampler);
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
-            
+
+            Profiler.Begin(Name + " Ground Draw");
             foreach (QuadNode n in nodesToDraw)
                 n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
+            Profiler.End();
+            Profiler.Resume(Name + " Draw");
 
             if (HasOcean) {
                 Profiler.Begin(Name + " Water Draw");
@@ -210,10 +200,9 @@ namespace Planetary_Terrain {
             if (HasTrees) {
                 Profiler.Begin(Name + " Tree Draw");
                 // tree pass
-                Shaders.InstancedModel.Set(renderer);
-                foreach (QuadNode n in nodesToDraw)
-                    n.DrawTrees(renderer);
-                
+                for (int i = 0; i < BaseQuads.Length; i++)
+                    BaseQuads[i].DrawTrees(renderer);
+
                 Profiler.End();
                 Profiler.Resume(Name + " Draw");
             }
@@ -222,7 +211,6 @@ namespace Planetary_Terrain {
         }
 
         public override void Dispose() {
-            colorMapSampler?.Dispose();
             colorMap?.Dispose();
             colorMapView?.Dispose();
 
