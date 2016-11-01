@@ -309,6 +309,7 @@ namespace Planetary_Terrain {
         short[] indicies;
 
         public Matrix[] Trees;
+        Vector2[] TreeCache;
 
         bool hasWaterVerticies;
 
@@ -446,7 +447,7 @@ namespace Planetary_Terrain {
             bool wv = false;
 
             Vector3[] pts = new Vector3[s * s * 6];
-
+            #region vertex generation
             for (int x = 0; x < s; x++) {
                 for (int z = 0; z < s; z++) {
                     if (!generating) // needs to cancel generation
@@ -522,17 +523,29 @@ namespace Planetary_Terrain {
                 waterFarVertexBuffer = null;
                 waterVertexBuffer = null;
             }
+            #endregion
 
             OOB = new OrientedBoundingBox(pts);
             GetIndicies(false);
 
             // trees
             if (VertexSpacing < TreeImposterLODThreshold) {
-                bool p = true;
-                if (Parent != null && Parent.VertexSpacing < TreeLODThreshold)
-                    p = false;
+                bool makeTrees = true;
 
-                if (Body is Planet && p) {
+                if (Parent != null && Parent.Trees != null) {
+                    // Look-up trees from parent, but make sure they're in our bounds
+                    makeTrees = false;
+                    List<Matrix> trees = new List<Matrix>();
+                    List<Vector2> treeCache = new List<Vector2>();
+
+                    // TODO: trees
+
+                    Trees = trees.ToArray();
+                    TreeCache = treeCache.ToArray();
+                }
+
+                // Make our own trees
+                if (Body is Planet && makeTrees) {
                     Planet pl = Body as Planet;
                     if (pl.HasTrees) {
                         // generate trees if the parent node has no trees (otherwise when we render, the parent renders it's trees)
@@ -541,6 +554,7 @@ namespace Planetary_Terrain {
                         double x, z;
                         Matrix rot;
                         List<Matrix> trees = new List<Matrix>();
+                        List<Vector2> treeCache = new List<Vector2>();
                         for (int i = 0; i < c; i++) {
                             x = r.NextDouble() * s;
                             z = r.NextDouble() * s;
@@ -555,9 +569,11 @@ namespace Planetary_Terrain {
                                     rot * Matrix.RotationAxis(rot.Up, (float)(r.NextDouble() * Math.PI * 2)) *
                                     Matrix.Translation((p1d * rh - MeshCenter))
                                 );
+                                treeCache.Add(new Vector2((float)x, (float)z));
                             }
                         }
                         Trees = trees.ToArray();
+                        TreeCache = treeCache.ToArray();
                     }
                 }
             }
@@ -816,8 +832,7 @@ namespace Planetary_Terrain {
                 UnSplit();
         }
         #endregion
-
-
+        
         public void ClosestVertex(Vector3d pos, out Vector3d vert, out double dist) {
             vert = MeshCenter + Body.Position;
             dist = double.MaxValue;
@@ -883,7 +898,19 @@ namespace Planetary_Terrain {
         public enum QuadRenderPass {
             Ground, Water
         }
-        public void Draw(Renderer renderer, QuadRenderPass pass, double scale, Vector3d pos) {
+        public void Draw(Renderer renderer, QuadRenderPass pass, Vector3d planetPos, double planetScale) {
+            if (vertexDirty || indexdirty)
+                SetData(renderer.Device, renderer.Context);
+            
+            double scale = planetScale;
+            Vector3d pos = planetPos + MeshCenter * planetScale;
+
+            constants.NodeToPlanetMatrix = Matrix.Scaling((float)(scale * Size)) * Matrix.Translation(pos);
+
+            renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
+
+            scale *= Size;
+
             Matrix world = Matrix.Scaling((float)scale) * Matrix.Translation(pos);
             OOB.Transformation = world;
             BoundingBox bbox = OOB.GetBoundingBox();
@@ -991,7 +1018,8 @@ namespace Planetary_Terrain {
 
             return false;
         }
-        public void Draw(Renderer renderer, QuadRenderPass pass, Vector3d planetPos, double planetScale) {
+
+        public void GetRenderLevelNodes(Renderer renderer, ref List<QuadNode> list) {
             bool draw = true;
 
             if (Children != null) {
@@ -1003,24 +1031,12 @@ namespace Planetary_Terrain {
 
                 if (!draw)
                     for (int i = 0; i < Children.Length; i++)
-                        Children[i].Draw(renderer, pass, planetPos, planetScale);
+                        Children[i].GetRenderLevelNodes(renderer, ref list);
             }
 
             if (draw) {
-                if (vertexDirty || indexdirty)
-                    SetData(renderer.Device, renderer.Context);
-
-                if (vertexBuffer != null) {
-                    if (IsAboveHorizon(renderer.Camera.Position)) {
-                        double scale = planetScale;
-                        Vector3d pos = planetPos + MeshCenter * planetScale;
-
-                        constants.NodeToPlanetMatrix = Matrix.Scaling((float)(scale * Size)) * Matrix.Translation(pos);
-
-                        renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
-
-                        Draw(renderer, pass, scale * Size, pos);
-                    }
+                if (IsAboveHorizon(renderer.Camera.Position)) {
+                    list.Add(this);
                 }
             }
         }

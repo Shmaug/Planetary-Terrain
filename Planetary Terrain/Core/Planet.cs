@@ -162,6 +162,10 @@ namespace Planetary_Terrain {
                 Profiler.Resume(Name + " Draw");
             }
 
+            List<QuadNode> nodesToDraw = new List<QuadNode>();
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].GetRenderLevelNodes(renderer, ref nodesToDraw);
+            
             Shaders.PlanetShader.Set(renderer);
 
             // atmosphere constants
@@ -180,8 +184,8 @@ namespace Planetary_Terrain {
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
             
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
+            foreach (QuadNode n in nodesToDraw)
+                n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
 
             if (HasOcean) {
                 Profiler.Begin(Name + " Water Draw");
@@ -190,15 +194,15 @@ namespace Planetary_Terrain {
 
                 renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
                 renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
-
+                
                 // atmosphere constants
                 if (Atmosphere != null) {
                     renderer.Context.VertexShader.SetConstantBuffers(3, Atmosphere.constBuffer);
                     renderer.Context.PixelShader.SetConstantBuffers(3, Atmosphere.constBuffer);
                 }
 
-                for (int i = 0; i < BaseQuads.Length; i++)
-                    BaseQuads[i].Draw(renderer, QuadNode.QuadRenderPass.Water, pos, scale);
+                foreach (QuadNode n in nodesToDraw)
+                    n.Draw(renderer, QuadNode.QuadRenderPass.Water, pos, scale);
 
                 Profiler.End();
                 Profiler.Resume(Name + " Draw");
@@ -207,8 +211,8 @@ namespace Planetary_Terrain {
                 Profiler.Begin(Name + " Tree Draw");
                 // tree pass
                 Shaders.InstancedModel.Set(renderer);
-                for (int i = 0; i < BaseQuads.Length; i++)
-                    BaseQuads[i].DrawTrees(renderer);
+                foreach (QuadNode n in nodesToDraw)
+                    n.DrawTrees(renderer);
                 
                 Profiler.End();
                 Profiler.Resume(Name + " Draw");
