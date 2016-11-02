@@ -2,15 +2,17 @@
 using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
-    class Models {
+    class Resources {
         static string modelFolder = "Data/Models/";
         public static Model ShipModel;
         public static Model GunModel;
         public static Model CylinderModel;
-        public static Model TreeModel;
 
         public static D3D11.Buffer QuadVertexBuffer;
         public static D3D11.Buffer QuadIndexBuffer;
+
+        public static Model TreeModel;
+        public static D3D11.ShaderResourceView TreeModelImposter;
         
         public static void Load(D3D11.Device device) {
             QuadVertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, new float[] {
@@ -32,9 +34,9 @@ namespace Planetary_Terrain {
             ShipModel.SpecularIntensity = 1;
 
             GunModel = new Model(modelFolder + "gun/gun.fbx", device);
-            //GunModel.Meshes[0].SetDiffuseTexture(device, modelFolder + "gun/gun_diffuse.dds");
+            GunModel.Meshes[0].SetDiffuseTexture(device, modelFolder + "gun/gun_diffuse.dds");
             //GunModel.Meshes[0].SetNormalTexture(device, modelFolder + "gun/gun_normal.dds");
-            //GunModel.Meshes[0].SetSpecularTexture(device, modelFolder + "gun/gun_specular.dds");
+            GunModel.Meshes[0].SetSpecularTexture(device, modelFolder + "gun/gun_specular.dds");
             GunModel.SpecularColor = Color.White;
             GunModel.Shininess = 200;
             GunModel.SpecularIntensity = 1;
@@ -48,6 +50,8 @@ namespace Planetary_Terrain {
             TreeModel.SpecularColor = Color.White;
             TreeModel.Shininess = 0;
             TreeModel.SpecularIntensity = 0;
+
+            ResourceUtil.LoadFromFile(device, modelFolder + "trees/tree0imposter.png", out TreeModelImposter);
         }
 
         public static void Dispose() {

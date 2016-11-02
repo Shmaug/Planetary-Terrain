@@ -53,7 +53,7 @@ namespace Planetary_Terrain {
             renderer = new Renderer(this, renderForm);
             
             Shaders.Load(renderer.Device, renderer.Context);
-            Models.Load(renderer.Device);
+            Resources.Load(renderer.Device);
 
             Initialize();
         }
@@ -216,7 +216,7 @@ namespace Planetary_Terrain {
             ControlPanel.Dispose();
 
             Shaders.Dispose();
-            Models.Dispose();
+            Resources.Dispose();
             
             // other stuff
             keyboard.Dispose();

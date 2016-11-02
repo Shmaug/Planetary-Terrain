@@ -113,7 +113,7 @@
   <ItemGroup>
     <Compile Include="Core\Atmosphere.cs" />
     <Compile Include="Core\CelestialBody.cs" />
-    <Compile Include="Core\Models.cs" />
+    <Compile Include="Core\Resources.cs" />
     <Compile Include="Core\Player.cs" />
     <Compile Include="Engine\Camera.cs" />
     <Compile Include="Core\Ship.cs" />
@@ -132,6 +132,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Models\Trees\tree0.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Trees\tree0imposter.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Textures\Background\NegativeX.png">

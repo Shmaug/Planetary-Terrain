@@ -79,7 +79,8 @@ namespace Planetary_Terrain {
                 new D3D11.InputElement("WORLD", 0, Format.R32G32B32A32_Float, 0, 1, D3D11.InputClassification.PerInstanceData, 1),
                 new D3D11.InputElement("WORLD", 1, Format.R32G32B32A32_Float, 16, 1, D3D11.InputClassification.PerInstanceData, 1),
                 new D3D11.InputElement("WORLD", 2, Format.R32G32B32A32_Float, 32, 1, D3D11.InputClassification.PerInstanceData, 1),
-                new D3D11.InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, D3D11.InputClassification.PerInstanceData, 1));
+                new D3D11.InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, D3D11.InputClassification.PerInstanceData, 1),
+                new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 64, 1, D3D11.InputClassification.PerInstanceData, 1));
         }
 
         public static void Dispose() {

@@ -201,7 +201,7 @@ namespace Planetary_Terrain {
                 BindFlags = D3D11.BindFlags.ShaderResource,
                 OptionFlags = D3D11.ResourceOptionFlags.None
             });
-            Context.UpdateSubresource(new Vector4[] { Vector4.Zero }, btex);
+            Context.UpdateSubresource(new Vector4[] { new Vector4(0,0,0,1) }, btex);
             BlackTextureView = new D3D11.ShaderResourceView(Device, btex);
 
             AnisotropicSampler = new D3D11.SamplerState(Device, new D3D11.SamplerStateDescription() {

@@ -37,9 +37,9 @@ namespace Planetary_Terrain {
             renderer.Context.Rasterizer.State = renderer.rasterizerStateSolidNoCull;
             renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
             
-            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Models.QuadVertexBuffer, Utilities.SizeOf<float>() * 5, 0));
+            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, Utilities.SizeOf<float>() * 5, 0));
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            renderer.Context.InputAssembler.SetIndexBuffer(Models.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+            renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
             for (int i = 0; i < 6; i++) {
                 renderer.Context.PixelShader.SetShaderResource(0, TextureViews[i]);
