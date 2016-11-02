@@ -234,10 +234,10 @@ namespace Planetary_Terrain {
     }
     class QuadNode : IDisposable {
         public const int GridSize = 16;
-        const double TreeLODLevel = 100; // vertexspacing < TreeLODLevel has trees
-        const double TreeImposterDistance = 1000;
-        const double TreeDistance = 1500;
         const double WaterDetailDistance = 5000;
+        static double TreeLODLevel { get { return Properties.Settings.Default.TreeLODLevel; } }
+        static double TreeImposterDistance { get { return Properties.Settings.Default.TreeImposterDistance; } }
+        static double TreeDistance { get { return Properties.Settings.Default.TreeDistance; } }
 
         #region Generation/Threading
         const int MaxGenerationCount = 10;
@@ -364,8 +364,6 @@ namespace Planetary_Terrain {
         public D3D11.Buffer indexBuffer { get; private set; }
         public D3D11.Buffer constantBuffer { get; private set; }
         public D3D11.Buffer waterConstantBuffer { get; private set; }
-        public D3D11.Buffer TreeBuffer { get; private set; }
-        public D3D11.Buffer TreeImposterBuffer { get; private set; }
 
         bool indexdirty = false;
         bool vertexDirty = false;
@@ -994,21 +992,16 @@ namespace Planetary_Terrain {
             }
         }
 
-        public bool DrawTrees(Renderer renderer) {
-            bool draw = true;
+        public bool GetTrees(Renderer renderer, ref List<Matrix> trees, ref List<Matrix> imposters) {
+            bool tree = true;
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)
-                    if (Children[i].DrawTrees(renderer))
-                        draw = false;
+                    if (Children[i].GetTrees(renderer, ref trees, ref imposters))
+                        tree = false;
 
-            if (draw) {
+            if (tree) {
                 if (VertexSpacing < TreeLODLevel) {
                     if (Trees != null && Trees.Length > 0) {
-                        if (TreeBuffer == null)
-                            TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, Trees, Matrix.SizeInBytes * Trees.Length, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
-                        if (TreeImposterBuffer == null)
-                            TreeImposterBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, Trees, (Matrix.SizeInBytes + Vector3.SizeInBytes) * Trees.Length, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
-
                         double scale;
                         Vector3d pos;
                         renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
@@ -1017,61 +1010,16 @@ namespace Planetary_Terrain {
 
                         Matrix world = Matrix.Translation(posf);
 
-                        // Create matrix buffers
-                        List<Matrix> imposters = new List<Matrix>();
                         float d;
                         double tid = TreeImposterDistance * TreeImposterDistance;
                         double td = TreeDistance * TreeDistance;
-                        int treeCount = 0;
-                        DataStream ds;
-                        renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
                         for (int i = 0; i < Trees.Length; i++) {
                             d = (Trees[i].TranslationVector + posf).LengthSquared();
-                            if (d < tid) {
-                                ds.Write(Trees[i]);
-                                treeCount++;
-                            } else if (d < td)
-                                imposters.Add(Trees[i]);
+                            if (d < tid)
+                                trees.Add(Trees[i] * world);
+                            else if (d < td)
+                                imposters.Add(Trees[i] * world);
                         }
-                        ds.Dispose();
-                        renderer.Context.UnmapSubresource(TreeBuffer, 0);
-
-                        // Draw 3d trees
-                        renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
-                        Shaders.InstancedModel.Set(renderer);
-                        Resources.TreeModel.DrawInstanced(
-                            renderer,
-                            Vector3d.Normalize(MeshCenter + Body.Position - StarSystem.ActiveSystem.GetStar().Position),
-                            world,
-                            treeCount);
-                        
-                        // Draw 2d trees
-                        renderer.Context.MapSubresource(TreeImposterBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
-                        Matrix b;
-                        float s = 20f;
-                        foreach (Matrix m in imposters) {
-                            b = Matrix.BillboardLH((m * world).TranslationVector + m.Up * s*.5f, Vector3.Zero, m.Up, renderer.Camera.Rotation.Forward);
-                            ds.Write(Matrix.Scaling(s, s, 1f) * b);
-                            ds.Write(b.Forward);
-                        }
-                        ds.Dispose();
-                        renderer.Context.UnmapSubresource(TreeImposterBuffer, 0);
-                        
-                        Shaders.Imposter.Set(renderer);
-                        renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                        renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeImposterBuffer, Matrix.SizeInBytes + Vector3.SizeInBytes, 0));
-                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
-                        renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-                        
-                        renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposter);
-                        
-                        imposterConsts.World = Matrix.Identity;
-                        imposterConsts.LightDirection = Vector3d.Normalize(MeshCenter + Body.Position - StarSystem.ActiveSystem.GetStar().Position);
-                        if (imposterCBuffer == null) imposterCBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref imposterConsts);
-                        renderer.Context.UpdateSubresource(ref imposterConsts, imposterCBuffer);
-                        renderer.Context.VertexShader.SetConstantBuffer(1, imposterCBuffer);
-                        
-                        renderer.Context.DrawIndexedInstanced(6, imposters.Count, 0, 0, 0);
                     }
                     return true;
                 }
@@ -1094,8 +1042,6 @@ namespace Planetary_Terrain {
             indexBuffer?.Dispose();
             waterFarVertexBuffer?.Dispose();
             waterVertexBuffer?.Dispose();
-            TreeBuffer?.Dispose();
-            TreeImposterBuffer?.Dispose();
 
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)

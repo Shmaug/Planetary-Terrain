@@ -162,6 +162,11 @@
     <Content Include="Shaders\_model.hlsli" />
     <Content Include="Shaders\textured.hlsl" />
     <Content Include="Shaders\_quadnode.hlsli" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
     <Compile Include="Tools\Resources\DDS.cs" />
     <Compile Include="Tools\Resources\DDSHelper.cs" />
     <Compile Include="Tools\Resources\ImageDescription.cs" />
@@ -210,6 +215,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">

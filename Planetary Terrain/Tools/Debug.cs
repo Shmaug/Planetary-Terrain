@@ -42,14 +42,16 @@ namespace Planetary_Terrain {
             }
             return ActiveProfiler;
         }
-        public static void Resume(string name) {
+        public static bool Resume(string name) {
+            ActiveProfiler?.Stopwatch.Start();
             foreach (Profiler p in ActiveProfiler.Children) {
                 if (p.Name == name) {
                     ActiveProfiler = p;
                     p.Stopwatch.Start();
-                    break;
+                    return true;
                 }
             }
+            return false;
         }
         public static void End() {
             ActiveProfiler?.Stopwatch.Stop();

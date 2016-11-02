@@ -6,6 +6,7 @@ using DWrite = SharpDX.DirectWrite;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using SharpDX.Direct3D;
 
 namespace Planetary_Terrain {
     class Planet : CelestialBody, IDisposable {
@@ -46,6 +47,8 @@ namespace Planetary_Terrain {
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
+
+        D3D11.Buffer TreeBuffer;
         
         public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null) : base(pos, radius, mass) {
             Name = name;
@@ -130,9 +133,9 @@ namespace Planetary_Terrain {
             if (scale * Radius < 1)
                 return;
 
-            Star s = StarSystem.ActiveSystem.GetStar();
-            if (s != null)
-                constants.lightDirection = Vector3d.Normalize(Position - s.Position);
+            Star star = StarSystem.ActiveSystem.GetStar();
+            if (star != null)
+                constants.lightDirection = Vector3d.Normalize(Position - star.Position);
             else
                 constants.lightDirection = new Vector3d();
             constants.oceanLevel = (float)OceanHeight;
@@ -147,7 +150,6 @@ namespace Planetary_Terrain {
                 // draw atmosphere behind planet
                 Atmosphere?.Draw(renderer, pos, scale);
                 Profiler.End();
-                Profiler.Resume(Name + " Draw");
             }
 
             List<QuadNode> nodesToDraw = new List<QuadNode>();
@@ -175,7 +177,6 @@ namespace Planetary_Terrain {
             foreach (QuadNode n in nodesToDraw)
                 n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
             Profiler.End();
-            Profiler.Resume(Name + " Draw");
 
             if (HasOcean) {
                 Profiler.Begin(Name + " Water Draw");
@@ -195,16 +196,72 @@ namespace Planetary_Terrain {
                     n.Draw(renderer, QuadNode.QuadRenderPass.Water, pos, scale);
 
                 Profiler.End();
-                Profiler.Resume(Name + " Draw");
             }
             if (HasTrees) {
-                Profiler.Begin(Name + " Tree Draw");
                 // tree pass
-                for (int i = 0; i < BaseQuads.Length; i++)
-                    BaseQuads[i].DrawTrees(renderer);
+                if (TreeBuffer == null) {
+                    Matrix m = Matrix.Identity;
+                    TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, ref m, Matrix.SizeInBytes, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
+                }
 
+                Profiler.Begin("Get Trees");
+                List<Matrix> trees = new List<Matrix>();
+                List<Matrix> imposters = new List<Matrix>();
+                for (int i = 0; i < BaseQuads.Length; i++)
+                    BaseQuads[i].GetTrees(renderer, ref trees, ref imposters);
                 Profiler.End();
-                Profiler.Resume(Name + " Draw");
+
+                if (trees.Count > 0) {
+                    Shaders.InstancedModel.Set(renderer);
+                    Console.WriteLine(trees.Count);
+
+                    // TODO: memory getting corrupted...
+                    Profiler.Begin("Set Trees");
+                    DataStream ds;
+                    renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
+                    foreach (Matrix m in trees)
+                        ds.Write(m);
+                    renderer.Context.UnmapSubresource(TreeBuffer, 0);
+                    ds.Dispose();
+                    Profiler.End();
+
+                    // Draw 3d trees
+                    Profiler.Begin("Draw Trees");
+                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
+                    Resources.TreeModel.DrawInstanced(
+                        renderer,
+                        constants.lightDirection,
+                        Matrix.Identity,
+                        trees.Count);
+                    Profiler.End();
+                }
+                /*
+                // Draw 2d trees
+                if (!Profiler.Resume("Set Imposters")) Profiler.Begin("Set Imposters");
+                renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
+                Matrix b;
+                float s = 20f;
+                foreach (Matrix m in imposters) {
+                    b = Matrix.BillboardLH(m.TranslationVector + m.Up * s * .5f, Vector3.Zero, m.Up, renderer.Camera.Rotation.Forward);
+                    ds.Write(Matrix.Scaling(s, s, 1f) * b);
+                    ds.Write(b.Forward);
+                }
+                ds.Dispose();
+                renderer.Context.UnmapSubresource(TreeBuffer, 0);
+                Profiler.End();
+
+                if (!Profiler.Resume("Draw Imposter")) Profiler.Begin("Draw Imposter");
+                Shaders.Imposter.Set(renderer);
+                renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes + Vector3.SizeInBytes, 0));
+                renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
+                renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+
+                renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposter);
+                
+                renderer.Context.DrawIndexedInstanced(6, imposters.Count, 0, 0, 0);
+                Profiler.End();
+                */
             }
 
             Profiler.End();
@@ -215,6 +272,8 @@ namespace Planetary_Terrain {
             colorMapView?.Dispose();
 
             constBuffer?.Dispose();
+
+            TreeBuffer?.Dispose();
 
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Dispose();
