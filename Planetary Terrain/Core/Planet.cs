@@ -49,6 +49,7 @@ namespace Planetary_Terrain {
         public D3D11.Buffer constBuffer { get; private set; }
 
         D3D11.Buffer TreeBuffer;
+        int TreeBufferSize = 0;
         
         public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null) : base(pos, radius, mass) {
             Name = name;
@@ -199,10 +200,7 @@ namespace Planetary_Terrain {
             }
             if (HasTrees) {
                 // tree pass
-                if (TreeBuffer == null) {
-                    Matrix m = Matrix.Identity;
-                    TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, ref m, Matrix.SizeInBytes, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
-                }
+                /*
 
                 Profiler.Begin("Get Trees");
                 List<Matrix> trees = new List<Matrix>();
@@ -212,22 +210,21 @@ namespace Planetary_Terrain {
                 Profiler.End();
 
                 if (trees.Count > 0) {
-                    Shaders.InstancedModel.Set(renderer);
-                    Console.WriteLine(trees.Count);
+                    Debug.Log(trees.Count);
 
-                    // TODO: memory getting corrupted...
                     Profiler.Begin("Set Trees");
-                    DataStream ds;
-                    renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
-                    foreach (Matrix m in trees)
-                        ds.Write(m);
-                    renderer.Context.UnmapSubresource(TreeBuffer, 0);
-                    ds.Dispose();
+                    if (TreeBufferSize < trees.Count * Matrix.SizeInBytes) {
+                        TreeBuffer?.Dispose();
+                        TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, trees.ToArray(), trees.Count * Matrix.SizeInBytes, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
+                        TreeBufferSize = Matrix.SizeInBytes * trees.Count;
+                    } else
+                        renderer.Context.UpdateSubresource(trees.ToArray(), TreeBuffer);
                     Profiler.End();
 
                     // Draw 3d trees
                     Profiler.Begin("Draw Trees");
                     renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
+                    Shaders.InstancedModel.Set(renderer);
                     Resources.TreeModel.DrawInstanced(
                         renderer,
                         constants.lightDirection,

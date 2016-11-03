@@ -63,10 +63,6 @@
       <HintPath>..\packages\AssimpNet.3.3.1\lib\net45\AssimpNet.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="BulletSharp, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\BulletSharp.0.9\lib\net40-client\BulletSharp.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="SharpDX, Version=3.1.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpDX.3.1.1\lib\net45\SharpDX.dll</HintPath>
       <Private>True</Private>
@@ -155,12 +151,15 @@
     <Content Include="Data\Textures\Background\PositiveZ.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="ShaderCompilation\d3dcompiler_47.dll" />
+    <Content Include="ShaderCompilation\fxc.exe" />
     <Content Include="Shaders\imposter.hlsl" />
-    <Content Include="Shaders\blur.hlsl" />
+    <Content Include="ShaderCompilation\manifest.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\postfx.hlsl" />
     <Content Include="Shaders\aerofx.hlsl" />
-    <Content Include="Shaders\instancedmodel.hlsl" />
-    <Content Include="Shaders\_model.hlsli" />
-    <Content Include="Shaders\textured.hlsl" />
+    <Content Include="Shaders\model.hlsl" />
     <Content Include="Shaders\_quadnode.hlsli" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -199,6 +198,7 @@
     <Compile Include="Engine\Shaders.cs" />
     <Compile Include="Tools\Vector3d.cs" />
     <Compile Include="Tools\VertexStructs.cs" />
+    <None Include="ShaderCompilation\compile.bat" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -238,7 +238,6 @@
     <Content Include="Shaders\_planet.hlsli" />
     <Content Include="Shaders\_constants.hlsli" />
     <Content Include="Shaders\basic.hlsl" />
-    <Content Include="Shaders\model.hlsl" />
     <Content Include="Shaders\planet.hlsl" />
     <Content Include="Shaders\star.hlsl" />
     <Content Include="Shaders\water.hlsl" />
@@ -256,12 +255,7 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>if not exist "Data\Shaders" mkdir "Data\Shaders"
-
-for /r "$(ProjectDir)Shaders" %25%25G in (*.hlsl) do (
- "$(ProjectDir)fxc.exe" "%25%25G" /E vsmain /T vs_5_0 /Od /Zpr /nologo /Fo Data\Shaders\%25%25~nG_vs.cso
- "$(ProjectDir)fxc.exe" "%25%25G" /E psmain /T ps_5_0 /Od /Zpr /nologo /Fo Data\Shaders\%25%25~nG_ps.cso
-)</PostBuildEvent>
+    <PostBuildEvent>"$(ProjectDir)ShaderCompilation\compile.bat" "$(ProjectDir)Shaders\" "$(TargetDir)Data\Shaders\" "$(ProjectDir)ShaderCompilation\manifest.txt"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\AssimpNet.3.3.1\build\AssimpNet.targets" Condition="Exists('..\packages\AssimpNet.3.3.1\build\AssimpNet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
@@ -269,9 +263,7 @@ for /r "$(ProjectDir)Shaders" %25%25G in (*.hlsl) do (
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\AssimpNet.3.3.1\build\AssimpNet.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\AssimpNet.3.3.1\build\AssimpNet.targets'))" />
-    <Error Condition="!Exists('..\packages\BulletSharp.0.9\build\net40-client\BulletSharp.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\BulletSharp.0.9\build\net40-client\BulletSharp.targets'))" />
   </Target>
-  <Import Project="..\packages\BulletSharp.0.9\build\net40-client\BulletSharp.targets" Condition="Exists('..\packages\BulletSharp.0.9\build\net40-client\BulletSharp.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
