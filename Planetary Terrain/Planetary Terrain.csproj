@@ -154,9 +154,7 @@
     <Content Include="ShaderCompilation\d3dcompiler_47.dll" />
     <Content Include="ShaderCompilation\fxc.exe" />
     <Content Include="Shaders\imposter.hlsl" />
-    <Content Include="ShaderCompilation\manifest.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <None Include="Shaders\.manifest" />
     <Content Include="Shaders\postfx.hlsl" />
     <Content Include="Shaders\aerofx.hlsl" />
     <Content Include="Shaders\model.hlsl" />
@@ -255,7 +253,7 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>"$(ProjectDir)ShaderCompilation\compile.bat" "$(ProjectDir)Shaders\" "$(TargetDir)Data\Shaders\" "$(ProjectDir)ShaderCompilation\manifest.txt"</PostBuildEvent>
+    <PostBuildEvent>"$(ProjectDir)ShaderCompilation\compile.bat" "$(ProjectDir)Shaders\" "$(TargetDir)Data\Shaders\"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\AssimpNet.3.3.1\build\AssimpNet.targets" Condition="Exists('..\packages\AssimpNet.3.3.1\build\AssimpNet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

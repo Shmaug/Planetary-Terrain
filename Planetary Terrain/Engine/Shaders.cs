@@ -18,9 +18,6 @@ namespace Planetary_Terrain {
         public static Shader BlurShader;
 
         public static void Load(D3D11.Device device, D3D11.DeviceContext context) {
-            // URGENT: Parse shaders
-            // URGENT: Write batch to run fxc
-
             StarShader = new Shader(
                 shaderDirectory + "Star",
                 device, context, PlanetVertex.InputElements);

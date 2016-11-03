@@ -200,7 +200,7 @@ namespace Planetary_Terrain {
             }
             if (HasTrees) {
                 // tree pass
-                /*
+                // TODO: RIP trees
 
                 Profiler.Begin("Get Trees");
                 List<Matrix> trees = new List<Matrix>();
@@ -219,11 +219,12 @@ namespace Planetary_Terrain {
                         TreeBufferSize = Matrix.SizeInBytes * trees.Count;
                     } else
                         renderer.Context.UpdateSubresource(trees.ToArray(), TreeBuffer);
+                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
                     Profiler.End();
 
                     // Draw 3d trees
                     Profiler.Begin("Draw Trees");
-                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
+
                     Shaders.InstancedModel.Set(renderer);
                     Resources.TreeModel.DrawInstanced(
                         renderer,

@@ -1,0 +1,66 @@
+Shader
+	Path aerofx.hlsl
+	Name AeroFX
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
+Shader
+	Path atmosphere.hlsl
+	Name Atmosphere
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
+Shader
+	Path basic.hlsl
+	Name Colored
+	VertexShader coloredvs
+	PixelShader coloredps
+/Shader
+Shader
+	Path basic.hlsl
+	Name Textured
+	VertexShader texturedvs
+	PixelShader texturedps
+/Shader
+Shader
+	Path imposter.hlsl
+	Name Imposter
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
+Shader
+	Path model.hlsl
+	Name Model
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
+Shader
+	Path model.hlsl
+	Name InstancedModel
+	VertexShader instancedvs
+	PixelShader psmain
+/Shader
+Shader
+	Path planet.hlsl
+	Name Planet
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
+Shader
+	Path postfx.hlsl
+	Name Blur
+	VertexShader vsmain
+	PixelShader blurps
+/Shader
+Shader
+	Path star.hlsl
+	Name Star
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
+Shader
+	Path water.hlsl
+	Name Water
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
