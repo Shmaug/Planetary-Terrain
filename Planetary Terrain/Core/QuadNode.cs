@@ -247,7 +247,7 @@ namespace Planetary_Terrain {
         static List<QuadNode> RemoveQueue = new List<QuadNode>();
         public static void Update() {
             if (GenerateQueue.Count > 0) {
-                GenerateQueue = GenerateQueue.OrderByDescending(o => o.LoDLevel).ToList(); // prioritize high-lod nodes
+                GenerateQueue = GenerateQueue.OrderByDescending(o => o.LODlevel).ToList(); // prioritize high-lod nodes
 
                 while (Generating.Count < MaxGenerationCount && GenerateQueue.Count > 0) {
                     QuadNode q = GenerateQueue[GenerateQueue.Count - 1];
@@ -279,7 +279,7 @@ namespace Planetary_Terrain {
         public double Size;
         public double ArcSize;
         public double VertexSpacing; // meters per vertex
-        public long NodeID; // Unique ID based off sibling indicies
+        public int NodeID; // Unique ID based off sibling indicies
 
         public CelestialBody Body;
         public QuadNode Parent;
@@ -308,25 +308,16 @@ namespace Planetary_Terrain {
         VertexNormal[] waterVerticies;
         PlanetVertex[] waterFarVerticies;
         short[] indicies;
-
-        D3D11.Buffer imposterCBuffer;
+        
         public Matrix[] Trees;
         public Vector2[] TreeCache;
-        [StructLayout(LayoutKind.Explicit, Size = 80)]
-        struct impostercbuffer {
-            [FieldOffset(0)]
-            public Matrix World;
-            [FieldOffset(64)]
-            public Vector3 LightDirection;
-        }
-        private impostercbuffer imposterConsts;
 
         bool hasWaterVerticies;
 
         public int IndexCount { get; private set; }
         public int VertexCount { get; private set; }
 
-        public int LoDLevel;
+        public int LODlevel;
 
         [StructLayout(LayoutKind.Explicit, Size = 288)]
         struct Constants {
@@ -381,15 +372,26 @@ namespace Planetary_Terrain {
                 return (Children != null && childrenReady) || (vertexDirty || vertexBuffer != null);
             }
         }
+        
+        static int GenerateNodeID(string number) {
+            // create base-10 number from base-4 number
+            int result = 0;
+            int multiplier = 1;
+            for (int i = number.Length - 1; i >= 0; i--) {
+                result += number[i] * multiplier;
+                multiplier *= 4;
+            }
 
+            return result;
+        }
         public QuadNode(CelestialBody body, int siblingIndex, double size, int lod, QuadNode parent, Vector3d cubePos, Matrix3x3 rot) {
             SiblingIndex = siblingIndex;
-            NodeID = Convert.ToInt64((parent == null ? "" : parent.NodeID.ToString()) + siblingIndex);
+            NodeID = parent == null ? 0 : GenerateNodeID(siblingIndex + parent.NodeID.ToString());
             Size = size;
             Body = body;
             Parent = parent;
             ArcSize = Body.ArcLength(Size);
-            LoDLevel = lod;
+            LODlevel = lod;
 
             VertexSpacing = Size / GridSize;
 
@@ -538,16 +540,14 @@ namespace Planetary_Terrain {
             GetIndicies(false);
 
             // trees
-            if (VertexSpacing < TreeLODLevel) {
-                bool makeTrees = true;
-
+            if (VertexSpacing < TreeLODLevel && Parent.VertexSpacing > TreeLODLevel) {
                 // Make our own trees
-                if (Body is Planet && makeTrees) {
+                if (Body is Planet) {
                     Planet pl = Body as Planet;
                     if (pl.HasTrees) {
                         // generate trees if the parent node has no trees (otherwise when we render, the parent renders it's trees)
-                        Random r = new Random((int)NodeID);
-                        int c = (int)(s * s * VertexSpacing * .025); // .025 trees per square meter
+                        Random r = new Random(NodeID);
+                        int c = (int)(s * VertexSpacing * s  * VertexSpacing * .005); // .005 trees per square meter
                         double x, z;
                         Matrix rot;
                         List<Matrix> trees = new List<Matrix>();
@@ -594,10 +594,10 @@ namespace Planetary_Terrain {
             QuadNode u = GetUp();
             QuadNode d = GetDown();
 
-            bool fanLeft = l != null && l.LoDLevel < LoDLevel;
-            bool fanUp = u != null && u.LoDLevel < LoDLevel;
-            bool fanRight = r != null && r.LoDLevel < LoDLevel;
-            bool fanDown = d != null && d.LoDLevel < LoDLevel;
+            bool fanLeft = l != null && l.LODlevel < LODlevel;
+            bool fanUp = u != null && u.LODlevel < LODlevel;
+            bool fanRight = r != null && r.LODlevel < LODlevel;
+            bool fanDown = d != null && d.LODlevel < LODlevel;
 
             int index = 0;
             if (fanLeft)
@@ -775,10 +775,10 @@ namespace Planetary_Terrain {
             Vector3d p3 = (rght + -fwd);
 
             Children = new QuadNode[4];
-            Children[0] = new QuadNode(Body, 0, s, LoDLevel + 1, this, CubePosition + s * .5 * p0, Orientation);
-            Children[1] = new QuadNode(Body, 1, s, LoDLevel + 1, this, CubePosition + s * .5 * p1, Orientation);
-            Children[2] = new QuadNode(Body, 2, s, LoDLevel + 1, this, CubePosition + s * .5 * p2, Orientation);
-            Children[3] = new QuadNode(Body, 3, s, LoDLevel + 1, this, CubePosition + s * .5 * p3, Orientation);
+            Children[0] = new QuadNode(Body, 0, s, LODlevel + 1, this, CubePosition + s * .5 * p0, Orientation);
+            Children[1] = new QuadNode(Body, 1, s, LODlevel + 1, this, CubePosition + s * .5 * p1, Orientation);
+            Children[2] = new QuadNode(Body, 2, s, LODlevel + 1, this, CubePosition + s * .5 * p2, Orientation);
+            Children[3] = new QuadNode(Body, 3, s, LODlevel + 1, this, CubePosition + s * .5 * p3, Orientation);
 
             Children[0].Generate();
             Children[1].Generate();
@@ -814,9 +814,9 @@ namespace Planetary_Terrain {
                 Vector3d d2 = Vector3d.Normalize(vertex - Body.Position);
                 dist = Math.Min(dist, (d2 * wh - dir * height).Length());
             }
-
-            double x = (arcDist + dist) / 2;
-
+            
+            double x = (arcDist + dist) / 2;                      
+                                                                  
             if (x * x < ArcSize * ArcSize || Size / GridSize > Body.MaxVertexSpacing) {
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
@@ -841,6 +841,24 @@ namespace Planetary_Terrain {
             for (int i = 0; i < VertexSamples.Length; i++) {
                 double d = (pos - VertexSamples[i]).LengthSquared();
                 if (d < dist) {
+                    dist = d;
+                    vert = VertexSamples[i] + MeshCenter + Body.Position;
+                }
+            }
+
+            dist = Math.Sqrt(dist);
+        }
+        public void FarthestVertex(Vector3d pos, out Vector3d vert, out double dist) {
+            vert = MeshCenter + Body.Position;
+            dist = 0;
+
+            if (VertexSamples == null) return;
+
+            pos -= MeshCenter + Body.Position;
+
+            for (int i = 0; i < VertexSamples.Length; i++) {
+                double d = (pos - VertexSamples[i]).LengthSquared();
+                if (d > dist) {
                     dist = d;
                     vert = VertexSamples[i] + MeshCenter + Body.Position;
                 }
@@ -931,12 +949,11 @@ namespace Planetary_Terrain {
                 double d;
                 Vector3d v;
                 ClosestVertex(renderer.Camera.Position, out v, out d);
-
                 if (pass == QuadRenderPass.Ground || pass == QuadRenderPass.Water) {
                     constants.World = world;
                     constants.WorldInverseTranspose = Matrix.Identity;
                     constants.NodeOrientation = Body.OrientationFromDirection(Vector3d.Normalize(MeshCenter));
-                    constants.Scale = (float)scale;
+                    constants.Scale = (float)(scale / Size);
                     constants.drawWaterFar = pass != QuadRenderPass.Water && hasWaterVerticies && d > WaterDetailDistance;
                     constants.Color = Vector3.One;
 
@@ -993,7 +1010,7 @@ namespace Planetary_Terrain {
         }
 
         public bool GetTrees(Renderer renderer, ref List<Matrix> trees, ref List<Matrix> imposters) {
-            bool tree = true;
+            bool tree = Trees != null;
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)
                     if (Children[i].GetTrees(renderer, ref trees, ref imposters))
@@ -1002,23 +1019,27 @@ namespace Planetary_Terrain {
             if (tree) {
                 if (VertexSpacing < TreeLODLevel) {
                     if (Trees != null && Trees.Length > 0) {
-                        double scale;
                         Vector3d pos;
+                        double scale;
                         renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
+                        double dist = (renderer.Camera.Position - (MeshCenter + Body.Position)).Length(); // TODO: this is broken af
 
-                        Vector3 posf = pos;
-
-                        Matrix world = Matrix.Translation(posf);
-
-                        float d;
-                        double tid = TreeImposterDistance * TreeImposterDistance;
-                        double td = TreeDistance * TreeDistance;
-                        for (int i = 0; i < Trees.Length; i++) {
-                            d = (Trees[i].TranslationVector + posf).LengthSquared();
-                            if (d < tid)
-                                trees.Add(Trees[i] * world);
-                            else if (d < td)
-                                imposters.Add(Trees[i] * world);
+                        if (dist < TreeDistance) {
+                            Vector3 posf = pos;
+                            if (dist < TreeImposterDistance)
+                                for (int i = 0; i < Trees.Length; i++)
+                                    trees.Add(new Matrix(
+                                        Trees[i].M11, Trees[i].M12, Trees[i].M13, Trees[i].M14,
+                                        Trees[i].M21, Trees[i].M22, Trees[i].M23, Trees[i].M24,
+                                        Trees[i].M31, Trees[i].M32, Trees[i].M33, Trees[i].M34,
+                                        Trees[i].M41 + posf.X, Trees[i].M42 + posf.Y, Trees[i].M43 + posf.Z, Trees[i].M44));
+                            else
+                                    for (int i = 0; i < Trees.Length; i++)
+                                        imposters.Add(new Matrix(
+                                            Trees[i].M11, Trees[i].M12, Trees[i].M13, Trees[i].M14,
+                                            Trees[i].M21, Trees[i].M22, Trees[i].M23, Trees[i].M24,
+                                            Trees[i].M31, Trees[i].M32, Trees[i].M33, Trees[i].M34,
+                                            Trees[i].M41 + posf.X, Trees[i].M42 + posf.Y, Trees[i].M43 + posf.Z, Trees[i].M44));
                         }
                     }
                     return true;
@@ -1036,13 +1057,12 @@ namespace Planetary_Terrain {
                 GenerateQueue.Remove(this);
             }
 
-            imposterCBuffer?.Dispose();
             vertexBuffer?.Dispose();
             constantBuffer?.Dispose();
             indexBuffer?.Dispose();
             waterFarVertexBuffer?.Dispose();
             waterVertexBuffer?.Dispose();
-
+            
             if (Children != null)
                 for (int i = 0; i < Children.Length; i++)
                     Children[i].Dispose();

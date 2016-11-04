@@ -155,18 +155,16 @@ namespace Planetary_Terrain {
                 double h = dir.Length();
                 dir /= h;
 
-                renderer.D2DContext.DrawText(Physics.FormatDistance(h - b.Radius), renderer.SegoeUI24,
-                    new RawRectangleF(xmid, 0, xmid + 150, 40),
-                    renderer.Brushes["Black"]);
-                renderer.D2DContext.DrawText("(" + b.Name + ")", renderer.SegoeUI14,
-                    new RawRectangleF(xmid, 30, xmid + 150, 50),
-                    renderer.Brushes["Black"]);
-
+                double r = b.Radius;
+                
                 if (b is Planet) {
+                    Planet p = b as Planet;
+                    r = p.Radius + p.OceanHeight * p.TerrainHeight;
+
                     #region surface info
                     if (h < b.Radius * 1.2) {
-                        double temp = (b as Planet).GetTemperature(dir);
-                        double humid = (b as Planet).GetHumidity(dir) * 100;
+                        double temp = p.GetTemperature(dir);
+                        double humid = p.GetHumidity(dir) * 100;
 
                         renderer.D2DContext.FillRectangle(
                             new RawRectangleF(xmid + 155, 0, xmid + 260, 80),
@@ -186,7 +184,7 @@ namespace Planetary_Terrain {
                     }
                     #endregion
                     #region atmosphere info
-                    Atmosphere a = (b as Planet).Atmosphere;
+                    Atmosphere a = p.Atmosphere;
                     if (a != null && h < a.Radius * 1.5) {
                         double temp;
                         double pressure;
@@ -221,6 +219,13 @@ namespace Planetary_Terrain {
                     }
                     #endregion
                 }
+
+                renderer.D2DContext.DrawText(Physics.FormatDistance(h - r), renderer.SegoeUI24,
+                    new RawRectangleF(xmid, 0, xmid + 150, 40),
+                    renderer.Brushes["Black"]);
+                renderer.D2DContext.DrawText("(" + b.Name + ")", renderer.SegoeUI14,
+                    new RawRectangleF(xmid, 30, xmid + 150, 50),
+                    renderer.Brushes["Black"]);
             }
         }
 

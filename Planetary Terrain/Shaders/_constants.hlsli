@@ -11,8 +11,8 @@
 // s0: Anisotropic sampler
 
 cbuffer WorldConstants : register(b0) {
-	row_major float4x4 View;
-	row_major float4x4 Projection;
+	float4x4 View;
+	float4x4 Projection;
 };
 
 SamplerState AnisotropicSampler : register(s0);

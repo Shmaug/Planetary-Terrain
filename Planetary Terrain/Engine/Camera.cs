@@ -73,19 +73,24 @@ namespace Planetary_Terrain {
         }
         
         public void GetScaledSpace(Vector3d location, out Vector3d pos, out double scale) {
+            double d;
+            GetScaledSpace(location, out pos, out scale, out d);
+        }
+
+        public void GetScaledSpace(Vector3d location, out Vector3d pos, out double scale, out double distance) {
             scale = 1.0;
             pos = location - Position;
 
-            double x = pos.Length();
+            distance = pos.Length();
 
             double f = zFar * (1.0 - Math.Cos(_fov * .5));
             double p = .5 * f;
-            
-            if (x > p) {
-                double s = 1.0 - Math.Exp(-p / (x - p));
+
+            if (distance > p) {
+                double s = 1.0 - Math.Exp(-p / (distance - p));
                 double dist = p + (f - p) * s;
-                
-                scale = dist / x;
+
+                scale = dist / distance;
                 pos = Vector3d.Normalize(pos) * dist;
             }
         }

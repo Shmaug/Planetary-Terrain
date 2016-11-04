@@ -3,9 +3,9 @@
 #include "_atmosphere.hlsli"
 
 cbuffer AtmoQuadNodeConstants : register(b1) {
-	row_major float4x4 World;
-	row_major float4x4 WorldInverseTranspose;
-	row_major float4x4 NodeToPlanet;
+	float4x4 World;
+	float4x4 WorldInverseTranspose;
+	float4x4 NodeToPlanet;
 }
 struct v2f {
 	float4 position : SV_POSITION;
@@ -74,8 +74,6 @@ v2f vsmain(float4 vertex : POSITION0) {
 		v3SamplePoint += v3SampleRay;
 	}
 
-	v3FrontColor *= 7;
-
 	// Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
 	o.c0.xyz = v3FrontColor * (InvWavelength * KrESun);
 	o.c1.xyz = v3FrontColor * KmESun;
@@ -93,6 +91,6 @@ float4 psmain(v2f i) : SV_TARGET
 
 	color = 1 - exp(-Exposure * color);
 
-	return float4(color.rgb, length(color.rgb));
+	return float4(color.rgb, color.b);
 }
 

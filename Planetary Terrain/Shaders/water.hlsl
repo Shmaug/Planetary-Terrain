@@ -76,5 +76,5 @@ float4 psmain(v2f i) : SV_TARGET
 
 	col = i.c1 + col * i.c0;
 
-	return float4(1 - exp(-Exposure * col), 1);
+	return float4(col, 1);
 }

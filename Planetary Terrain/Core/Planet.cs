@@ -199,8 +199,9 @@ namespace Planetary_Terrain {
                 Profiler.End();
             }
             if (HasTrees) {
+
                 // tree pass
-                // TODO: RIP trees
+                Profiler.Begin("Draw Trees");
 
                 Profiler.Begin("Get Trees");
                 List<Matrix> trees = new List<Matrix>();
@@ -210,56 +211,64 @@ namespace Planetary_Terrain {
                 Profiler.End();
 
                 if (trees.Count > 0) {
-                    Debug.Log(trees.Count);
+                    Profiler.Begin("3d trees");
 
-                    Profiler.Begin("Set Trees");
-                    if (TreeBufferSize < trees.Count * Matrix.SizeInBytes) {
-                        TreeBuffer?.Dispose();
-                        TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, trees.ToArray(), trees.Count * Matrix.SizeInBytes, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
+                    if (TreeBufferSize < Matrix.SizeInBytes * trees.Count) {
                         TreeBufferSize = Matrix.SizeInBytes * trees.Count;
-                    } else
-                        renderer.Context.UpdateSubresource(trees.ToArray(), TreeBuffer);
-                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
-                    Profiler.End();
+                        TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, trees.ToArray(), TreeBufferSize, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
+                    } else {
+                        DataStream ds;
+                        // Create matrix buffers
+                        renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
+                        foreach (Matrix m in trees)
+                            ds.Write(m);
+                        ds.Dispose();
+                        renderer.Context.UnmapSubresource(TreeBuffer, 0);
+                    }
 
                     // Draw 3d trees
-                    Profiler.Begin("Draw Trees");
-
+                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
                     Shaders.InstancedModel.Set(renderer);
                     Resources.TreeModel.DrawInstanced(
                         renderer,
                         constants.lightDirection,
                         Matrix.Identity,
                         trees.Count);
+
                     Profiler.End();
                 }
-                /*
-                // Draw 2d trees
-                if (!Profiler.Resume("Set Imposters")) Profiler.Begin("Set Imposters");
-                renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
-                Matrix b;
-                float s = 20f;
-                foreach (Matrix m in imposters) {
-                    b = Matrix.BillboardLH(m.TranslationVector + m.Up * s * .5f, Vector3.Zero, m.Up, renderer.Camera.Rotation.Forward);
-                    ds.Write(Matrix.Scaling(s, s, 1f) * b);
-                    ds.Write(b.Forward);
+                if (imposters.Count > 0) {
+                    Profiler.Begin("2d trees");
+
+                    // Draw 2d trees
+                    if (TreeBufferSize < Matrix.SizeInBytes * imposters.Count) {
+                        TreeBufferSize = Matrix.SizeInBytes * imposters.Count;
+                        TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, imposters.ToArray(), TreeBufferSize, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
+                    }else {
+                        DataStream ds;
+                        renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
+                        Matrix b;
+                        float s = 20f;
+                        foreach (Matrix m in imposters) {
+                            b = Matrix.BillboardLH(m.TranslationVector + m.Up * s * .5f, Vector3.Zero, m.Up, renderer.Camera.Rotation.Forward);
+                            ds.Write(Matrix.Scaling(s, s, 1f) * b);
+                        }
+                        ds.Dispose();
+                        renderer.Context.UnmapSubresource(TreeBuffer, 0);
+                    }
+
+                    Shaders.Imposter.Set(renderer);
+                    renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
+                    renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
+                    renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+
+                    renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposter);
+
+                    renderer.Context.DrawIndexedInstanced(6, imposters.Count, 0, 0, 0);
+
+                    Profiler.End();
                 }
-                ds.Dispose();
-                renderer.Context.UnmapSubresource(TreeBuffer, 0);
-                Profiler.End();
-
-                if (!Profiler.Resume("Draw Imposter")) Profiler.Begin("Draw Imposter");
-                Shaders.Imposter.Set(renderer);
-                renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes + Vector3.SizeInBytes, 0));
-                renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
-                renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-
-                renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposter);
-                
-                renderer.Context.DrawIndexedInstanced(6, imposters.Count, 0, 0, 0);
-                Profiler.End();
-                */
             }
 
             Profiler.End();

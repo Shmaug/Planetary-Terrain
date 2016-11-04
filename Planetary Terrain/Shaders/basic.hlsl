@@ -1,7 +1,7 @@
 #include "_constants.hlsli"
 
 cbuffer ObjectConstants : register(b1) {
-	row_major float4x4 World;
+	float4x4 World;
 }
 
 // COLORED //

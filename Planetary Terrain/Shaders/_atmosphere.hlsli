@@ -109,9 +109,7 @@ ScatterOutput GroundScatter(float3 pos) {
 		v3FrontColor += v3Attenuate * (fDepth * fScaledLength);
 		v3SamplePoint += v3SampleRay;
 	}
-
-	v3FrontColor *= 7;
-
+	
 	// Calculate the attenuation factor for the ground
 	ScatterOutput o;
 	o.c0 = v3Attenuate;

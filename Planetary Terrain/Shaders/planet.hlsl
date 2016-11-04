@@ -49,6 +49,12 @@ float4 psmain(v2f i) : SV_TARGET
 		spec = true;
 	}
 
+	float d = length(i.worldPos) * NodeScale;
+	if (d < 500)
+		i.c = float4(0, 0, 1, 1);
+	if (d < 200)
+		i.c = float4(1, 0, 0, 1);
+
 	if (length(LightDirection) > 0) {
 		col *= clamp(dot(LightDirection, -i.normal), 0, 1);
 
@@ -64,5 +70,5 @@ float4 psmain(v2f i) : SV_TARGET
 
 	col = i.c1 + col * i.c0;
 
-	return float4(1 - exp(-Exposure * col), 1) * i.c;
+	return float4(col, 1) * i.c;
 }

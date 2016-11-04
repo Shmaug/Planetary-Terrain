@@ -1,8 +1,8 @@
 #include "_constants.hlsli"
 
 cbuffer AeroConstants : register (b1) {
-	row_major float4x4 World;
-	row_major float4x4 WorldInverseTranspose;
+	float4x4 World;
+	float4x4 WorldInverseTranspose;
 	float3 VelocityDirection;
 	float Size;
 	float Step;
