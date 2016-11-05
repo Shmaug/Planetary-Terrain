@@ -143,8 +143,10 @@ namespace Planetary_Terrain {
             constants.oceanColor = OceanColor.ToVector3();
 
             // create/update constant buffer
-            if (constBuffer == null) constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
-            renderer.Context.UpdateSubresource(ref constants, constBuffer);
+            if (constBuffer == null)
+                constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            else
+                renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
             if (Atmosphere != null){
                 Profiler.Begin(Name + " Atmosphere Draw");
@@ -202,71 +204,32 @@ namespace Planetary_Terrain {
 
                 // tree pass
                 Profiler.Begin("Draw Trees");
-
-                Profiler.Begin("Get Trees");
-                List<Matrix> trees = new List<Matrix>();
-                List<Matrix> imposters = new List<Matrix>();
-                foreach (QuadNode n in nodesToDraw)
-                    n.GetTrees(renderer, ref trees, ref imposters);
-                Profiler.End();
+                
+                List<QuadNode> trees = new List<QuadNode>();
+                List<QuadNode> imposters = new List<QuadNode>();
+                for (int i = 0; i < BaseQuads.Length; i++)
+                    BaseQuads[i].GetTreeNodes(renderer, ref trees, ref imposters);
 
                 if (trees.Count > 0) {
-                    Profiler.Begin("3d trees");
-
-                    if (TreeBufferSize < Matrix.SizeInBytes * trees.Count) {
-                        TreeBufferSize = Matrix.SizeInBytes * trees.Count;
-                        TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, trees.ToArray(), TreeBufferSize, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
-                    } else {
-                        // Create matrix buffers
-                        DataStream ds;
-                        renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
-                        foreach (Matrix m in trees)
-                            ds.Write(m);
-                        ds.Dispose();
-                        renderer.Context.UnmapSubresource(TreeBuffer, 0);
-                    }
-
-                    // Draw 3d trees
-                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
                     Shaders.InstancedModel.Set(renderer);
-                    Resources.TreeModel.DrawInstanced(
-                        renderer,
-                        constants.lightDirection,
-                        Matrix.Identity,
-                        trees.Count);
-
-                    Profiler.End();
+                    foreach (QuadNode n in trees)
+                        n.DrawTrees(renderer, constants.lightDirection);
                 }
                 if (imposters.Count > 0) {
-                    Profiler.Begin("2d trees");
+                    // TODO: prerender tree imposter, add normals
 
-                    // Draw 2d trees
-                    if (TreeBufferSize < Vector3.SizeInBytes * 2 * imposters.Count) {
-                        TreeBufferSize = Vector3.SizeInBytes * 2 * imposters.Count;
-                        TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, imposters.ToArray(), TreeBufferSize, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
-                    }else {
-                        DataStream ds;
-                        renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
-                        foreach (Matrix m in imposters) {
-                            ds.Write(m.TranslationVector);
-                            ds.Write(m.Up);
-                        }
-                        ds.Dispose();
-                        renderer.Context.UnmapSubresource(TreeBuffer, 0);
-                    }
-
-                    Shaders.Imposter.Set(renderer);
                     renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Vector3.SizeInBytes * 2, 0));
                     renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
                     renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
+                    Shaders.Imposter.Set(renderer);
                     renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposter);
 
-                    renderer.Context.DrawIndexedInstanced(6, imposters.Count, 0, 0, 0);
-
-                    Profiler.End();
+                    foreach (QuadNode n in imposters)
+                        n.DrawImposters(renderer, constants.lightDirection);
                 }
+
+                Profiler.End();
             }
 
             Profiler.End();

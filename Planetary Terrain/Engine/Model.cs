@@ -188,7 +188,8 @@ namespace Planetary_Terrain {
             // create/update constant buffer
             if (cbuffer == null)
                 cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
-            renderer.Context.UpdateSubresource(ref constants, cbuffer);
+            else
+                renderer.Context.UpdateSubresource(ref constants, cbuffer);
             
             renderer.Context.VertexShader.SetConstantBuffer(1, cbuffer);
             renderer.Context.PixelShader.SetConstantBuffer(1, cbuffer);

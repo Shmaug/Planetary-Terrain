@@ -14,20 +14,20 @@ namespace Planetary_Terrain.UI
             Brush = bg;
         }
 
-        public override void Update(float time, InputState inputState) {
+        public override void Update(float time) {
             if (Draggable) {
-                if (!inputState.lastms.Buttons[0] && inputState.ms.Buttons[0])
-                    if (Contains(inputState.mousePos.X, inputState.mousePos.Y) && !IntersectsChildren(inputState.ms.X, inputState.ms.Y))
+                if (!Input.lastms.Buttons[0] && Input.ms.Buttons[0])
+                    if (Contains(Input.mousePos.X, Input.mousePos.Y) && !IntersectsChildren(Input.ms.X, Input.ms.Y))
                         dragging = true;
 
-                if (!inputState.ms.Buttons[0])
+                if (!Input.ms.Buttons[0])
                     dragging = false;
 
-                if (dragging && inputState.lastms.Buttons[0])
-                    Translate(inputState.mousePos - inputState.lastMousePos);
+                if (dragging && Input.lastms.Buttons[0])
+                    Translate(Input.mousePos - Input.lastMousePos);
             }
 
-            base.Update(time, inputState);
+            base.Update(time);
         }
 
         public override void Draw(Renderer renderer) {

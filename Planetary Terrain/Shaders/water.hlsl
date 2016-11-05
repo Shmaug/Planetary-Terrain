@@ -17,41 +17,16 @@ struct v2f {
 	float3 c1 : COLOR1;
 };
 
-float3 Wave(float3 pos, float2 WaveDir, float KAmpOverLen = 3, float WaveLength = 2, float steep = 1, float Phase = 1) {
-	float Amplitude = WaveLength * KAmpOverLen;
-	float Omega = 2 * PI / WaveLength;
-	// float Phase = waves[i].Speed * Omega;
-	float Steepness = steep / (Omega * Amplitude * 1);
-	float CosTerm = cos(Omega * dot(WaveDir, pos.xz) + Phase * Time);
-	float SinTerm = sin(Omega * dot(WaveDir, pos.xz) + Phase * Time);
-
-	// Compute Position
-	float3 smallPos;
-	smallPos.x = Steepness * Amplitude * WaveDir.x * CosTerm;
-	smallPos.z = Steepness * Amplitude * WaveDir.y * CosTerm;
-	smallPos.y = Amplitude * sin(Omega * dot(WaveDir, pos.xz) + Phase * Time);
-
-	return smallPos;
-}
-
 v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	v2f v;
 
-	float3 wo = 0;
-
-	float2 d = normalize(float2(.25, .25));
-	wo += Wave(vertex.xyz * NodeScale + SurfaceOffset, d);
-
-	wo  = mul(wo, (float3x3)NodeOrientation); // relative to planet
-	
 	float4 wp = mul(vertex, World);
-	//wp.xyz += wo * clamp(1 - (length(wp) / Fade), 0, 1);
 
 	v.position = mul(wp, mul(View, Projection));
 	v.position.z = LogDepth(v.position.w);
 	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
 
-	ScatterOutput so = GroundScatter(mul(vertex, NodeToPlanet).xyz + wo - planetPos);
+	ScatterOutput so = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos);
 	v.c0 = so.c0;
 	v.c1 = so.c1;
 

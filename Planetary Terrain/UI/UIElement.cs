@@ -6,11 +6,6 @@ using SharpDX.Mathematics.Interop;
 
 namespace Planetary_Terrain.UI
 {
-    struct InputState {
-        public Vector2 mousePos, lastMousePos;
-        public DInput.KeyboardState ks, lastks;
-        public DInput.MouseState ms, lastms;
-    }
     abstract class UIElement : IDisposable {
         UIElement _parent;
         public UIElement Parent {
@@ -97,10 +92,10 @@ namespace Planetary_Terrain.UI
             return false;
         }
         
-        public virtual void Update(float time, InputState inputState) {
+        public virtual void Update(float time) {
             foreach (KeyValuePair<string, UIElement> kp in Children)
                 if (kp.Value.Visible && kp.Value != this && kp.Value != Parent)
-                    kp.Value.Update(time, inputState);
+                    kp.Value.Update(time);
         }
         public virtual void Draw(Renderer renderer) {
             foreach (KeyValuePair<string, UIElement> kp in Children)

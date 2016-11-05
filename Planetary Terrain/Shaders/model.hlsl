@@ -1,8 +1,8 @@
 #include "_constants.hlsli"
 
 cbuffer ModelConstants : register (b1) {
-	 float4x4 World;
-	 float4x4 WorldInverseTranspose;
+	float4x4 World;
+	float4x4 WorldInverseTranspose;
 	float3 LightDirection;
 	float3 SpecularColor;
 	float Shininess;
@@ -34,7 +34,7 @@ v2f modelvs(float4 vertex, float3 normal, float2 uv, float4x4 world, float3x3 no
 
 v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0) {
 	v2f v;
-	return modelvs(vertex, normal, uv, World, ( float3x3)WorldInverseTranspose);
+	return modelvs(vertex, normal, uv, World, (float3x3)WorldInverseTranspose);
 }
 
 v2f instancedvs(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float4x4 instanceWorld : WORLD, uint instanceID : SV_InstanceID) {

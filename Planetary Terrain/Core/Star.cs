@@ -5,6 +5,7 @@ using D2D1 = SharpDX.Direct2D1;
 using DWrite = SharpDX.DirectWrite;
 using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     class Star : CelestialBody, IDisposable {
@@ -84,8 +85,11 @@ namespace Planetary_Terrain {
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
+            List<QuadNode> nodesToDraw = new List<QuadNode>();
             for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
+                BaseQuads[i].GetRenderLevelNodes(renderer, ref nodesToDraw);
+            foreach (QuadNode n in nodesToDraw)
+                n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
             Profiler.End();
         }
 

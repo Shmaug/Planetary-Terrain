@@ -21,8 +21,8 @@ namespace Planetary_Terrain {
             Position = pos;
         }
 
-        public void UpdateInput(UI.InputState InputState, double deltaTime) {
-            if (InputState.ks.IsPressed(DInput.Key.F) && !InputState.lastks.IsPressed(DInput.Key.F)) {
+        public void UpdateInput(double deltaTime) {
+            if (Input.ks.IsPressed(DInput.Key.F) && !Input.lastks.IsPressed(DInput.Key.F)) {
                 if (Vehicle != null) {
                     Vehicle = null;
                     DisablePhysics = false;
@@ -30,7 +30,7 @@ namespace Planetary_Terrain {
                     //TODO: enter vehicle
                 }
             }
-            if (InputState.ks.IsPressed(DInput.Key.T) && !InputState.lastks.IsPressed(DInput.Key.T)) {
+            if (Input.ks.IsPressed(DInput.Key.T) && !Input.lastks.IsPressed(DInput.Key.T)) {
                 FirstPerson = !FirstPerson;
                 if (FirstPerson)
                     System.Windows.Forms.Cursor.Hide();
@@ -39,24 +39,24 @@ namespace Planetary_Terrain {
             }
 
             Vector3d move = Vector3.Zero;
-            if (InputState.ks.IsPressed(DInput.Key.W))
+            if (Input.ks.IsPressed(DInput.Key.W))
                 move.Z -= -1;
-            else if (InputState.ks.IsPressed(DInput.Key.S))
+            else if (Input.ks.IsPressed(DInput.Key.S))
                 move.Z += -1;
-            if (InputState.ks.IsPressed(DInput.Key.A))
+            if (Input.ks.IsPressed(DInput.Key.A))
                 move.X -= 1;
-            else if (InputState.ks.IsPressed(DInput.Key.D))
+            else if (Input.ks.IsPressed(DInput.Key.D))
                 move.X += 1;
-            if (InputState.ks.IsPressed(DInput.Key.Q))
+            if (Input.ks.IsPressed(DInput.Key.Q))
                 move.Y += 1;
-            if (InputState.ks.IsPressed(DInput.Key.E))
+            if (Input.ks.IsPressed(DInput.Key.E))
                 move.Y -= 1;
 
             if (Vehicle != null) {
                 // move vehicle
-                if (InputState.ks.IsPressed(DInput.Key.LeftShift))
+                if (Input.ks.IsPressed(DInput.Key.LeftShift))
                     Vehicle.Throttle += deltaTime * .5;
-                else if (InputState.ks.IsPressed(DInput.Key.LeftControl))
+                else if (Input.ks.IsPressed(DInput.Key.LeftControl))
                     Vehicle.Throttle -= deltaTime * .5;
                 Vehicle.Throttle = MathTools.Clamp01(Vehicle.Throttle);
 
@@ -91,10 +91,10 @@ namespace Planetary_Terrain {
 
             // Mouse look
             if (FirstPerson)
-                CameraEuler += new Vector3(InputState.ms.Y, InputState.ms.X, 0) * .003f;
+                CameraEuler += new Vector3(Input.ms.Y, Input.ms.X, 0) * .003f;
             else {
-                if (InputState.ms.Buttons[0])
-                    CameraEuler += new Vector3(InputState.mousePos.Y - InputState.lastMousePos.Y, InputState.mousePos.X - InputState.lastMousePos.X, 0) * .003f;
+                if (Input.ms.Buttons[0])
+                    CameraEuler += new Vector3(Input.mousePos.Y - Input.lastMousePos.Y, Input.mousePos.X - Input.lastMousePos.X, 0) * .003f;
             }
             CameraEuler.X = MathUtil.Clamp(CameraEuler.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
         }

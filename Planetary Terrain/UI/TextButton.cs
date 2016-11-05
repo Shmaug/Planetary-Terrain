@@ -26,16 +26,16 @@ namespace Planetary_Terrain.UI
             Click = action;
         }
 
-        public override void Update(float time, InputState inputState) {
-            if (AbsoluteBounds.Contains(inputState.mousePos.X, inputState.mousePos.Y)) {
+        public override void Update(float time) {
+            if (AbsoluteBounds.Contains(Input.mousePos.X, Input.mousePos.Y)) {
                 hoverTime += time;
             } else
                 hoverTime = 0f;
 
-            if (hoverTime > 0 && inputState.lastms.Buttons[0] && !inputState.ms.Buttons[0])
+            if (hoverTime > 0 && Input.lastms.Buttons[0] && !Input.ms.Buttons[0])
                 Click();
 
-            base.Update(time, inputState);
+            base.Update(time);
         }
 
         public override void Draw(Renderer renderer) {

@@ -65,13 +65,12 @@ namespace Planetary_Terrain {
         public void Draw(Renderer renderer, RawRectangleF rect, int c, int textx, ref int texty) {
             D2D1.Brush brush = renderer.Brushes[Colors[c % Colors.Length]];
 
-            renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.D2DContext.FillRectangle(rect, brush);
+            renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.D2DContext.DrawText(
                 Name + " (" + Stopwatch.Elapsed.TotalMilliseconds.ToString("F1") + "ms)",
                 renderer.Consolas14, new RawRectangleF(textx, rect.Bottom + texty, textx + 100, rect.Bottom + texty + lineHeight), brush, D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
             
-
             int lineA = texty + 2;
             int lineC = c;
 
@@ -89,24 +88,33 @@ namespace Planetary_Terrain {
             if (Children.Count > 0)
                 renderer.D2DContext.FillRectangle(new RawRectangleF(textx-3, rect.Bottom + lineA, textx-2, rect.Bottom + texty - 2), renderer.Brushes[Colors[lineC % Colors.Length]]);
         }
-        /*
-        public void DrawCircle(Renderer renderer, D2D1.Ellipse ellipse, double a, double b, int c = 0) {
-            Vector2 pA = ellipse.Point + new Vector2((float)Math.Cos(a) * ellipse.RadiusX, (float)Math.Sin(a) * ellipse.RadiusY);
-            Vector2 pB = ellipse.Point + new Vector2((float)Math.Cos(a) * ellipse.RadiusX, (float)Math.Sin(a) * ellipse.RadiusY);
 
+        public void DrawCircle(Renderer renderer, Vector2 center, float radius, double a, double b, int c = 0, float txt = 0) {
             D2D1.PathGeometry path = new D2D1.PathGeometry(renderer.D2DFactory);
             D2D1.GeometrySink s = path.Open();
             s.SetFillMode(D2D1.FillMode.Winding);
-            s.BeginFigure(pA, D2D1.FigureBegin.Filled);
-            s.AddArc(new D2D1.ArcSegment() {
-                Point = pB,
-                ArcSize =  D2D1.ArcSize.Small,
-                SweepDirection = D2D1.SweepDirection.Clockwise,
-                Size = new Size2F(ellipse.RadiusX, ellipse.RadiusY),
-                RotationAngle = MathUtil.RadiansToDegrees((float)(b - a))
-            });
+
+            s.BeginFigure(center + new Vector2((float)Math.Cos(a) * radius, (float)Math.Sin(a) * radius), D2D1.FigureBegin.Filled);
+            for (double i = a; i <= b; i += Math.PI * .05)
+                s.AddLine(center + new Vector2((float)Math.Cos(i) * radius, (float)Math.Sin(i) * radius));
+            s.AddLine(center + new Vector2((float)Math.Cos(b) * radius, (float)Math.Sin(b) * radius));
+            s.AddLine(center);
+
             s.EndFigure(D2D1.FigureEnd.Closed);
             s.Close();
+
+            if (path.FillContainsPoint(Input.mousePos, 1)) {
+                if (txt == 0)
+                    txt = radius + 50;
+                RawRectangleF r = new RawRectangleF(center.X - 100, center.Y - txt, center.X + 100, center.Y - txt + 12);
+                renderer.D2DContext.FillRectangle(r, renderer.Brushes["TransparentBlack"]);
+                renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
+                renderer.D2DContext.DrawText(
+                    Name + " (" + Stopwatch.Elapsed.TotalMilliseconds.ToString("F1") + "ms)",
+                    renderer.Consolas14, r, renderer.Brushes[Colors[c % Colors.Length]], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
+
+                txt += 12;
+            }
 
             renderer.D2DContext.FillGeometry(path, renderer.Brushes[Colors[c % Colors.Length]]);
             s.Dispose();
@@ -115,13 +123,12 @@ namespace Planetary_Terrain {
             double t = 0;
             foreach (Profiler p in Children) {
                 c++;
-            
+                
                 double f = (p.Stopwatch.Elapsed.Ticks / (double)Stopwatch.Elapsed.Ticks) * (b - a);
-                p.DrawCircle(renderer, ellipse, a + t, a + t + f, c);
+                p.DrawCircle(renderer, center, radius - 10, a + t, a + t + f, c, txt);
                 t += f;
             }
         }
-        */
 
         public int TotalChildren() {
             int i = 1;
@@ -132,11 +139,14 @@ namespace Planetary_Terrain {
     }
     static class Debug {
         public static int VerticiesDrawn;
+        public static int TreesDrawn;
+        public static int ImposterDrawn;
         public static int FPS;
         
         static List<string> logs = new List<string>();
-        static Dictionary<string, string> labels = new Dictionary<string, string>();
-        
+        static Dictionary<string, string> tracks = new Dictionary<string, string>();
+        static Dictionary<string, string> immediateTrack = new Dictionary<string, string>();
+
         public static void Log(object l) {
             logs.Add(l.ToString());
             if (logs.Count > 10)
@@ -144,13 +154,18 @@ namespace Planetary_Terrain {
         }
 
         public static void Track(object l, string name) {
-            labels[name] = l?.ToString() ?? "null";
+            tracks[name] = l?.ToString() ?? "null";
+        }
+        public static void TrackImmediate(object l, string name) {
+            immediateTrack[name] = l?.ToString() ?? "null";
         }
 
         public static void BeginFrame() {
             VerticiesDrawn = 0;
+            TreesDrawn = 0;
+            ImposterDrawn = 0;
+            immediateTrack.Clear();
         }
-
         public static void EndFrame() {
 
         }
@@ -160,8 +175,8 @@ namespace Planetary_Terrain {
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
             
             renderer.D2DContext.DrawText(
-                string.Format("{0} verts, {1} fps    [{2} waiting / {3} generating]",
-                VerticiesDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
+                string.Format("{0} verts, {1} trees/{2} imposters    {3} fps    [{4} waiting / {5} generating]",
+                VerticiesDrawn.ToString("N0"), FPS, TreesDrawn.ToString("N0"), ImposterDrawn.ToString("N0"), QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 10), renderer.Brushes["White"]);
 
             renderer.D2DContext.DrawText(
@@ -187,7 +202,7 @@ namespace Planetary_Terrain {
             }
 
             y = renderer.ResolutionY - 10 - h;
-            foreach (KeyValuePair<string, string> l in labels) {
+            foreach (KeyValuePair<string, string> l in tracks) {
                 float w = 200;
                 RawRectangleF rect = new RawRectangleF(renderer.ResolutionX * .75f - w - 3, y - 3, renderer.ResolutionX * .75f + w + 3, y + h + 3);
 
@@ -195,13 +210,23 @@ namespace Planetary_Terrain {
 
                 y -= h + 5;
             }
+            y = renderer.ResolutionY - 10 - h;
+            foreach (KeyValuePair<string, string> l in immediateTrack) {
+                float w = 200;
+                RawRectangleF rect = new RawRectangleF(renderer.ResolutionX * .75f - w - 3 - 50, y - 3, renderer.ResolutionX * .75f + w + 3 - 50, y + h + 3);
+
+                renderer.D2DContext.DrawText(l.Value, renderer.Consolas14, rect, renderer.Brushes["White"]);
+
+                y -= h + 5;
+            }
             #endregion
-            
+
             int py = frameProfiler.TotalChildren()*Profiler.lineHeight + Profiler.lineHeight;
             renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
 
             frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
-            //frameProfiler.DrawCircle(renderer, new D2D1.Ellipse(new RawVector2(renderer.ResolutionX - 250, renderer.ResolutionY - 250), 200, 200), 0, Math.PI * 2);
+            
+            frameProfiler.DrawCircle(renderer, new Vector2(renderer.ResolutionX - 350, renderer.ResolutionY - 250), 200, 0, Math.PI * 2);
         }
     }
 }

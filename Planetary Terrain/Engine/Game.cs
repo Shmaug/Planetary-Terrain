@@ -7,6 +7,11 @@ using SharpDX.Mathematics.Interop;
 using System.Diagnostics;
 
 namespace Planetary_Terrain {
+    static class Input {
+        public static Vector2 mousePos, lastMousePos;
+        public static DInput.KeyboardState ks, lastks;
+        public static DInput.MouseState ms, lastms;
+    }
     class Game : IDisposable {
         #region game management
         private RenderForm renderForm;
@@ -20,8 +25,7 @@ namespace Planetary_Terrain {
         #region input
         DInput.Keyboard keyboard;
         DInput.Mouse mouse;
-
-        public UI.InputState InputState;
+        
         Vector2 realMousePos;
         #endregion
 
@@ -146,20 +150,20 @@ namespace Planetary_Terrain {
         void Update(double deltaTime) {
             Profiler.Begin("Input Processing");
             #region input state update
-            InputState.ks = keyboard.GetCurrentState();
-            InputState.ms = mouse.GetCurrentState();
-            if (InputState.lastks == null) InputState.lastks = InputState.ks;
-            if (InputState.lastms == null) InputState.lastms = InputState.ms;
-            InputState.mousePos = realMousePos;
+            Input.ks = keyboard.GetCurrentState();
+            Input.ms = mouse.GetCurrentState();
+            if (Input.lastks == null) Input.lastks = Input.ks;
+            if (Input.lastms == null) Input.lastms = Input.ms;
+            Input.mousePos = realMousePos;
             #endregion
 
-            if (InputState.ks.IsPressed(DInput.Key.F2) && !InputState.lastks.IsPressed(DInput.Key.F2))
+            if (Input.ks.IsPressed(DInput.Key.F2) && !Input.lastks.IsPressed(DInput.Key.F2))
                 renderer.DrawGUI = !renderer.DrawGUI;
             
-            if (InputState.ks.IsPressed(DInput.Key.F1) && !InputState.lastks.IsPressed(DInput.Key.F1))
+            if (Input.ks.IsPressed(DInput.Key.F1) && !Input.lastks.IsPressed(DInput.Key.F1))
                 renderer.DrawWireframe = !renderer.DrawWireframe;
 
-            player.UpdateInput(InputState, deltaTime);
+            player.UpdateInput(deltaTime);
             if (player.FirstPerson)
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
             Profiler.End();
@@ -173,12 +177,12 @@ namespace Planetary_Terrain {
             StarSystem.ActiveSystem.physics.Update(deltaTime);
             Profiler.End();
 
-            ControlPanel.Update((float)deltaTime, InputState);
+            ControlPanel.Update((float)deltaTime);
             
             #region input state update
-            InputState.lastks = InputState.ks;
-            InputState.lastms = InputState.ms;
-            InputState.lastMousePos = InputState.mousePos;
+            Input.lastks = Input.ks;
+            Input.lastms = Input.ms;
+            Input.lastMousePos = Input.mousePos;
             #endregion
         }
         void Draw() {
