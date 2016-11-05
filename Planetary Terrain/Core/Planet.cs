@@ -206,8 +206,8 @@ namespace Planetary_Terrain {
                 Profiler.Begin("Get Trees");
                 List<Matrix> trees = new List<Matrix>();
                 List<Matrix> imposters = new List<Matrix>();
-                for (int i = 0; i < BaseQuads.Length; i++)
-                    BaseQuads[i].GetTrees(renderer, ref trees, ref imposters);
+                foreach (QuadNode n in nodesToDraw)
+                    n.GetTrees(renderer, ref trees, ref imposters);
                 Profiler.End();
 
                 if (trees.Count > 0) {
@@ -217,8 +217,8 @@ namespace Planetary_Terrain {
                         TreeBufferSize = Matrix.SizeInBytes * trees.Count;
                         TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, trees.ToArray(), TreeBufferSize, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
                     } else {
-                        DataStream ds;
                         // Create matrix buffers
+                        DataStream ds;
                         renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
                         foreach (Matrix m in trees)
                             ds.Write(m);
@@ -241,17 +241,15 @@ namespace Planetary_Terrain {
                     Profiler.Begin("2d trees");
 
                     // Draw 2d trees
-                    if (TreeBufferSize < Matrix.SizeInBytes * imposters.Count) {
-                        TreeBufferSize = Matrix.SizeInBytes * imposters.Count;
+                    if (TreeBufferSize < Vector3.SizeInBytes * 2 * imposters.Count) {
+                        TreeBufferSize = Vector3.SizeInBytes * 2 * imposters.Count;
                         TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, imposters.ToArray(), TreeBufferSize, D3D11.ResourceUsage.Dynamic, D3D11.CpuAccessFlags.Write);
                     }else {
                         DataStream ds;
                         renderer.Context.MapSubresource(TreeBuffer, 0, D3D11.MapMode.WriteDiscard, D3D11.MapFlags.None, out ds);
-                        Matrix b;
-                        float s = 20f;
                         foreach (Matrix m in imposters) {
-                            b = Matrix.BillboardLH(m.TranslationVector + m.Up * s * .5f, Vector3.Zero, m.Up, renderer.Camera.Rotation.Forward);
-                            ds.Write(Matrix.Scaling(s, s, 1f) * b);
+                            ds.Write(m.TranslationVector);
+                            ds.Write(m.Up);
                         }
                         ds.Dispose();
                         renderer.Context.UnmapSubresource(TreeBuffer, 0);
@@ -259,7 +257,7 @@ namespace Planetary_Terrain {
 
                     Shaders.Imposter.Set(renderer);
                     renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
+                    renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Vector3.SizeInBytes * 2, 0));
                     renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
                     renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 

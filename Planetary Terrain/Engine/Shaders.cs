@@ -75,11 +75,10 @@ namespace Planetary_Terrain {
                 device, context,
                 new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, D3D11.InputClassification.PerVertexData, 0),
                 new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 12, 0, D3D11.InputClassification.PerVertexData, 0),
-
-                new D3D11.InputElement("WORLD", 0, Format.R32G32B32A32_Float, 0, 1, D3D11.InputClassification.PerInstanceData, 1),
-                new D3D11.InputElement("WORLD", 1, Format.R32G32B32A32_Float, 16, 1, D3D11.InputClassification.PerInstanceData, 1),
-                new D3D11.InputElement("WORLD", 2, Format.R32G32B32A32_Float, 32, 1, D3D11.InputClassification.PerInstanceData, 1),
-                new D3D11.InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, D3D11.InputClassification.PerInstanceData, 1));
+                
+                new D3D11.InputElement("TEXCOORD", 1, Format.R32G32B32_Float, 0 , 1, D3D11.InputClassification.PerInstanceData, 1),
+                new D3D11.InputElement("TEXCOORD", 2, Format.R32G32B32_Float, 12, 1, D3D11.InputClassification.PerInstanceData, 1)
+            );
         }
 
         public static void Dispose() {

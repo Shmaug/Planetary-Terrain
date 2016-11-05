@@ -42,32 +42,9 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 float4 psmain(v2f i) : SV_TARGET
 {
 	float3 col = ColorMapTexture.Sample(AnisotropicSampler, i.uv).rgb * NodeColor;
-	bool spec = false;
 
-	if (i.height <= waterLevel && drawWaterFar) {
-		col = waterColor;
-		i.normal = i.dir;
-		spec = true;
-	}
-
-	float d = length(i.worldPos) * NodeScale;
-	if (d < 500)
-		i.c = float4(0, 0, 1, 1);
-	if (d < 200)
-		i.c = float4(1, 0, 0, 1);
-
-	if (length(LightDirection) > 0) {
+	if (length(LightDirection) > 0)
 		col *= clamp(dot(LightDirection, -i.normal), 0, 1);
-
-		if (spec) {
-			// specular lighting
-			float3 r = reflect(-LightDirection, i.normal);
-			float3 v = normalize(i.worldPos);
-			float dp = dot(r, v);
-			if (dp > 0)
-				col += pow(dp, 200);
-		}
-	}
 
 	col = i.c1 + col * i.c0;
 

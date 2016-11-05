@@ -31,17 +31,13 @@ for /f "usebackq tokens=*" %%i in ("%input%.manifest") do (
 		set name=!str:~5!
 	)
 	if "!str:~0,12!" == "VertexShader" (
-		set vertexshader=!str:~13!
+		"%~dp0fxc" "%input%!file!" /E !str:~13! /Fo %output%!name!_vs.cso /T vs_5_0 /Od /Zpr /nologo
 	)
 	if "!str:~0,11!" == "PixelShader" (
-		set pixelshader=!str:~12!
+		"%~dp0fxc" "%input%!file!" /E !str:~12! /Fo %output%!name!_ps.cso /T ps_5_0 /Od /Zpr /nologo
 	)
-	if "%%i" == "/Shader" (
-		"%~dp0fxc" "%input%!file!" /E !vertexshader! /Fo %output%!name!_vs.cso /T vs_5_0 /Od /Zpr /nologo
-		if !errorlevel! == 1 exit
-		"%~dp0fxc" "%input%!file!" /E !pixelshader! /Fo %output%!name!_ps.cso /T ps_5_0 /Od /Zpr /nologo
-		if !errorlevel! == 1 exit
-
-		rem echo !name!>>%output%.manifest
+	if "!str:~0,14!" == "GeometryShader" (
+		"%~dp0fxc" "%input%!file!" /E !str:~15! /Fo %output%!name!_gs.cso /T gs_5_0 /Od /Zpr /nologo
 	)
+	if !errorlevel! == 1 exit
 )
