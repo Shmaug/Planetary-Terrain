@@ -48,6 +48,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	//wp.xyz += wo * clamp(1 - (length(wp) / Fade), 0, 1);
 
 	v.position = mul(wp, mul(View, Projection));
+	v.position.z = LogDepth(v.position.w);
 	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
 
 	ScatterOutput so = GroundScatter(mul(vertex, NodeToPlanet).xyz + wo - planetPos);

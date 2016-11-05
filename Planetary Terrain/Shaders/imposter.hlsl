@@ -11,6 +11,7 @@ struct v2f {
 v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0, float4x4 instanceWorld : WORLD, uint instanceID : SV_InstanceID) {
 	v2f v;
 	v.position = mul(vertex, mul(instanceWorld, mul(View, Projection)));
+	v.position.z = LogDepth(v.position.w);
 	v.uv = float2(uv.x, 1-uv.y);
 	return v;
 }

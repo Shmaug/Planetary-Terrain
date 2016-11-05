@@ -33,6 +33,7 @@ struct texturedv2f {
 texturedv2f texturedvs(float4 vertex : POSITION0, float2 uv : TEXCOORD) {
 	texturedv2f v;
 	v.position = mul(vertex, mul(World, mul(View, Projection)));
+	v.position.z = LogDepth(v.position.w);
 	v.uv = uv;
 	return v;
 }

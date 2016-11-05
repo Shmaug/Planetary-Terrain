@@ -25,6 +25,7 @@ v2f modelvs(float4 vertex, float3 normal, float2 uv, float4x4 world, float3x3 no
 	v2f v;
 	float4 wp = mul(vertex, world);
 	v.position = mul(wp, mul(View, Projection));
+	v.position.z = LogDepth(v.position.w);
 	v.normal = mul(normal, normWorld);
 	v.uv = uv;
 	v.worldPos = wp.xyz;

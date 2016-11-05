@@ -19,6 +19,7 @@ v2f vsmain(float4 vertex : POSITION0) {
 
 	float4 worldPosition = mul(vertex, World);
 	o.position = mul(worldPosition, mul(View, Projection));
+	o.position.z = LogDepth(o.position.w);
 
 	float3 v3CameraPos = -planetPos;
 

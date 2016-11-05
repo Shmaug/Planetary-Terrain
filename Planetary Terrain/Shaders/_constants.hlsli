@@ -13,6 +13,12 @@
 cbuffer WorldConstants : register(b0) {
 	float4x4 View;
 	float4x4 Projection;
+	float C;
+	float FC;
 };
 
 SamplerState AnisotropicSampler : register(s0);
+
+float LogDepth(float w) {
+	return max(log2(C*w + 1),1e-6)*FC*w;
+}

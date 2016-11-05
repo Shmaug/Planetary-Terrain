@@ -23,6 +23,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCO
 	v2f v;
 	float4 worldPosition = mul(vertex, World);
 	v.position = mul(worldPosition, mul(View, Projection));
+	v.position.z = LogDepth(v.position.w);
 	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
 	v.dir = mul(float4(dir, 1), WorldInverseTranspose).xyz;
 	v.uv = uv;

@@ -10,10 +10,12 @@ using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     class Renderer : IDisposable {
-        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 128)]
+        [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 144)]
         struct RendererConstants {
             public Matrix View;
             public Matrix Projection;
+            public float C;
+            public float FC;
         }
         RendererConstants constants;
         public D3D11.Buffer constantBuffer { get; private set; }
@@ -381,6 +383,8 @@ namespace Planetary_Terrain {
         public void BeginDrawFrame() {
             constants.View = Camera.View;
             constants.Projection = Camera.Projection;
+            constants.C = 1;
+            constants.FC = (float)(1.0 / (Math.Log(constants.C * Camera.zFar + 1) / Math.Log(2)));
 
             Context.UpdateSubresource(ref constants, constantBuffer);
         }
