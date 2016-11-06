@@ -107,6 +107,7 @@ namespace Planetary_Terrain {
             player = new Player();
             player.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
             player.Vehicle = new Ship(renderer.Device);
+            player.Vehicle.CockpitCameraPosition = new Vector3(0, 5.5f, 7.5f);
             player.DisablePhysics = true;
             renderer.Camera = player.Camera;
             StarSystem.ActiveSystem.physics.AddBody(player);

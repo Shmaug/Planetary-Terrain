@@ -176,7 +176,7 @@ namespace Planetary_Terrain {
             
             renderer.D2DContext.DrawText(
                 string.Format("{0} verts, {1} trees/{2} imposters    {3} fps    [{4} waiting / {5} generating]",
-                VerticiesDrawn.ToString("N0"), FPS, TreesDrawn.ToString("N0"), ImposterDrawn.ToString("N0"), QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
+                VerticiesDrawn.ToString("N0"), TreesDrawn.ToString("N0"), ImposterDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 10), renderer.Brushes["White"]);
 
             renderer.D2DContext.DrawText(

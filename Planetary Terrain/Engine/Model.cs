@@ -20,6 +20,18 @@ namespace Planetary_Terrain {
                 v.D1, v.D2, v.D3, v.D4
                 ));
         }
+        public static Matrix4x4 ToMatrix(this Matrix m) {
+            m = Matrix.Transpose(m);
+            return new Matrix4x4(
+                m.M11, m.M12, m.M13, m.M14,
+                m.M21, m.M22, m.M23, m.M24,
+                m.M31, m.M32, m.M33, m.M34,
+                m.M41, m.M42, m.M43, m.M44
+                );
+        }
+        public static Color ToColor(this Color4D c) {
+            return new Color(c.R, c.B, c.G, c.A);
+        }
     }
     class Model {
         [StructLayout(LayoutKind.Explicit, Size = 176)]
@@ -38,7 +50,7 @@ namespace Planetary_Terrain {
             [FieldOffset(156)]
             public float Shininess;
             [FieldOffset(160)]
-            public float SpecularIntensity;
+            public float ShininessIntensity;
         }
         Constants constants;
         D3D11.Buffer cbuffer;
@@ -50,8 +62,8 @@ namespace Planetary_Terrain {
         }
         public float SpecularIntensity
         {
-            get { return constants.SpecularIntensity; }
-            set { constants.SpecularIntensity = value; }
+            get { return constants.ShininessIntensity; }
+            set { constants.ShininessIntensity = value; }
         }
         public Color SpecularColor
         {
@@ -62,7 +74,10 @@ namespace Planetary_Terrain {
         public List<ModelMesh> Meshes;
         string modelPath;
 
-        public Model(string file, D3D11.Device device) {
+        public Model(string file, D3D11.Device device) : this(file, device, Matrix.Identity) {
+        }
+
+        public Model(string file, D3D11.Device device, Matrix transform) {
             AssimpContext ctx = new AssimpContext();
             if (!ctx.IsImportFormatSupported(Path.GetExtension(file)))
                 return;
@@ -71,21 +86,21 @@ namespace Planetary_Terrain {
 
             Scene scene = ctx.ImportFile(file);
             Node node = scene.RootNode;
-            Matrix mat = Matrix.Identity;
 
             Meshes = new List<ModelMesh>();
-            AddNode(scene, scene.RootNode, device, mat);
-
+            AddNode(scene, scene.RootNode, device, Matrix.Identity, transform);
+            
             constants = new Constants();
             SpecularColor = Color.White;
             Shininess = 200;
             SpecularIntensity = 1;
         }
 
-        public void AddNode(Scene scene, Node node, D3D11.Device device, Matrix transform) {
-            transform = transform * node.Transform.ToMatrix();
+        public void AddNode(Scene scene, Node node, D3D11.Device device, Matrix transform, Matrix fTransform) {
+            transform *= node.Transform.ToMatrix();
+            Matrix t = transform * fTransform;
+            Matrix invTranspose = Matrix.Transpose(Matrix.Invert(t));
 
-            Matrix invTranspose = Matrix.Transpose(Matrix.Invert(transform));
             if (node.HasMeshes) {
                 foreach (int index in node.MeshIndices) {
                     Mesh mesh = scene.Meshes[index];
@@ -104,37 +119,10 @@ namespace Planetary_Terrain {
                         if (mat.GetMaterialTextureCount(TextureType.Normals) > 0)
                             mm.SetNormalTexture(device, modelPath + "/" + mat.TextureNormal.FilePath);
                     }
-
-                    //bool hasTexCoords = mesh.HasTextureCoords(0);
-                    //bool hasColors = mesh.HasVertexColors(0);
-                    //bool hasNormals = mesh.HasNormals;
-
-                    //int ec = 1;
-                    //if (hasTexCoords) ec++;
-                    //if (hasColors) ec++;
-                    //if (hasNormals) ec++;
-
-                    //mm.InputElements = new D3D11.InputElement[ec];
-                    //int e = 0;
-                    //mm.InputElements[e++] = new D3D11.InputElement("POSITION", 0, SharpDX.DXGI.Format.R32G32B32_Float, 0, 0);
-                    //
-                    //if (hasNormals) {
-                    //    mm.InputElements[e++] = new D3D11.InputElement("NORMAL", 0, SharpDX.DXGI.Format.R32G32B32_Float, mm.VertexSize, 0);
-                    //    mm.VertexSize += Utilities.SizeOf<Vector3>();
-                    //}
-                    //if (hasColors) {
-                    //    mm.InputElements[e++] = new D3D11.InputElement("COLOR", 0, SharpDX.DXGI.Format.R32G32B32A32_Float, mm.VertexSize, 0);
-                    //    mm.VertexSize += Utilities.SizeOf<Vector4>();
-                    //}
-                    //if (hasTexCoords) {
-                    //    mm.InputElements[e++] = new D3D11.InputElement("TEXCOORD", 0, SharpDX.DXGI.Format.R32G32B32_Float, mm.VertexSize, 0);
-                    //    mm.VertexSize += Utilities.SizeOf<Vector3>();
-                    //}
                     
                     Vector3D[] verts = mesh.Vertices.ToArray();
                     Vector3D[] texCoords = mesh.TextureCoordinateChannels[0].ToArray();
                     Vector3D[] normals = mesh.Normals.ToArray();
-                    //Color4D[] colors = mesh.VertexColorChannels[0].ToArray();
                     
                     switch (mesh.PrimitiveType) {
                         case PrimitiveType.Point:
@@ -150,15 +138,20 @@ namespace Planetary_Terrain {
                             break;
                     }
 
-                    VertexNormalTexture[] verticies = new VertexNormalTexture[mesh.VertexCount];
+                    ModelVertex[] verticies = new ModelVertex[mesh.VertexCount];
+                    bool colors = mesh.HasVertexColors(0);
+                    Color col = Color.White;
+                    mm.Shininess = scene.Materials[mesh.MaterialIndex].Shininess;
+                    mm.ShininessIntensity = scene.Materials[mesh.MaterialIndex].ShininessStrength;
                     for (int i = 0; i < mesh.VertexCount; i++) {
-                        verticies[i] = new VertexNormalTexture(
-                            (Vector3)Vector3.Transform(new Vector3(verts[i].X, verts[i].Y, verts[i].Z), transform),
-                            (Vector3)Vector3.Transform(new Vector3(normals[i].X, normals[i].Y, normals[i].Z), invTranspose),
-                            new Vector2(texCoords[i].X, 1f - texCoords[i].Y));
+                        verticies[i] = new ModelVertex(
+                            (Vector3)Vector3.Transform(new Vector3(verts[i].X, verts[i].Y, verts[i].Z), t),
+                            Vector3.Normalize((Vector3)Vector3.Transform(new Vector3(normals[i].X, normals[i].Y, normals[i].Z), invTranspose)),
+                            new Vector2(texCoords[i].X, 1f - texCoords[i].Y),
+                            (colors ? mesh.VertexColorChannels[0][i].ToColor() : Color.White) * col);
                     }
 
-                    mm.VertexSize = Utilities.SizeOf<VertexNormalTexture>();
+                    mm.VertexSize = Utilities.SizeOf<ModelVertex>();
 
                     mm.VertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
                     mm.VertexCount = mesh.VertexCount;
@@ -177,7 +170,7 @@ namespace Planetary_Terrain {
             }
 
             foreach (Node c in node.Children)
-                AddNode(scene, c, device, transform);
+                AddNode(scene, c, device, transform, fTransform);
         }
 
         public void SetResources(Renderer renderer, Vector3d lightDirection, Matrix world) {
@@ -196,8 +189,12 @@ namespace Planetary_Terrain {
         }
 
         public void Draw(Renderer renderer) {
-            foreach (ModelMesh m in Meshes)
+            foreach (ModelMesh m in Meshes) {
+                constants.Shininess = m.Shininess;
+                constants.ShininessIntensity = m.ShininessIntensity;
+                renderer.Context.UpdateSubresource(ref constants, cbuffer);
                 m.Draw(renderer);
+            }
         }
 
         public void Draw(Renderer renderer, Vector3d lightDirection, Matrix world) {

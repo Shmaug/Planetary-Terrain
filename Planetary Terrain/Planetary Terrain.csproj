@@ -118,13 +118,31 @@
     <Compile Include="Core\StarSystem.cs" />
     <Compile Include="Engine\Model.cs" />
     <Compile Include="Engine\ModelMesh.cs" />
-    <Content Include="Data\Models\Gun\gun_normal.dds">
+    <Content Include="Data\Models\Cruiser\diffuse.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Gun\gun_diffuse.dds">
+    <Content Include="Data\Models\Cruiser\glass_diffuse.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Gun\gun_specular.dds">
+    <Content Include="Data\Models\Cruiser\glass_normal.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Cruiser\normal.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Cruiser\specular.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Cruiser\steel.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Gun\diffuse.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Gun\normal.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Gun\specular.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Models\Trees\tree0.png">
@@ -154,6 +172,9 @@
     <Content Include="ShaderCompilation\d3dcompiler_47.dll" />
     <Content Include="ShaderCompilation\fxc.exe" />
     <Content Include="Shaders\imposter.hlsl" />
+    <None Include="Data\Models\Cruiser\ship.fbx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Shaders\.manifest" />
     <Content Include="Shaders\postfx.hlsl" />
     <Content Include="Shaders\aerofx.hlsl" />
@@ -171,13 +192,13 @@
     <Compile Include="UI\TextButton.cs" />
     <Compile Include="UI\TextLabel.cs" />
     <Compile Include="UI\UIElement.cs" />
-    <Content Include="Data\Models\Ship\ship_diffuse.png">
+    <Content Include="Data\Models\Ship\diffuse.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Ship\ship_emission.png">
+    <Content Include="Data\Models\Ship\emission.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Ship\ship_specular.png">
+    <Content Include="Data\Models\Ship\specular.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Compile Include="Engine\Physics.cs" />

@@ -26,17 +26,16 @@ namespace Planetary_Terrain {
                     1, 3, 2,
             });
 
-            ShipModel = new Model(modelFolder + "ship/ship.fbx", device);
-            ShipModel.Meshes[0].SetEmissiveTexture(device, modelFolder + "ship/ship_emission.png");
-            ShipModel.Meshes[0].SetSpecularTexture(device, modelFolder + "ship/ship_specular.png");
+            ShipModel = new Model(modelFolder + "cruiser/ship.fbx", device, Matrix.Scaling(5) * Matrix.RotationY(MathUtil.Pi));
+            ShipModel.Meshes[0].SetSpecularTexture(device, modelFolder + "ship/specular.png");
+            //ShipModel.Meshes[0].SetEmissiveTexture(device, modelFolder + "ship/emission.png");
             ShipModel.SpecularColor = Color.White;
             ShipModel.Shininess = 200;
             ShipModel.SpecularIntensity = 1;
 
             GunModel = new Model(modelFolder + "gun/gun.fbx", device);
-            GunModel.Meshes[0].SetDiffuseTexture(device, modelFolder + "gun/gun_diffuse.dds");
-            //GunModel.Meshes[0].SetNormalTexture(device, modelFolder + "gun/gun_normal.dds");
-            GunModel.Meshes[0].SetSpecularTexture(device, modelFolder + "gun/gun_specular.dds");
+            GunModel.Meshes[0].SetNormalTexture(device, modelFolder + "gun/normal.png");
+            GunModel.Meshes[0].SetSpecularTexture(device, modelFolder + "gun/specular.png");
             GunModel.SpecularColor = Color.White;
             GunModel.Shininess = 200;
             GunModel.SpecularIntensity = 1;

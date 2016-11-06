@@ -305,7 +305,7 @@ namespace Planetary_Terrain {
         public OrientedBoundingBox OOB;
 
         PlanetVertex[] verticies;
-        VertexNormal[] waterVerticies;
+        WaterVertex[] waterVerticies;
         short[] indicies;
         
         public Matrix[] Trees;
@@ -446,7 +446,7 @@ namespace Planetary_Terrain {
             double oceanLevel = 0;
             if (hasWaterVerticies) {
                 oceanLevel = Body.Radius + (Body as Planet).TerrainHeight * (Body as Planet).OceanHeight;
-                waterVerticies = new VertexNormal[s * s * 6];
+                waterVerticies = new WaterVertex[s * s * 6];
             }
 
             Vector2 t;
@@ -472,7 +472,7 @@ namespace Planetary_Terrain {
                     rh = Body.GetHeight(p1d);
 
                     if (hasWaterVerticies) {
-                        waterVerticies[x * s + z] = new VertexNormal((p1d * oceanLevel - MeshCenter) * invScale, p1d);
+                        waterVerticies[x * s + z] = new WaterVertex((p1d * oceanLevel - MeshCenter) * invScale, p1d, (float)Math.Abs(rh - oceanLevel));
                         pts.Add(waterVerticies[x * s + z].Position);
                         if (rh < oceanLevel)
                             wv = true;
@@ -602,7 +602,7 @@ namespace Planetary_Terrain {
         }
 
         QuadNode GetLeft() {
-            if (Parent != null) {
+            if (Parent != null && Parent.Children != null) {
                 QuadNode l;
                 switch (SiblingIndex) {
                     case 0:
@@ -633,7 +633,7 @@ namespace Planetary_Terrain {
             return null;
         }
         QuadNode GetRight() {
-            if (Parent != null) {
+            if (Parent != null && Parent.Children != null) {
                 QuadNode l;
                 switch (SiblingIndex) {
                     case 1:
@@ -664,7 +664,7 @@ namespace Planetary_Terrain {
             return null;
         }
         QuadNode GetUp() {
-            if (Parent != null) {
+            if (Parent != null && Parent.Children != null) {
                 QuadNode l;
                 switch (SiblingIndex) {
                     case 0:
@@ -695,7 +695,7 @@ namespace Planetary_Terrain {
             return null;
         }
         QuadNode GetDown() {
-            if (Parent != null) {
+            if (Parent != null && Parent.Children != null) {
                 QuadNode l;
                 switch (SiblingIndex) {
                     case 2:
@@ -970,7 +970,7 @@ namespace Planetary_Terrain {
                         renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
                         renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
 
-                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<VertexNormal>(), 0));
+                        renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<WaterVertex>(), 0));
                         renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
                         Debug.VerticiesDrawn += VertexCount;

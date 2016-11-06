@@ -1,4 +1,5 @@
 ﻿using SharpDX.DXGI;
+using System.Collections.Generic;
 using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
@@ -28,7 +29,7 @@ namespace Planetary_Terrain {
 
             WaterShader = new Shader(
                 shaderDirectory + "Water",
-                device, context, VertexNormal.InputElements);
+                device, context, WaterVertex.InputElements);
 
             AtmosphereShader = new Shader(
                 shaderDirectory + "Atmosphere",
@@ -40,20 +41,17 @@ namespace Planetary_Terrain {
 
             ModelShader = new Shader(
                 shaderDirectory + "Model",
-                device, context, VertexNormalTexture.InputElements);
+                device, context, ModelVertex.InputElements);
 
+            List<D3D11.InputElement> ime = new List<D3D11.InputElement>(ModelVertex.InputElements);
+            ime.Add(new D3D11.InputElement("WORLD", 0, Format.R32G32B32A32_Float, 0, 1, D3D11.InputClassification.PerInstanceData, 1));
+            ime.Add(new D3D11.InputElement("WORLD", 1, Format.R32G32B32A32_Float, 16, 1, D3D11.InputClassification.PerInstanceData, 1));
+            ime.Add(new D3D11.InputElement("WORLD", 2, Format.R32G32B32A32_Float, 32, 1, D3D11.InputClassification.PerInstanceData, 1));
+            ime.Add(new D3D11.InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, D3D11.InputClassification.PerInstanceData, 1));
             InstancedModel = new Shader(
                 shaderDirectory + "InstancedModel",
                 device, context,
-                new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, D3D11.InputClassification.PerVertexData, 0),
-                new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, D3D11.InputClassification.PerVertexData, 0),
-                new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0, D3D11.InputClassification.PerVertexData, 0),
-
-                new D3D11.InputElement("WORLD", 0, Format.R32G32B32A32_Float, 0, 1, D3D11.InputClassification.PerInstanceData, 1),
-                new D3D11.InputElement("WORLD", 1, Format.R32G32B32A32_Float, 16, 1, D3D11.InputClassification.PerInstanceData, 1),
-                new D3D11.InputElement("WORLD", 2, Format.R32G32B32A32_Float, 32, 1, D3D11.InputClassification.PerInstanceData, 1),
-                new D3D11.InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, D3D11.InputClassification.PerInstanceData, 1)
-            );
+                ime.ToArray());
 
             TexturedShader = new Shader(
                 shaderDirectory + "Textured",

@@ -6,6 +6,7 @@ using SharpDX.Mathematics.Interop;
 
 namespace Planetary_Terrain {
     class Ship : PhysicsBody, IDisposable {
+        public Vector3 CockpitCameraPosition;
         public double Throttle;
 
         public Ship(D3D11.Device device) : base(100) {
@@ -28,13 +29,6 @@ namespace Planetary_Terrain {
 
             Shaders.ModelShader.Set(renderer);
             Resources.ShipModel.Draw(renderer, light, world);
-
-            //CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
-            //if (b is Planet && ((Planet)b).Atmosphere != null) {
-            //    Atmosphere a = ((Planet)b).Atmosphere;
-            //
-            //    renderer.DrawAeroFX(world, Velocity, Models.ShipModel.DrawRaw);
-            //}
         }
         
         public void Dispose() {

@@ -66,6 +66,33 @@ namespace Planetary_Terrain {
     }
 
     [StructLayout(LayoutKind.Explicit)]
+    struct ModelVertex {
+        [FieldOffset(0)]
+        public Vector3 Position;
+        [FieldOffset(12)]
+        public Vector3 Normal;
+        [FieldOffset(24)]
+        public Vector2 TexCoord;
+        [FieldOffset(32)]
+        public Color4 Color;
+
+        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
+        {
+            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+            new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
+            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0),
+            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 32, 0),
+        };
+
+        public ModelVertex(Vector3 pos, Vector3 norm, Vector2 uv, Color color) {
+            Position = pos;
+            Normal = norm;
+            TexCoord = uv;
+            Color = color;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     struct VertexColor {
         [FieldOffset(0)]
         public Vector3 Position;
@@ -139,6 +166,29 @@ namespace Planetary_Terrain {
             Height = height;
             Out = dir;
             Color = Color4.White;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    struct WaterVertex {
+        [FieldOffset(0)]
+        public Vector3 Position;
+        [FieldOffset(12)]
+        public Vector3 Normal;
+        [FieldOffset(24)]
+        public float Height;
+
+        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
+        {
+            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+            new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
+            new D3D11.InputElement("TEXCOORD", 0, Format.R32_Float, 24, 0),
+        };
+
+        public WaterVertex(Vector3 pos, Vector3 norm, float height) {
+            Position = pos;
+            Normal = norm;
+            Height = height;
         }
     }
 }

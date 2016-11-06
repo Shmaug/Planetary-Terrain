@@ -47,8 +47,7 @@ namespace Planetary_Terrain {
                 (float)Math.Atan2(2f * q.X * q.Y + 2f * q.Z * q.W, 1 - 2f * (sqy + sqz))  // Roll
                 );
         }
-
-
+        
         public static bool Contains(this RawRectangleF rect, float x, float y) {
             return x < rect.Right && x > rect.Left && y < rect.Bottom && y > rect.Top;
         }

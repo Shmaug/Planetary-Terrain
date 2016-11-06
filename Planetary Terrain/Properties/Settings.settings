@@ -3,10 +3,10 @@
   <Profiles />
   <Settings>
     <Setting Name="TreeImposterDistance" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">400</Value>
+      <Value Profile="(Default)">500</Value>
     </Setting>
     <Setting Name="TreeDistance" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">5000</Value>
+      <Value Profile="(Default)">1200</Value>
     </Setting>
     <Setting Name="TreeLODLevel" Type="System.Double" Scope="User">
       <Value Profile="(Default)">100</Value>

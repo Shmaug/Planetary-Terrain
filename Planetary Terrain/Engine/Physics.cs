@@ -32,6 +32,11 @@ namespace Planetary_Terrain {
             velocity = Vector3.Zero;
         }
     }
+    class PhysicsHull {
+        enum Shape {
+            Sphere, Mesh
+        }
+    }
     abstract class PhysicsBody {
         public Vector3d Position;
         public Vector3d Velocity;
@@ -40,6 +45,7 @@ namespace Planetary_Terrain {
         public double Mass;
         public double Drag;
         public Orbit Orbit;
+        public PhysicsHull Hull;
 
         public bool DisablePhysics = false;
 
@@ -48,6 +54,12 @@ namespace Planetary_Terrain {
         public PhysicsBody(double mass) {
             Mass = mass;
             Drag = 1;
+        }
+
+        public PhysicsBody(double mass, PhysicsHull hull) {
+            Mass = mass;
+            Drag = 1;
+            Hull = hull;
         }
 
         public void AddForce(Vector3d force, Vector3d pos) {

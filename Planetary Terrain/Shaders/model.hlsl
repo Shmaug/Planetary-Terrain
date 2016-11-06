@@ -19,9 +19,10 @@ struct v2f {
 	float2 uv : TEXCOORD0;
 	float3 normal : TEXCOORD1;
 	float3 worldPos : TEXCOORD2;
+	float4 color : COLOR0;
 };
 
-v2f modelvs(float4 vertex, float3 normal, float2 uv, float4x4 world, float3x3 normWorld) {
+v2f modelvs(float4 vertex, float3 normal, float2 uv, float4 color, float4x4 world, float3x3 normWorld) {
 	v2f v;
 	float4 wp = mul(vertex, world);
 	v.position = mul(wp, mul(View, Projection));
@@ -29,23 +30,24 @@ v2f modelvs(float4 vertex, float3 normal, float2 uv, float4x4 world, float3x3 no
 	v.normal = mul(normal, normWorld);
 	v.uv = uv;
 	v.worldPos = wp.xyz;
+	v.color = color;
 	return v;
 }
 
-v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0) {
+v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float4 color : COLOR0) {
 	v2f v;
-	return modelvs(vertex, normal, uv, World, (float3x3)WorldInverseTranspose);
+	return modelvs(vertex, normal, uv, color, World, (float3x3)WorldInverseTranspose);
 }
 
-v2f instancedvs(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float4x4 instanceWorld : WORLD, uint instanceID : SV_InstanceID) {
+v2f instancedvs(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 uv : TEXCOORD0, float4 color : COLOR0, float4x4 instanceWorld : WORLD, uint instanceID : SV_InstanceID) {
 	v2f v;
 	float4x4 w = mul(instanceWorld, World);
-	return modelvs(vertex, normal, uv, w, (float3x3)w);
+	return modelvs(vertex, normal, uv, color, w, (float3x3)w);
 }
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float4 col = DiffuseTexture.Sample(AnisotropicSampler, i.uv);
+	float4 col = DiffuseTexture.Sample(AnisotropicSampler, i.uv) * i.color;
 	clip(col.a - .1);
 
 	if (length(LightDirection) > 0) {

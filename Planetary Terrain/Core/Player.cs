@@ -110,9 +110,11 @@ namespace Planetary_Terrain {
             Camera.Rotation = Rotation * Matrix.RotationAxis(Rotation.Up, CameraEuler.Y);
             Camera.Rotation *= Matrix.RotationAxis(Camera.Rotation.Right, CameraEuler.X);
 
-            if (FirstPerson)
+            if (FirstPerson) {
                 Camera.Position = Position + (Vector3d)Rotation.Up * .75;
-            else
+                if (Vehicle != null)
+                    Camera.Position = Vehicle.Position + (Vector3)Vector3.Transform(Vehicle.CockpitCameraPosition, Vehicle.Rotation);
+            } else
                 Camera.Position = Position + (Vector3d)Camera.Rotation.Forward * 50;
 
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Camera.Position);

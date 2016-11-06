@@ -16,7 +16,9 @@ namespace Planetary_Terrain {
         public int VertexCount;
         public int IndexCount;
         public PrimitiveTopology PrimitiveTopology;
-        
+        public float Shininess;
+        public float ShininessIntensity;
+
         public D3D11.ShaderResourceView DiffuseTextureView;
         public D3D11.ShaderResourceView EmissiveTextureView;
         public D3D11.ShaderResourceView SpecularTextureView;

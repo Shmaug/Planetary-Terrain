@@ -12,12 +12,13 @@ struct v2f {
 	float4 position : SV_POSITION;
 	float3 normal : TEXCOORD0;
 	float3 worldPos :  TEXCOORD1;
+	float height : TEXCOORD2;
 
 	float3 c0 : COLOR0;
 	float3 c1 : COLOR1;
 };
 
-v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
+v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float height : TEXCOORD0) {
 	v2f v;
 
 	float4 wp = mul(vertex, World);
@@ -25,6 +26,8 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	v.position = mul(wp, mul(View, Projection));
 	v.position.z = LogDepth(v.position.w);
 	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
+
+	v.height = height;
 
 	ScatterOutput so = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos);
 	v.c0 = so.c0;
@@ -38,6 +41,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 float4 psmain(v2f i) : SV_TARGET
 {
 	float3 col = waterColor;
+
 	if (length(LightDirection) > 0) {
 		// diffuse lighting
 		col *= clamp(dot(LightDirection, -i.normal), 0, 1);
