@@ -3,6 +3,7 @@ using SharpDX;
 using D3D11 = SharpDX.Direct3D11;
 using D2D1 = SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
+using SharpDX.Direct3D;
 
 namespace Planetary_Terrain {
     class Ship : PhysicsBody, IDisposable {
@@ -28,7 +29,10 @@ namespace Planetary_Terrain {
             Matrix world = Rotation * Matrix.Translation(Position - renderer.Camera.Position);
 
             Shaders.ModelShader.Set(renderer);
+            Resources.ShipModel.EmissiveIntensity = (float)Throttle;
             Resources.ShipModel.Draw(renderer, light, world);
+
+            renderer.DrawLine(Color.Red, Position, Position + Vector3d.Normalize(Velocity) * 50);
         }
         
         public void Dispose() {

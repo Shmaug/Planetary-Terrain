@@ -89,11 +89,14 @@ namespace Planetary_Terrain {
         public abstract void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double height);
 
         public Vector3d GetNormal(Vector3d direction) {
-            return direction;
-            //Vector3d p1 = new Vector3d(0, GetHeight(direction), 0);
-            //Vector3d p2 = new Vector3d(0.01, GetHeight(direction + new Vector3d(0.01, 0, 0)), 0);
-            //Vector3d p3 = new Vector3d(0, GetHeight(direction + new Vector3d(0, 0, 0.01)), 0.01);
-            //return Vector3d.Cross(Vector3d.Normalize(p3 - p1), Vector3d.Normalize(p2 - p1));
+            Vector3d p1 = direction * GetHeight(direction);
+            Matrix m = OrientationFromDirection(direction);
+            Vector3d p2 = Vector3d.Normalize(p1 + m.Right);
+            Vector3d p3 = Vector3d.Normalize(p1 + m.Forward);
+            p2 *= GetHeight(p2);
+            p3 *= GetHeight(p3);
+
+            return Vector3d.Cross(Vector3d.Normalize(p2 - p1), Vector3d.Normalize(p3 - p1));
         }
         /// <summary>
         /// Returns the point on the surface of the planet, along the line from the planet's position to the given point

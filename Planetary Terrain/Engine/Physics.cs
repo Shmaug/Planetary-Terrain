@@ -46,6 +46,7 @@ namespace Planetary_Terrain {
         public double Drag;
         public Orbit Orbit;
         public PhysicsHull Hull;
+        public OrientedBoundingBox OOB;
 
         public bool DisablePhysics = false;
 
@@ -54,12 +55,14 @@ namespace Planetary_Terrain {
         public PhysicsBody(double mass) {
             Mass = mass;
             Drag = 1;
+            OOB = new OrientedBoundingBox(-Vector3.One, Vector3.One);
         }
 
         public PhysicsBody(double mass, PhysicsHull hull) {
             Mass = mass;
             Drag = 1;
             Hull = hull;
+            OOB = new OrientedBoundingBox(-Vector3.One, Vector3.One);
         }
 
         public void AddForce(Vector3d force, Vector3d pos) {
@@ -107,19 +110,25 @@ namespace Planetary_Terrain {
 
             Forces.Clear();
 
+            OOB.Transformation = Rotation;
+
             if (b != null && b != this) {
                 // check collision
-                double t = b.GetHeight(dir);
-                if (h < t+1) {
+                System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
+                double t = b.GetHeight(dir) + 1;
+                if (h < t) {
                     Vector3d n = -b.GetNormal(dir);
                     double vdn = Vector3d.Dot(Velocity, n);
                     if (vdn > 0) {
-                        Position = b.Position + dir * (t+1);
+                        Position = b.Position + dir * t;
                         Velocity -= n * vdn;
                     }
                 }
+                sw.Stop();
+                Debug.Track(sw.ElapsedTicks, "physics solve");
             }
         }
+
         public virtual void PostUpdate() { }
 
         public virtual void Draw(Renderer renderer) { }

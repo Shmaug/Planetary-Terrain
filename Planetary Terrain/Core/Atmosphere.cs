@@ -106,7 +106,7 @@ namespace Planetary_Terrain {
                 BaseQuads[i].SplitDynamic(camera.Position, device);
         }
 
-        void SetConstants(Vector3d scaledPos, double scale) {
+        public void SetConstants(Vector3d scaledPos, double scale) {
             constants.nSamples = 10;
             constants.fSamples = 10f;
 
@@ -117,7 +117,7 @@ namespace Planetary_Terrain {
 
             float kr = .0025f; // rayleigh scattering constant
             float km = .0010f; // mie scattering constant
-            float sun = 15f; // sun brightness
+            float sun = 20f; // sun brightness
 
             constants.InvWavelength = 1f / new Vector3(
                     (float)Math.Pow(Wavelengths.X, 4),
@@ -141,17 +141,21 @@ namespace Planetary_Terrain {
 
             constants.Exposure = 1.2f;
         }
+        public void SetConstantBuffer(Renderer renderer) {
+            if (constBuffer == null)
+                constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            else
+                renderer.Context.UpdateSubresource(ref constants, constBuffer);
+            renderer.Context.VertexShader.SetConstantBuffers(3, constBuffer);
+            renderer.Context.PixelShader.SetConstantBuffers(3, constBuffer);
+        }
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
             Shaders.AtmosphereShader.Set(renderer);
             
             SetConstants(pos, scale);
-
-            if (constBuffer == null) constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
-            renderer.Context.UpdateSubresource(ref constants, constBuffer);
-
+            
             #region prepare device
-            renderer.Context.VertexShader.SetConstantBuffers(3, constBuffer);
-            renderer.Context.PixelShader.SetConstantBuffers(3, constBuffer);
+            SetConstantBuffer(renderer);
 
             renderer.Context.VertexShader.SetConstantBuffers(2, Planet.constBuffer);
             renderer.Context.PixelShader.SetConstantBuffers(2,  Planet.constBuffer);

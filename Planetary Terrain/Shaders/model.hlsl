@@ -7,6 +7,7 @@ cbuffer ModelConstants : register (b1) {
 	float3 SpecularColor;
 	float Shininess;
 	float SpecularIntensity;
+	float EmissiveIntensity;
 }
 
 Texture2D DiffuseTexture  : register(t0);
@@ -70,7 +71,9 @@ float4 psmain(v2f i) : SV_TARGET
 			}
 		}
 	}
-	col.rgb += EmissiveTexture.Sample(AnisotropicSampler, i.uv).rgb;
+
+	if (EmissiveIntensity > 0)
+		col.rgb += EmissiveTexture.Sample(AnisotropicSampler, i.uv).rgb * EmissiveIntensity;
 
 	return col;
 }

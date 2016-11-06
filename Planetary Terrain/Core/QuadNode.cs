@@ -300,6 +300,7 @@ namespace Planetary_Terrain {
         /// </summary>
         public Vector3d MeshCenter;
         public Matrix3x3 Orientation;
+        public Matrix3x3 InverseOrientation;
 
         public Vector3d[] VertexSamples;
         public OrientedBoundingBox OOB;
@@ -397,8 +398,10 @@ namespace Planetary_Terrain {
 
             CubePosition = cubePos;
             Orientation = rot;
+            InverseOrientation = Matrix3x3.Invert(Orientation);
 
             constants = new Constants();
+            constants.Color = Vector3.One;
             constants.World = Matrix.Identity;
 
             MeshCenter = Vector3d.Normalize(CubePosition);
@@ -526,38 +529,76 @@ namespace Planetary_Terrain {
 
             // trees
             if (VertexSpacing < TreeLODLevel) {
-                // TODO: pull trees from parent
-
                 // Make our own trees
                 if (Body is Planet) {
                     Planet pl = Body as Planet;
                     if (pl.HasTrees) {
-                        // generate trees if the parent node has no trees (otherwise when we render, the parent renders it's trees)
-                        Random r = new Random(NodeID);
-                        int c = (int)(s * VertexSpacing * s  * VertexSpacing * .005); // .005 trees per square meter
-                        double x, z;
-                        Matrix rot;
-                        List<Matrix> trees = new List<Matrix>();
-                        List<Vector2> treeCache = new List<Vector2>();
-                        for (int i = 0; i < c; i++) {
-                            x = r.NextDouble() * s;
-                            z = r.NextDouble() * s;
-                            p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z) - offset), Orientation));
-                            rh = Body.GetHeight(p1d);
+                        if (Parent != null && Parent.Trees != null) {
+                            List<Matrix> trees = new List<Matrix>();
+                            List<Vector2> treeCache = new List<Vector2>();
+                            Vector2 tc;
+                            bool mktree;
+                            for (int i = 0; i < Parent.Trees.Length; i++) {
+                                tc = Parent.TreeCache[i];
+                                mktree = false;
+                                if (SiblingIndex == 0 && tc.X < .5f && tc.Y < .5f) {
+                                    tc *= 2f;
+                                    mktree = true;
+                                }else if (SiblingIndex == 1 && tc.X >= .5f && tc.Y < .5f) {
+                                    tc.X -= .5f;
+                                    tc *= 2f;
+                                    mktree = true;
+                                } else if (SiblingIndex == 2 && tc.X < .5f && tc.Y >= .5f) {
+                                    tc.Y -= .5f;
+                                    tc *= 2f;
+                                    mktree = true;
+                                } else if (SiblingIndex == 3 && tc.X >= .5f && tc.Y >= .5f) {
+                                    tc.X -= .5f;
+                                    tc.Y -= .5f;
+                                    tc *= 2f;
+                                    mktree = true;
+                                }
 
-                            if (pl.GetTemperature(p1d) < 35 && pl.GetHumidity(p1d) > 0.4 // temp above 0 celsius, humidity above .1
-                                && !pl.HasOcean || rh > oceanLevel // above ocean
-                                ) {
-                                rot = Body.OrientationFromDirection(p1d);
-                                trees.Add(
-                                    rot * Matrix.RotationAxis(rot.Up, (float)(r.NextDouble() * Math.PI * 2)) *
-                                    Matrix.Translation((p1d * rh - MeshCenter))
-                                );
-                                treeCache.Add(new Vector2((float)x, (float)z));
+                            if (mktree) {
+                                    p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(tc.X, 0, tc.Y) * s - offset), Orientation));
+                                    rh = Body.GetHeight(p1d);
+                                    Matrix m = Parent.Trees[i];
+                                    m.TranslationVector = p1d * rh - MeshCenter;
+                                    trees.Add(m);
+                                    treeCache.Add(tc);
+                                }
                             }
+                            Trees = trees.ToArray();
+                            TreeCache = treeCache.ToArray();
+                        } else {
+                            // generate trees if the parent node has no trees (otherwise when we render, the parent renders it's trees)
+                            Random r = new Random(NodeID);
+                            int c = (int)(s * VertexSpacing * s * VertexSpacing * .005); // .005 trees per square meter
+                            double x, z;
+                            Matrix rot;
+                            List<Matrix> trees = new List<Matrix>();
+                            List<Vector2> treeCache = new List<Vector2>();
+                            for (int i = 0; i < c; i++) {
+                                x = r.NextDouble();
+                                z = r.NextDouble();
+                                p1d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z)*s - offset), Orientation));
+                                rh = Body.GetHeight(p1d);
+
+                                if (pl.GetTemperature(p1d) < 35 && pl.GetHumidity(p1d) > 0.4 // temp above 0 celsius, humidity above .1
+                                    && !pl.HasOcean || rh > oceanLevel // above ocean
+                                    ) {
+                                    rot = Body.OrientationFromDirection(p1d);
+                                    float ry = (float)(r.NextDouble() * Math.PI * 2);
+                                    trees.Add(
+                                        rot * Matrix.RotationAxis(rot.Up, ry) *
+                                        Matrix.Translation((p1d * rh - MeshCenter))
+                                    );
+                                    treeCache.Add(new Vector2((float)x, (float)z));
+                                }
+                            }
+                            Trees = trees.ToArray();
+                            TreeCache = treeCache.ToArray();
                         }
-                        Trees = trees.ToArray();
-                        TreeCache = treeCache.ToArray();
                     }
                 }
             }
@@ -941,7 +982,6 @@ namespace Planetary_Terrain {
                     constants.WorldInverseTranspose = Matrix.Identity;
                     constants.NodeOrientation = Body.OrientationFromDirection(Vector3d.Normalize(MeshCenter));
                     constants.Scale = (float)(scale / Size);
-                    constants.Color = Vector3.One;
 
                     // constant buffer
                     if (constantBuffer == null)
@@ -1080,7 +1120,7 @@ namespace Planetary_Terrain {
             Debug.ImposterDrawn += Trees.Length;
             Debug.VerticiesDrawn += Trees.Length * 4;
         }
-
+        
         public void Dispose() {
             Disposed = true;
 

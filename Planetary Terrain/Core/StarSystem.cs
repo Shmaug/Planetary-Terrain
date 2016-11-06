@@ -80,14 +80,28 @@ namespace Planetary_Terrain {
                 physics.AddBody(b);
         }
 
+        public Atmosphere GetNearestAtmosphere(Vector3d pos) {
+            double near = double.MaxValue;
+            Atmosphere n = null;
+            foreach (CelestialBody b in bodies) {
+                if (b is Planet && (b as Planet).Atmosphere != null) {
+                    double d = (b.Position - pos).Length();
+                    if (d < near) {
+                        near = d;
+                        n = (b as Planet).Atmosphere;
+                    }
+                }
+            }
+            return n;
+        }
         public CelestialBody GetNearestBody(Vector3d pos) {
             double near = double.MaxValue;
             CelestialBody n = null;
-            foreach (CelestialBody p in bodies) {
-                double d = (p.Position - pos).Length();
+            foreach (CelestialBody b in bodies) {
+                double d = (b.Position - pos).Length();
                 if (d < near) {
                     near = d;
-                    n = p;
+                    n = b;
                 }
             }
             return n;
@@ -99,8 +113,7 @@ namespace Planetary_Terrain {
                     return p as Star;
             return null;
         }
-
-
+        
         public void UpdateLOD(Renderer renderer, D3D11.Device device, double deltaTime) {
             foreach (CelestialBody b in bodies)
                 b.UpdateLOD(deltaTime, device, renderer.Camera);

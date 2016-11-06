@@ -13,7 +13,7 @@ struct v2f {
 };
 
 float4x4 billboard(float3 pos, float3 up) {
-	float3 look = -normalize(pos);
+	float3 look = normalize(pos);
 	float3 right = normalize(cross(up, look));
 
 	return float4x4(

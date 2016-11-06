@@ -118,22 +118,22 @@
     <Compile Include="Core\StarSystem.cs" />
     <Compile Include="Engine\Model.cs" />
     <Compile Include="Engine\ModelMesh.cs" />
-    <Content Include="Data\Models\Cruiser\diffuse.jpg">
+    <Content Include="Data\Models\Cruiser\emissive.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Cruiser\diffuse.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Models\Cruiser\glass_diffuse.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Cruiser\glass_normal.jpg">
+    <Content Include="Data\Models\Cruiser\glass_normal.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Cruiser\normal.jpg">
+    <Content Include="Data\Models\Cruiser\normal.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Cruiser\specular.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Data\Models\Cruiser\steel.jpg">
+    <Content Include="Data\Models\Cruiser\specular.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Models\Gun\diffuse.png">
@@ -179,6 +179,7 @@
     <Content Include="Shaders\postfx.hlsl" />
     <Content Include="Shaders\aerofx.hlsl" />
     <Content Include="Shaders\model.hlsl" />
+    <Content Include="Shaders\_atmobuffer.hlsli" />
     <Content Include="Shaders\_quadnode.hlsli" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>

@@ -27,8 +27,9 @@ namespace Planetary_Terrain {
             });
 
             ShipModel = new Model(modelFolder + "cruiser/ship.fbx", device, Matrix.Scaling(5) * Matrix.RotationY(MathUtil.Pi));
-            ShipModel.Meshes[0].SetSpecularTexture(device, modelFolder + "ship/specular.png");
-            //ShipModel.Meshes[0].SetEmissiveTexture(device, modelFolder + "ship/emission.png");
+            ShipModel.Meshes[0].SetNormalTexture(device, modelFolder + "cruiser/normal.png");
+            ShipModel.Meshes[0].SetEmissiveTexture(device, modelFolder + "cruiser/emissive.png");
+            ShipModel.Meshes[0].SetSpecularTexture(device, modelFolder + "cruiser/specular.png");
             ShipModel.SpecularColor = Color.White;
             ShipModel.Shininess = 200;
             ShipModel.SpecularIntensity = 1;

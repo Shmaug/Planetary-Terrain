@@ -51,6 +51,8 @@ namespace Planetary_Terrain {
             public float Shininess;
             [FieldOffset(160)]
             public float ShininessIntensity;
+            [FieldOffset(164)]
+            public float EmissiveIntensity;
         }
         Constants constants;
         D3D11.Buffer cbuffer;
@@ -59,6 +61,11 @@ namespace Planetary_Terrain {
         {
             get { return constants.Shininess; }
             set { constants.Shininess = value; }
+        }
+        public float EmissiveIntensity
+        {
+            get { return constants.EmissiveIntensity; }
+            set { constants.EmissiveIntensity = value; }
         }
         public float SpecularIntensity
         {
@@ -94,6 +101,7 @@ namespace Planetary_Terrain {
             SpecularColor = Color.White;
             Shininess = 200;
             SpecularIntensity = 1;
+            EmissiveIntensity = 1;
         }
 
         public void AddNode(Scene scene, Node node, D3D11.Device device, Matrix transform, Matrix fTransform) {

@@ -59,7 +59,7 @@ namespace Planetary_Terrain {
                 new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
                 new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 12, 0)
             );
-
+            
             AeroFXShader = new Shader(
                 shaderDirectory + "AeroFX",
                 device, context, VertexNormal.InputElements);

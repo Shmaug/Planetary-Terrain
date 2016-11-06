@@ -94,8 +94,8 @@ namespace Planetary_Terrain {
 
         public Camera Camera;
 
-        D3D11.Buffer axisBuffer;
-        D3D11.Buffer axisConsts;
+        D3D11.Buffer lineBuffer;
+        D3D11.Buffer lineConstants;
         D3D11.Buffer aeroFXBuffer;
         D3D11.Buffer screenVBuffer;
 
@@ -270,18 +270,6 @@ namespace Planetary_Terrain {
             #endregion
 
             #region axis lines & line shader
-            axisBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.VertexBuffer, new VertexColor[] {
-                new VertexColor(new Vector3(0, 0,  1000), Color.Blue),
-                new VertexColor(new Vector3(0, 0, -1000), Color.Blue),
-
-                new VertexColor(new Vector3(-1000, 0, 0), Color.Red),
-                new VertexColor(new Vector3( 1000, 0, 0), Color.Red),
-
-                new VertexColor(new Vector3(0, -1000, 0), Color.Green),
-                new VertexColor(new Vector3(0,  1000, 0), Color.Green),
-            });
-            Matrix m = Matrix.Identity;
-            axisConsts = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref m);
             #endregion
             #region depthstencilstates
             depthStencilStateDefault = new D3D11.DepthStencilState(Device, new D3D11.DepthStencilStateDescription() {
@@ -441,19 +429,33 @@ namespace Planetary_Terrain {
             }
         }
 
-        public void DrawAxis() {
-            Matrix mat = Matrix.Identity;
-            Context.UpdateSubresource(ref mat, axisConsts);
+        public void DrawLine(Color color, params Vector3d[] points) {
+            if (lineConstants == null) {
+                Matrix m = Matrix.Identity;
+                lineConstants = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref m);
+            } else {
+                Matrix mat = Matrix.Identity;
+                Context.UpdateSubresource(ref mat, lineConstants);
+            }
+
+            VertexColor[] verts = new VertexColor[points.Length];
+            for (int i = 0; i < points.Length; i++)
+                verts[i] = new VertexColor(points[i] - Camera.Position, color);
+
+            if (lineBuffer == null)
+                lineBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.VertexBuffer, verts);
+            else
+                Context.UpdateSubresource(verts, lineBuffer);
 
             Shaders.BasicShader.Set(this);
 
-            Context.VertexShader.SetConstantBuffer(1, axisConsts);
-            Context.PixelShader.SetConstantBuffer(1, axisConsts);
+            Context.VertexShader.SetConstantBuffer(1, lineConstants);
+            Context.PixelShader.SetConstantBuffer(1, lineConstants);
 
             Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
-            Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(axisBuffer, Utilities.SizeOf<VertexColor>(), 0));
+            Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(lineBuffer, Utilities.SizeOf<VertexColor>(), 0));
 
-            Context.Draw(6, 0);
+            Context.Draw(2, 0);
         }
         
         public void Dispose() {
@@ -481,7 +483,7 @@ namespace Planetary_Terrain {
             
             aeroFXBuffer?.Dispose();
             constantBuffer.Dispose();
-            axisBuffer.Dispose();
+            lineBuffer.Dispose();
             depthStencilView.Dispose();
             renderTargetView.Dispose();
             swapChain.Dispose();
