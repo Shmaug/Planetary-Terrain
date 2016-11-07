@@ -195,7 +195,7 @@ namespace Planetary_Terrain {
 
                 Profiler.End();
             }
-            if (HasTrees) {
+            if (HasTrees && Properties.Settings.Default.DrawTrees) {
 
                 // tree pass
                 Profiler.Begin("Draw Trees");

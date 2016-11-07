@@ -25,7 +25,7 @@ namespace Planetary_Terrain.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("500")]
+        [global::System.Configuration.DefaultSettingValueAttribute("200")]
         public double TreeImposterDistance {
             get {
                 return ((double)(this["TreeImposterDistance"]));
@@ -37,7 +37,7 @@ namespace Planetary_Terrain.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1200")]
+        [global::System.Configuration.DefaultSettingValueAttribute("500")]
         public double TreeDistance {
             get {
                 return ((double)(this["TreeDistance"]));
@@ -56,6 +56,18 @@ namespace Planetary_Terrain.Properties {
             }
             set {
                 this["TreeLODLevel"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool DrawTrees {
+            get {
+                return ((bool)(this["DrawTrees"]));
+            }
+            set {
+                this["DrawTrees"] = value;
             }
         }
     }
