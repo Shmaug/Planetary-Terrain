@@ -38,8 +38,7 @@ namespace Planetary_Terrain {
             GunModel.Meshes[0].SetNormalTexture(device, modelFolder + "gun/normal.png");
             GunModel.Meshes[0].SetSpecularTexture(device, modelFolder + "gun/specular.png");
             GunModel.SpecularColor = Color.White;
-            GunModel.Shininess = 200;
-            GunModel.SpecularIntensity = 1;
+            GunModel.SpecularIntensity = .1f;
 
             CylinderModel = new Model(modelFolder + "cylinder.fbx", device);
             CylinderModel.SpecularColor = Color.White;

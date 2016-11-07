@@ -483,7 +483,8 @@ namespace Planetary_Terrain {
             
             aeroFXBuffer?.Dispose();
             constantBuffer.Dispose();
-            lineBuffer.Dispose();
+            lineBuffer?.Dispose();
+            lineConstants?.Dispose();
             depthStencilView.Dispose();
             renderTargetView.Dispose();
             swapChain.Dispose();

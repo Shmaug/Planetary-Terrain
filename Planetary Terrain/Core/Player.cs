@@ -70,23 +70,23 @@ namespace Planetary_Terrain {
                     planetUp = Rotation.Up;
                     Rotation *= Matrix.RotationAxis(Rotation.Up, CameraEuler.Y);
                 }
-
-                // walk around
+                // walk around (now that collisions have been resolved)
                 move.Y = 0;
                 double l = move.Length();
-                if (l > 0) {
+                if (l > 0)
                     move /= l;
-                    Vector3d n = b.GetNormal(d);
+                    
+                for (int i = 0; i < Contacts.Length; i++) {
+                    if (Vector3d.Dot(Contacts[i].ContactPosition - Position, Rotation.Down) > .5) { // object is below us
+                        move = Vector3d.Transform(move, (Matrix3x3)Camera.Rotation);
 
-                    move = Vector3d.Transform(move, (Matrix3x3)Camera.Rotation);
-
-                    Vector3d delta = move - Velocity;
-                    delta *= .2;
-                    delta -= planetUp * Vector3d.Dot(delta, n);
-                    if (delta.LengthSquared() > .1)
-                        AddForce(delta * 3.0 * Mass, Vector3.Zero);
+                        Vector3d delta = move - Velocity;
+                        delta -= planetUp * Vector3d.Dot(delta, Contacts[i].ContactNormal);
+                        if (delta.LengthSquared() > .1)
+                            AddForce(delta * 3.0 * Mass, Vector3.Zero);
+                        break;
+                    }
                 }
-
             }
 
             // Mouse look
@@ -98,7 +98,7 @@ namespace Planetary_Terrain {
             }
             CameraEuler.X = MathUtil.Clamp(CameraEuler.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
         }
-        
+
         public override void PostUpdate() {
             if (Vehicle != null) {
                 Position = Vehicle.Position;

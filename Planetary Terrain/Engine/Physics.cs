@@ -32,6 +32,19 @@ namespace Planetary_Terrain {
             velocity = Vector3.Zero;
         }
     }
+    struct Contact {
+        public PhysicsBody BodyA;
+        public PhysicsBody BodyB;
+        public Vector3d ContactPosition;
+        /// <summary>
+        /// Relative to BodyA
+        /// </summary>
+        public Vector3d ContactNormal;
+        /// <summary>
+        /// Relative to BodyA
+        /// </summary>
+        public Vector3d ContactVelocity;
+    }
     class PhysicsHull {
         enum Shape {
             Sphere, Mesh
@@ -43,24 +56,27 @@ namespace Planetary_Terrain {
         public Matrix Rotation = Matrix.Identity;
         public Vector3d AngularVelocity;
         public double Mass;
-        public double Drag;
         public Orbit Orbit;
         public PhysicsHull Hull;
         public OrientedBoundingBox OOB;
 
+        public double Drag;
+        public double StaticFriction;
+        public double DynamicFriction;
+
         public bool DisablePhysics = false;
 
         public List<Force> Forces = new List<Force>();
+        public Contact[] Contacts = new Contact[0];
         
         public PhysicsBody(double mass) {
             Mass = mass;
-            Drag = 1;
+            Drag = StaticFriction = DynamicFriction = 1;
             OOB = new OrientedBoundingBox(-Vector3.One, Vector3.One);
         }
-
         public PhysicsBody(double mass, PhysicsHull hull) {
             Mass = mass;
-            Drag = 1;
+            Drag = StaticFriction = DynamicFriction = 1;
             Hull = hull;
             OOB = new OrientedBoundingBox(-Vector3.One, Vector3.One);
         }
@@ -68,18 +84,16 @@ namespace Planetary_Terrain {
         public void AddForce(Vector3d force, Vector3d pos) {
             Forces.Add(new Force(force, pos));
         }
-
+        
         public virtual void Update(double deltaTime) {
             if (DisablePhysics) return;
 
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
 
             // drag
-            Vector3d dir = Vector3.Zero;
-            double h = 0;
             if (b != null && b != this) {
-                dir = (Position - b.Position);
-                h = dir.Length();
+                Vector3d dir = (Position - b.Position);
+                double h = dir.Length();
                 dir /= h;
                 if (b is Planet) {
                     Atmosphere a = (b as Planet).Atmosphere;
@@ -98,39 +112,64 @@ namespace Planetary_Terrain {
                     }
                 }
             }
-
+        }
+        
+        public void Integrate(double deltaTime) {
+            if (DisablePhysics) return;
+            
+            Vector3d netForce = Vector3.Zero;
             foreach (Force f in Forces) {
-                Velocity += (f.ForceVector / Mass) * deltaTime;
+                netForce += f.ForceVector;
 
-                // TODO: calculate and apply torque
+                // TODO: torque
             }
-
-            Position += Velocity * deltaTime;
-            Rotation *= Matrix.RotationAxis(Rotation.Right, (float)AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, (float)AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, (float)AngularVelocity.Z);
-
             Forces.Clear();
 
+            Velocity += (netForce / Mass) * deltaTime;
+            Position += Velocity * deltaTime;
+            Rotation *= Matrix.RotationAxis(Rotation.Right, (float)AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, (float)AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, (float)AngularVelocity.Z);
             OOB.Transformation = Rotation;
 
+            List<Contact> contacts = new List<Contact>();
+
+            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
             if (b != null && b != this) {
                 // check collision
-                System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
-                double t = b.GetHeight(dir) + 1;
-                if (h < t) {
+                Vector3d dir = Position - b.Position;
+                double h = dir.Length();
+                dir /= h;
+                double t = b.GetHeight(dir);
+                if (h < t+1) {
                     Vector3d n = -b.GetNormal(dir);
                     double vdn = Vector3d.Dot(Velocity, n);
                     if (vdn > 0) {
-                        Position = b.Position + dir * t;
-                        Velocity -= n * vdn;
+                        Contact contact = new Contact();
+                        contact.BodyA = b;
+                        contact.BodyB = this;
+                        contact.ContactPosition = b.Position + dir * t;
+                        contact.ContactNormal = -n;
+                        contact.ContactVelocity = -n * vdn;
+
+                        Position = b.Position + dir * (t + 1);
+                        Velocity += contact.ContactVelocity;
+
+                        contacts.Add(contact);
+
+                        // Friction
+                        // TODO: This broken
+                        Vector3d tangent = Vector3d.Normalize(Velocity);
+                        double forceNormal = Mass * Physics.G * (Mass * b.Mass) / (Position - b.Position).LengthSquared();
+                        double mu = (DynamicFriction + b.DynamicFriction) * .5;
+
+                        AddForce(-tangent * forceNormal * mu, Vector3.Zero);
                     }
                 }
-                sw.Stop();
-                Debug.Track(sw.ElapsedTicks, "physics solve");
             }
+
+            Contacts = contacts.ToArray();
         }
 
         public virtual void PostUpdate() { }
-
         public virtual void Draw(Renderer renderer) { }
     }
     class Physics {
@@ -219,11 +258,14 @@ namespace Planetary_Terrain {
             foreach (PhysicsBody b in bodies)
                 if (!b.DisablePhysics)
                     foreach (PhysicsBody cb in StarSystem.ActiveSystem.bodies)
-                        if (b != cb)
+                        if (b != cb && !cb.DisablePhysics)
                             b.AddForce(Gravity(deltaTime, b, cb), Vector3.Zero);
 
             foreach (PhysicsBody b in bodies)
                 b.Update(deltaTime);
+
+            foreach (PhysicsBody b in bodies)
+                b.Integrate(deltaTime);
 
             foreach (PhysicsBody b in bodies)
                 b.PostUpdate();

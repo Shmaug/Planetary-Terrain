@@ -53,6 +53,8 @@ namespace Planetary_Terrain {
             public float ShininessIntensity;
             [FieldOffset(164)]
             public float EmissiveIntensity;
+            [FieldOffset(168)]
+            public bool UseNormalTexture;
         }
         Constants constants;
         D3D11.Buffer cbuffer;
@@ -83,7 +85,6 @@ namespace Planetary_Terrain {
 
         public Model(string file, D3D11.Device device) : this(file, device, Matrix.Identity) {
         }
-
         public Model(string file, D3D11.Device device, Matrix transform) {
             AssimpContext ctx = new AssimpContext();
             if (!ctx.IsImportFormatSupported(Path.GetExtension(file)))
@@ -127,11 +128,53 @@ namespace Planetary_Terrain {
                         if (mat.GetMaterialTextureCount(TextureType.Normals) > 0)
                             mm.SetNormalTexture(device, modelPath + "/" + mat.TextureNormal.FilePath);
                     }
-                    
+
+                    List<short> indicies = new List<short>();
+                    foreach (Face f in mesh.Faces)
+                        if (f.HasIndices)
+                            for (int i = 2; i < f.Indices.Count; i++) {
+                                indicies.Add((short)f.Indices[0]);
+                                indicies.Add((short)f.Indices[i - 1]);
+                                indicies.Add((short)f.Indices[i]);
+                            }
+
                     Vector3D[] verts = mesh.Vertices.ToArray();
                     Vector3D[] texCoords = mesh.TextureCoordinateChannels[0].ToArray();
                     Vector3D[] normals = mesh.Normals.ToArray();
-                    
+                    Vector3D[] tangents;
+                    if (mesh.HasTangentBasis)
+                        tangents = mesh.Tangents.ToArray();
+                    else {
+                        tangents = new Vector3D[verts.Length];
+                        if (mesh.PrimitiveType == PrimitiveType.Triangle || mesh.PrimitiveType == PrimitiveType.Polygon) {
+                            for (int i = 0; i < indicies.Count; i += 3) {
+                                int i0 = indicies[i];
+                                int i1 = indicies[i + 1];
+                                int i2 = indicies[i + 2];
+                                Vector3D edge1 = verts[i1] - verts[i0];
+                                Vector3D edge2 = verts[i2] - verts[i0];
+
+                                float du1 = texCoords[i1].X - texCoords[i0].X;
+                                float dv1 = texCoords[i1].Y - texCoords[i0].Y;
+                                float du2 = texCoords[i2].X - texCoords[i0].X;
+                                float dv2 = texCoords[i2].Y - texCoords[i0].Y;
+
+                                float f = 1f / (du1 * dv2 - du2 * dv1);
+
+                                Vector3D tangent = new Vector3D(
+                                    f * (dv2 * edge1.X - dv1 * edge2.X),
+                                    f * (dv2 * edge1.Y - dv1 * edge2.Y),
+                                    f * (dv2 * edge1.Z - dv1 * edge2.Z)
+                                );
+                                tangents[i0] += tangent;
+                                tangents[i1] += tangent;
+                                tangents[i2] += tangent;
+                            }
+                            for (int i = 0; i < tangents.Length; i ++)
+                                tangents[i].Normalize();
+                        }
+                    }
+
                     switch (mesh.PrimitiveType) {
                         case PrimitiveType.Point:
                             mm.PrimitiveTopology = SharpDX.Direct3D.PrimitiveTopology.PointList;
@@ -155,6 +198,7 @@ namespace Planetary_Terrain {
                         verticies[i] = new ModelVertex(
                             (Vector3)Vector3.Transform(new Vector3(verts[i].X, verts[i].Y, verts[i].Z), t),
                             Vector3.Normalize((Vector3)Vector3.Transform(new Vector3(normals[i].X, normals[i].Y, normals[i].Z), invTranspose)),
+                            Vector3.Normalize((Vector3)Vector3.Transform(new Vector3(tangents[i].X, tangents[i].Y, tangents[i].Z), invTranspose)),
                             new Vector2(texCoords[i].X, 1f - texCoords[i].Y),
                             (colors ? mesh.VertexColorChannels[0][i].ToColor() : Color.White) * col);
                     }
@@ -164,14 +208,6 @@ namespace Planetary_Terrain {
                     mm.VertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, verticies);
                     mm.VertexCount = mesh.VertexCount;
 
-                    List<short> indicies = new List<short>();
-                    foreach (Face f in mesh.Faces)
-                        if (f.HasIndices)
-                            for (int i = 2; i < f.Indices.Count; i++) {
-                                indicies.Add((short)f.Indices[0]);
-                                indicies.Add((short)f.Indices[i - 1]);
-                                indicies.Add((short)f.Indices[i]);
-                            }
                     mm.IndexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies.ToArray());
                     mm.IndexCount = indicies.Count;
                 }
@@ -200,6 +236,7 @@ namespace Planetary_Terrain {
             foreach (ModelMesh m in Meshes) {
                 constants.Shininess = m.Shininess;
                 constants.ShininessIntensity = m.ShininessIntensity;
+                constants.UseNormalTexture = m.NormalTextureView != null;
                 renderer.Context.UpdateSubresource(ref constants, cbuffer);
                 m.Draw(renderer);
             }

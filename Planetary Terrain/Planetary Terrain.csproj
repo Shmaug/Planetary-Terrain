@@ -172,6 +172,9 @@
     <Content Include="ShaderCompilation\d3dcompiler_47.dll" />
     <Content Include="ShaderCompilation\fxc.exe" />
     <Content Include="Shaders\imposter.hlsl" />
+    <None Include="Data\Models\Cruiser\mask.fbx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Models\Cruiser\ship.fbx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

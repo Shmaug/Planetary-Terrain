@@ -72,21 +72,25 @@ namespace Planetary_Terrain {
         [FieldOffset(12)]
         public Vector3 Normal;
         [FieldOffset(24)]
+        public Vector3 Tangent;
+        [FieldOffset(36)]
         public Vector2 TexCoord;
-        [FieldOffset(32)]
+        [FieldOffset(44)]
         public Color4 Color;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
         {
             new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
             new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
-            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0),
-            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 32, 0),
+            new D3D11.InputElement("TANGENT", 0, Format.R32G32B32_Float, 24, 0),
+            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 36, 0),
+            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 44, 0),
         };
 
-        public ModelVertex(Vector3 pos, Vector3 norm, Vector2 uv, Color color) {
+        public ModelVertex(Vector3 pos, Vector3 norm, Vector3 tangent, Vector2 uv, Color color) {
             Position = pos;
             Normal = norm;
+            Tangent = tangent;
             TexCoord = uv;
             Color = color;
         }

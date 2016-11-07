@@ -31,11 +31,10 @@ namespace Planetary_Terrain {
             Shaders.ModelShader.Set(renderer);
             Resources.ShipModel.EmissiveIntensity = (float)Throttle;
             Resources.ShipModel.Draw(renderer, light, world);
-
-            renderer.DrawLine(Color.Red, Position, Position + Vector3d.Normalize(Velocity) * 50);
         }
         
         public void Dispose() {
+
         }
     }
 }
