@@ -60,7 +60,7 @@ namespace Planetary_Terrain {
                 double dir = Vector3d.Dot(renderer.Camera.Position - Position, renderer.Camera.Rotation.Forward);
                 
                 if (dir > 0) {
-                    float r = (float)((1f / Math.Tan(renderer.Camera.VerticalFieldOfView * .5) * Radius / Math.Sqrt(h * h - Radius * Radius)) * renderer.ResolutionY * .5f); // TODO: fix radius of circle around planets on UI
+                    float r = (float)((1f / Math.Tan(renderer.Camera.VerticalFieldOfView * .5) * Radius / Math.Sqrt(h * h - Radius * Radius)) * renderer.ResolutionY * .5f); // TODO: fix planet UI radius
                     float radius = Math.Max(r, 30);
                     int d = Math.Sign(hudDir.X);
 

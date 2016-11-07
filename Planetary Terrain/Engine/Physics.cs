@@ -156,7 +156,7 @@ namespace Planetary_Terrain {
                         contacts.Add(contact);
 
                         // Friction
-                        // TODO: This broken
+                        // TODO: friction broken
                         Vector3d tangent = Vector3d.Normalize(Velocity);
                         double forceNormal = Mass * Physics.G * (Mass * b.Mass) / (Position - b.Position).LengthSquared();
                         double mu = (DynamicFriction + b.DynamicFriction) * .5;

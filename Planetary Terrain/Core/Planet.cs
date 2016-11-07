@@ -47,9 +47,6 @@ namespace Planetary_Terrain {
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
-
-        D3D11.Buffer TreeBuffer;
-        int TreeBufferSize = 0;
         
         public Planet(string name, Vector3d pos, double radius, double mass, double terrainHeight, Atmosphere atmosphere = null) : base(pos, radius, mass) {
             Name = name;
@@ -67,9 +64,7 @@ namespace Planetary_Terrain {
         public static double min=1, max=-1;
         double height(Vector3d direction) {
             double total = 0;
-
-            // TODO: Height function
-
+            
             double rough = Noise.Ridged(direction * 50 + new Vector3d(-5000), 5, .2, .7) * .5 + .5;
 
             double mntn = Noise.Fractal(direction * 1000 + new Vector3d(2000), 11, .03f, .5f);
@@ -98,7 +93,7 @@ namespace Planetary_Terrain {
             return SurfaceTemperature + TemperatureRange * temperature(direction);
         }
         public double GetHumidity(Vector3d direction) {
-            return Noise.SmoothSimplex(direction * 200, 4, .1f, .8f) * .5 + .5; // TODO: better temp/humid function
+            return Noise.SmoothSimplex(direction * 200, 4, .1f, .8f) * .5 + .5;
         }
 
         public override void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double h) {
@@ -240,9 +235,7 @@ namespace Planetary_Terrain {
             colorMapView?.Dispose();
 
             constBuffer?.Dispose();
-
-            TreeBuffer?.Dispose();
-
+            
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].Dispose();
             
