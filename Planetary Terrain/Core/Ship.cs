@@ -12,6 +12,7 @@ namespace Planetary_Terrain {
 
         public Ship(D3D11.Device device) : base(100) {
             Drag = 1;
+            Hull.SphereRaduis = 7;
         }
 
         public override void Update(double deltaTime) {

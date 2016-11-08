@@ -86,6 +86,7 @@ namespace Planetary_Terrain {
 
                 Profiler.Begin("Draw");
                 Draw();
+                Debug.Draw3D(renderer);
                 Profiler.End();
                 
                 Profiler.End();
@@ -93,7 +94,7 @@ namespace Planetary_Terrain {
 
                 if (renderer.DrawGUI) {
                     renderer.D2DContext.BeginDraw();
-                    Debug.Draw(renderer, p);
+                    Debug.Draw2D(renderer, p);
                     renderer.D2DContext.EndDraw();
                 }
                 renderer.Present();

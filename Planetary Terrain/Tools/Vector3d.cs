@@ -80,6 +80,12 @@ namespace Planetary_Terrain {
         public static Vector3d operator -(Vector3d a, Vector3d b) {
             return new Vector3d(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
         }
+        public static Vector3d operator *(Vector3d a, Vector3d b) {
+            return new Vector3d(a.X * b.X, a.Y * b.Y, a.Z * b.Z);
+        }
+        public static Vector3d operator /(Vector3d a, Vector3d b) {
+            return new Vector3d(a.X / b.X, a.Y / b.Y, a.Z / b.Z);
+        }
         public static Vector3d operator *(Vector3d a, double b) {
             return new Vector3d(a.X * b, a.Y * b, a.Z * b);
         }

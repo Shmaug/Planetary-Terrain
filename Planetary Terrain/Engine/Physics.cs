@@ -46,8 +46,25 @@ namespace Planetary_Terrain {
         public Vector3d ContactVelocity;
     }
     class PhysicsHull {
-        enum Shape {
-            Sphere, Mesh
+        public enum HullShape {
+            TriangleMesh, Sphere
+        }
+        public HullShape Shape;
+
+        public double SphereRaduis;
+
+        public Vector3d[] Verticies;
+        public int[] Indicies;
+
+        public PhysicsHull(double radius) {
+            Shape = HullShape.Sphere;
+            SphereRaduis = radius;
+        }
+
+        public PhysicsHull(Vector3d[] verticies, int[] indicies) {
+            Shape = HullShape.TriangleMesh;
+            Verticies = verticies;
+            Indicies = indicies;
         }
     }
     abstract class PhysicsBody {
@@ -55,14 +72,14 @@ namespace Planetary_Terrain {
         public Vector3d Velocity;
         public Matrix Rotation = Matrix.Identity;
         public Vector3d AngularVelocity;
-        public double Mass;
         public Orbit Orbit;
         public PhysicsHull Hull;
         public OrientedBoundingBox OOB;
 
-        public double Drag;
-        public double StaticFriction;
-        public double DynamicFriction;
+        public double Mass = 1;
+        public double Drag = 1;
+        public double StaticFriction = 1;
+        public double DynamicFriction = 2;
 
         public bool DisablePhysics = false;
 
@@ -71,18 +88,19 @@ namespace Planetary_Terrain {
         
         public PhysicsBody(double mass) {
             Mass = mass;
-            Drag = StaticFriction = DynamicFriction = 1;
+            Hull = new PhysicsHull(1);
             OOB = new OrientedBoundingBox(-Vector3.One, Vector3.One);
         }
         public PhysicsBody(double mass, PhysicsHull hull) {
             Mass = mass;
-            Drag = StaticFriction = DynamicFriction = 1;
             Hull = hull;
             OOB = new OrientedBoundingBox(-Vector3.One, Vector3.One);
         }
 
-        public void AddForce(Vector3d force, Vector3d pos) {
-            Forces.Add(new Force(force, pos));
+        public Force AddForce(Vector3d force, Vector3d pos) {
+            Force f = new Force(force, pos);
+            Forces.Add(f);
+            return f;
         }
         
         public virtual void Update(double deltaTime) {
@@ -116,16 +134,15 @@ namespace Planetary_Terrain {
         
         public void Integrate(double deltaTime) {
             if (DisablePhysics) return;
-            
-            Vector3d netForce = Vector3.Zero;
-            foreach (Force f in Forces) {
-                netForce += f.ForceVector;
 
+            Force netForce = new Force();
+            foreach (Force f in Forces) {
+                netForce.ForceVector += f.ForceVector;
                 // TODO: torque
             }
             Forces.Clear();
 
-            Velocity += (netForce / Mass) * deltaTime;
+            Velocity += (netForce.ForceVector / Mass) * deltaTime;
             Position += Velocity * deltaTime;
             Rotation *= Matrix.RotationAxis(Rotation.Right, (float)AngularVelocity.X) * Matrix.RotationAxis(Rotation.Up, (float)AngularVelocity.Y) * Matrix.RotationAxis(Rotation.Backward, (float)AngularVelocity.Z);
             OOB.Transformation = Rotation;
@@ -135,33 +152,38 @@ namespace Planetary_Terrain {
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
             if (b != null && b != this) {
                 // check collision
-                Vector3d dir = Position - b.Position;
-                double h = dir.Length();
-                dir /= h;
-                double t = b.GetHeight(dir);
-                if (h < t+1) {
-                    Vector3d n = -b.GetNormal(dir);
-                    double vdn = Vector3d.Dot(Velocity, n);
-                    if (vdn > 0) {
-                        Contact contact = new Contact();
-                        contact.BodyA = b;
-                        contact.BodyB = this;
-                        contact.ContactPosition = b.Position + dir * t;
-                        contact.ContactNormal = -n;
-                        contact.ContactVelocity = -n * vdn;
+                if (Hull.Shape == PhysicsHull.HullShape.Sphere) {
+                    Vector3d dir = Position - b.Position;
+                    double h = dir.Length();
+                    dir /= h;
+                    double t = b.GetHeight(dir);
+                    if (h < t + Hull.SphereRaduis) {
+                        Vector3d n = -b.GetNormal(dir);
+                        double vdn = Vector3d.Dot(Velocity, n);
+                        if (vdn > 0) {
+                            Contact contact = new Contact();
+                            contact.BodyA = b;
+                            contact.BodyB = this;
+                            contact.ContactPosition = b.Position + dir * t;
+                            contact.ContactNormal = -n;
+                            contact.ContactVelocity = -n * vdn; // TODO: impulse collision
 
-                        Position = b.Position + dir * (t + 1);
-                        Velocity += contact.ContactVelocity;
+                            Position = b.Position + dir * (t + Hull.SphereRaduis);
+                            Velocity += contact.ContactVelocity;
 
-                        contacts.Add(contact);
+                            contacts.Add(contact);
 
-                        // Friction
-                        // TODO: friction broken
-                        Vector3d tangent = Vector3d.Normalize(Velocity);
-                        double forceNormal = Mass * Physics.G * (Mass * b.Mass) / (Position - b.Position).LengthSquared();
-                        double mu = (DynamicFriction + b.DynamicFriction) * .5;
+                            // Friction
+                            double mu = (DynamicFriction + b.DynamicFriction) * .5;
+                            double l = Velocity.LengthSquared();
+                            if (l < .25)
+                                mu = MathUtil.Lerp((StaticFriction + b.StaticFriction) * .5, mu, l * 4); // static coefficient
 
-                        AddForce(-tangent * forceNormal * mu, Vector3.Zero);
+                            Force f = AddForce(-Vector3d.Normalize(Velocity) * Mass * mu, contact.ContactPosition - Position);
+                            
+                            Debug.DrawLine(Color.Red, contact.ContactPosition, contact.ContactPosition + f.ForceVector);
+                            Debug.DrawLine(Color.Blue, contact.ContactPosition, contact.ContactPosition + Velocity);
+                        }
                     }
                 }
             }

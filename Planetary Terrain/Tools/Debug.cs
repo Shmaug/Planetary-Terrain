@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using SharpDX.Mathematics.Interop;
 using D2D1 = SharpDX.Direct2D1;
+using D3D11 = SharpDX.Direct3D11;
 using DWrite = SharpDX.DirectWrite;
 using System.Diagnostics;
 using SharpDX;
 using System;
+using SharpDX.Direct3D;
 
 namespace Planetary_Terrain {
     class Profiler {
@@ -138,6 +140,15 @@ namespace Planetary_Terrain {
         }
     }
     static class Debug {
+        struct Line {
+            public Color color;
+            public Vector3d[] points;
+        }
+        static D3D11.Buffer linevbuffer;
+        static D3D11.Buffer linecbuffer;
+
+        static List<Line> lines = new List<Line>();
+
         public static int VerticiesDrawn;
         public static int TreesDrawn;
         public static int ImposterDrawn;
@@ -165,12 +176,49 @@ namespace Planetary_Terrain {
             TreesDrawn = 0;
             ImposterDrawn = 0;
             immediateTrack.Clear();
+            lines.Clear();
         }
         public static void EndFrame() {
 
         }
 
-        public static void Draw(Renderer renderer, Profiler frameProfiler) {
+
+        public static void DrawLine(Color color, params Vector3d[] points) {
+            lines.Add(new Line() { color = color, points = points });
+        }
+
+        public static void Draw3D(Renderer renderer) {
+            if (linecbuffer == null) {
+                Matrix m = Matrix.Identity;
+                linecbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref m);
+            } else {
+                Matrix mat = Matrix.Identity;
+                renderer.Context.UpdateSubresource(ref mat, linecbuffer);
+            }
+
+            Shaders.BasicShader.Set(renderer);
+            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineStrip;
+
+            foreach (Line line in lines) {
+                VertexColor[] verts = new VertexColor[line.points.Length];
+                for (int i = 0; i < line.points.Length; i++)
+                    verts[i] = new VertexColor(line.points[i] - renderer.Camera.Position, line.color);
+
+                if (linevbuffer == null)
+                    linevbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verts);
+                else
+                    renderer.Context.UpdateSubresource(verts, linevbuffer);
+                
+                renderer.Context.VertexShader.SetConstantBuffer(1, linecbuffer);
+                renderer.Context.PixelShader.SetConstantBuffer(1, linecbuffer);
+
+                renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(linevbuffer, Utilities.SizeOf<VertexColor>(), 0));
+
+                renderer.Context.Draw(line.points.Length, 0);
+            }
+        }
+
+        public static void Draw2D(Renderer renderer, Profiler frameProfiler) {
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
             
@@ -227,6 +275,11 @@ namespace Planetary_Terrain {
             frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
             
             frameProfiler.DrawCircle(renderer, new Vector2(renderer.ResolutionX - 350, renderer.ResolutionY - 250), 200, 0, Math.PI * 2);
+        }
+
+        public static void Dispose() {
+            linevbuffer?.Dispose();
+            linecbuffer?.Dispose();
         }
     }
 }

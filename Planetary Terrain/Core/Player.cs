@@ -118,12 +118,14 @@ namespace Planetary_Terrain {
                 Camera.Position = Position + (Vector3d)Camera.Rotation.Forward * 50;
 
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Camera.Position);
-            Vector3d dir = Camera.Position - b.Position;
-            double h = dir.Length();
-            dir /= h;
-            double t = b.GetHeight(dir) + .2;
-            if (h < t)
-                Camera.Position = b.Position + dir * t;
+            if (b != null) {
+                Vector3d dir = Camera.Position - b.Position;
+                double h = dir.Length();
+                dir /= h;
+                double t = b.GetHeight(dir) + .2;
+                if (h < t)
+                    Camera.Position = b.Position + dir * t;
+            }
         }
 
         public override void Draw(Renderer renderer) {

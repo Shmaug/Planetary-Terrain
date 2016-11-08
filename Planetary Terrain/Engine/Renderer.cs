@@ -94,8 +94,6 @@ namespace Planetary_Terrain {
 
         public Camera Camera;
 
-        D3D11.Buffer lineBuffer;
-        D3D11.Buffer lineConstants;
         D3D11.Buffer aeroFXBuffer;
         D3D11.Buffer screenVBuffer;
 
@@ -268,9 +266,7 @@ namespace Planetary_Terrain {
             constants = new RendererConstants();
             constantBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref constants);
             #endregion
-
-            #region axis lines & line shader
-            #endregion
+            
             #region depthstencilstates
             depthStencilStateDefault = new D3D11.DepthStencilState(Device, new D3D11.DepthStencilStateDescription() {
                 IsDepthEnabled = true,
@@ -428,35 +424,6 @@ namespace Planetary_Terrain {
                 Context.Rasterizer.State = DrawWireframe ? rasterizerStateWireframeCullBack : rasterizerStateSolidCullBack;
             }
         }
-
-        public void DrawLine(Color color, params Vector3d[] points) {
-            if (lineConstants == null) {
-                Matrix m = Matrix.Identity;
-                lineConstants = D3D11.Buffer.Create(Device, D3D11.BindFlags.ConstantBuffer, ref m);
-            } else {
-                Matrix mat = Matrix.Identity;
-                Context.UpdateSubresource(ref mat, lineConstants);
-            }
-
-            VertexColor[] verts = new VertexColor[points.Length];
-            for (int i = 0; i < points.Length; i++)
-                verts[i] = new VertexColor(points[i] - Camera.Position, color);
-
-            if (lineBuffer == null)
-                lineBuffer = D3D11.Buffer.Create(Device, D3D11.BindFlags.VertexBuffer, verts);
-            else
-                Context.UpdateSubresource(verts, lineBuffer);
-
-            Shaders.BasicShader.Set(this);
-
-            Context.VertexShader.SetConstantBuffer(1, lineConstants);
-            Context.PixelShader.SetConstantBuffer(1, lineConstants);
-
-            Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
-            Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(lineBuffer, Utilities.SizeOf<VertexColor>(), 0));
-
-            Context.Draw(2, 0);
-        }
         
         public void Dispose() {
             foreach (KeyValuePair<string, D2D1.Brush> p in Brushes)
@@ -483,8 +450,6 @@ namespace Planetary_Terrain {
             
             aeroFXBuffer?.Dispose();
             constantBuffer.Dispose();
-            lineBuffer?.Dispose();
-            lineConstants?.Dispose();
             depthStencilView.Dispose();
             renderTargetView.Dispose();
             swapChain.Dispose();
