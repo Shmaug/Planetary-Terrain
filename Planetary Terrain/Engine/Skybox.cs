@@ -32,6 +32,8 @@ namespace Planetary_Terrain {
         }
         
         public void Draw(Renderer renderer) {
+            if (renderer.DrawWireframe) return;
+
             Shaders.TexturedShader.Set(renderer);
             renderer.Context.Rasterizer.State = renderer.rasterizerStateSolidNoCull;
             renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);

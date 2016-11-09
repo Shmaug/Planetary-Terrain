@@ -304,21 +304,19 @@ namespace Planetary_Terrain {
 
         public Vector3d[] VertexSamples;
         public OrientedBoundingBox OOB;
-
-        PlanetVertex[] verticies;
-        WaterVertex[] waterVerticies;
-        short[] indicies;
         
         public Matrix[] Trees;
         public Vector2[] TreeCache;
-
-        bool hasWaterVerticies;
-
-        public int IndexCount { get; private set; }
-        public int VertexCount { get; private set; }
-
+        
         public int LODlevel;
-
+        
+        PlanetVertex[] verticies;
+        short[] indicies;
+        int indexCount;
+        int vertexCount;
+        D3D11.Buffer vertexBuffer;
+        D3D11.Buffer indexBuffer;
+        D3D11.Buffer constantBuffer;
         [StructLayout(LayoutKind.Explicit, Size = 288)]
         struct Constants {
             [FieldOffset(0)]
@@ -336,6 +334,14 @@ namespace Planetary_Terrain {
         }
         private Constants constants;
 
+        WaterVertex[] waterVerticies;
+        short[] waterIndicies;
+        int waterVertexCount;
+        int waterIndexCount;
+        bool hasWaterVerticies;
+        D3D11.Buffer waterVertexBuffer;
+        D3D11.Buffer waterIndexBuffer;
+        D3D11.Buffer waterConstantBuffer;
         [StructLayout(LayoutKind.Explicit, Size = 32)]
         struct WaterConstants {
             [FieldOffset(0)]
@@ -346,12 +352,6 @@ namespace Planetary_Terrain {
             public float Time;
         }
         private WaterConstants waterConstants;
-
-        D3D11.Buffer vertexBuffer;
-        D3D11.Buffer waterVertexBuffer;
-        D3D11.Buffer indexBuffer;
-        D3D11.Buffer constantBuffer;
-        D3D11.Buffer waterConstantBuffer;
 
         D3D11.Buffer TreeBuffer;
         D3D11.Buffer TreeImposterBuffer;
@@ -455,9 +455,11 @@ namespace Planetary_Terrain {
             Vector2 t;
             Vector3d p1d, p2d, p3d, d;
             Vector3d offset = new Vector3d(GridSize * .5, 0, GridSize * .5);
-            double h;
-            double rh;
-            bool wv = false;
+            double h, rh;
+            double lat, lon;
+            bool hasWaterGeometry = false;
+
+            double texScale = Body.Radius * .5 / (Math.PI * 2);
 
             List<Vector3> pts = new List<Vector3>();
             #region vertex generation
@@ -470,15 +472,17 @@ namespace Planetary_Terrain {
                     p2d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x, 0, z + 1) - offset), Orientation));
                     p3d = Vector3d.Normalize(CubePosition + Vector3d.Transform(scale * (new Vector3d(x + 1, 0, z) - offset), Orientation));
                     d = p1d;
+                    lat = Math.Asin(d.Y);
+                    lon = Math.Atan2(d.Z, d.X); // TODO: texture mapping
 
                     Body.GetSurfaceInfo(p1d, out t, out h);
                     rh = Body.GetHeight(p1d);
 
                     if (hasWaterVerticies) {
-                        waterVerticies[x * s + z] = new WaterVertex((p1d * oceanLevel - MeshCenter) * invScale, p1d, (float)Math.Abs(rh - oceanLevel));
+                        waterVerticies[x * s + z] = new WaterVertex((p1d * oceanLevel - MeshCenter) * invScale, p1d, (float)(oceanLevel - rh));
                         pts.Add(waterVerticies[x * s + z].Position);
                         if (rh < oceanLevel)
-                            wv = true;
+                            hasWaterGeometry = true;
                     }
 
                     p1d = p1d * rh - MeshCenter;
@@ -489,8 +493,8 @@ namespace Planetary_Terrain {
                         new PlanetVertex(
                             p1d * invScale,
                             Vector3.Cross(Vector3d.Normalize(p2d - p1d), Vector3d.Normalize(p3d - p1d)),
-                            d,
-                            t, (float)h);
+                            new Vector3d(lat * texScale, lon * texScale, 0) - new Vector3d((int)(lat * texScale), (int)(lon * texScale), 0),
+                            t);
 
                     pts.Add(verticies[x * s + z].Position);
 
@@ -516,7 +520,7 @@ namespace Planetary_Terrain {
                 return;
             }
 
-            if (!wv) { // no water verticies found
+            if (!hasWaterGeometry) { // no water verticies above ground
                 waterVertexBuffer?.Dispose();
                 hasWaterVerticies = false;
                 waterVerticies = null;
@@ -526,7 +530,8 @@ namespace Planetary_Terrain {
 
             OOB = new OrientedBoundingBox(pts.ToArray());
             GetIndicies(false);
-
+            
+            #region trees
             // trees
             if (VertexSpacing < TreeLODLevel) {
                 // Make our own trees
@@ -602,12 +607,13 @@ namespace Planetary_Terrain {
                     }
                 }
             }
+            #endregion
 
             generating = false;
             vertexDirty = true;
         }
         #endregion
-
+        
         #region Index/Neighbor Calculations
         public void GetIndicies(bool recurse = true) {
             if (recurse && Children != null)
@@ -628,16 +634,28 @@ namespace Planetary_Terrain {
             bool fanDown = d != null && d.LODlevel < LODlevel;
 
             int index = 0;
-            if (fanLeft)
-                index |= 1;
-            if (fanUp)
-                index |= 2;
-            if (fanRight)
-                index |= 4;
-            if (fanDown)
-                index |= 8;
+            if (fanLeft)  index |= 1;
+            if (fanUp)    index |= 2;
+            if (fanRight) index |= 4;
+            if (fanDown)  index |= 8;
 
             indicies = TriangleCache.IndexCache[index];
+
+            // water indicies
+            if (hasWaterVerticies) {
+                List<short> wi = new List<short>();
+                for (int i = 0; i < indicies.Length; i += 3) {
+                    // add the triangles that are at least partially above the ground
+                    if (waterVerticies[indicies[i]].Height >= 0
+                        || waterVerticies[indicies[i + 1]].Height >= 0
+                        || waterVerticies[indicies[i + 2]].Height >= 0) {
+                        wi.Add(indicies[i]);
+                        wi.Add(indicies[i + 1]);
+                        wi.Add(indicies[i + 2]);
+                    }
+                }
+                waterIndicies = wi.ToArray();
+            }
 
             indexdirty = true;
         }
@@ -914,7 +932,12 @@ namespace Planetary_Terrain {
             if (indexdirty) {
                 indexBuffer?.Dispose();
                 indexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, indicies);
-                IndexCount = indicies.Length;
+                indexCount = indicies.Length;
+                if (hasWaterVerticies) {
+                    waterIndexBuffer?.Dispose();
+                    waterIndexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.IndexBuffer, waterIndicies);
+                    waterIndexCount = waterIndicies.Length;
+                }
             }
 
             if (vertexDirty) {
@@ -924,7 +947,7 @@ namespace Planetary_Terrain {
                     waterVertexBuffer?.Dispose();
                     waterVertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, waterVerticies);
                 }
-                VertexCount = verticies.Length;
+                vertexCount = verticies.Length;
             }
 
             indexdirty = false;
@@ -958,9 +981,9 @@ namespace Planetary_Terrain {
         public void Draw(Renderer renderer, QuadRenderPass pass, Vector3d planetPos, double planetScale) {
             if (vertexDirty || indexdirty)
                 SetData(renderer.Device, renderer.Context);
-
             if (vertexBuffer == null || indexBuffer == null) return;
-
+            if (pass == QuadRenderPass.Water && !hasWaterVerticies) return;
+            
             double scale = planetScale;
             Vector3d pos = planetPos + MeshCenter * planetScale;
 
@@ -993,7 +1016,6 @@ namespace Planetary_Terrain {
                     renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
 
                     renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                    renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
                 }
 
                 switch (pass) {
@@ -1010,16 +1032,18 @@ namespace Planetary_Terrain {
                         renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
                         renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
 
+                        renderer.Context.InputAssembler.SetIndexBuffer(waterIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
                         renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<WaterVertex>(), 0));
-                        renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+                        renderer.Context.DrawIndexed(waterIndexCount, 0, 0);
 
-                        Debug.VerticiesDrawn += VertexCount;
+                        Debug.TrianglesDrawn += waterIndexCount / 3;
                         break;
                     case QuadRenderPass.Ground:
+                        renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
                         renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
-                        renderer.Context.DrawIndexed(indicies.Length, 0, 0);
+                        renderer.Context.DrawIndexed(indexCount, 0, 0);
 
-                        Debug.VerticiesDrawn += VertexCount;
+                        Debug.TrianglesDrawn += indexCount / 3;
                         break;
                 }
             }
@@ -1118,7 +1142,7 @@ namespace Planetary_Terrain {
             renderer.Context.DrawIndexedInstanced(6, Trees.Length, 0, 0, 0);
 
             Debug.ImposterDrawn += Trees.Length;
-            Debug.VerticiesDrawn += Trees.Length * 4;
+            Debug.TrianglesDrawn += Trees.Length * 2;
         }
         
         public void Dispose() {
@@ -1538,7 +1562,7 @@ namespace Planetary_Terrain {
 
             renderer.Context.DrawIndexed(indicies.Length, 0, 0);
 
-            Debug.VerticiesDrawn += VertexCount;
+            Debug.TrianglesDrawn += IndexCount / 3;
         }
         public void Draw(Renderer renderer, Vector3d planetPos, double planetScale) {
             bool draw = true;

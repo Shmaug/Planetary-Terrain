@@ -54,12 +54,12 @@ namespace Planetary_Terrain {
         public void Draw(Renderer renderer) {
             SetResources(renderer);
             renderer.Context.DrawIndexed(IndexCount, 0, 0);
-            Debug.VerticiesDrawn += VertexCount;
+            Debug.TrianglesDrawn += IndexCount / 3;
         }
         public void DrawInstanced(Renderer renderer, int instanceCount) {
             SetResources(renderer);
             renderer.Context.DrawIndexedInstanced(IndexCount, instanceCount, 0, 0, 0);
-            Debug.VerticiesDrawn += VertexCount * instanceCount;
+            Debug.TrianglesDrawn += (IndexCount / 3) * instanceCount;
         }
         public void DrawNoResources(Renderer renderer) {
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology;

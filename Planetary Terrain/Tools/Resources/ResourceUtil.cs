@@ -69,6 +69,10 @@ namespace Planetary_Terrain {
         }
 
         public static D3D11.Resource LoadFromFile(D3D11.Device device, string fileName, out D3D11.ShaderResourceView srv) {
+            if (!File.Exists(fileName)) {
+                srv = null;
+                return null;
+            }
             if (Path.GetExtension(fileName).ToLower() == ".dds") {
                 var result = LoadDDSFromBuffer(device, SharpDX.IO.NativeFile.ReadAllBytes(fileName), out srv);
                 return result;

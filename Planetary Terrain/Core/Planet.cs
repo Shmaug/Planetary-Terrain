@@ -132,8 +132,6 @@ namespace Planetary_Terrain {
             Star star = StarSystem.ActiveSystem.GetStar();
             if (star != null)
                 constants.lightDirection = Vector3d.Normalize(Position - star.Position);
-            else
-                constants.lightDirection = new Vector3d();
             constants.oceanLevel = (float)OceanHeight;
             constants.oceanColor = OceanColor.ToVector3();
 
@@ -168,7 +166,8 @@ namespace Planetary_Terrain {
 
             // color map
             renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
-            
+            renderer.Context.PixelShader.SetShaderResource(1, Resources.GrassTexture);
+
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
             Profiler.Begin(Name + " Ground Draw");

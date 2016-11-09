@@ -205,9 +205,9 @@ namespace Planetary_Terrain {
             BlackTextureView = new D3D11.ShaderResourceView(Device, btex);
 
             AnisotropicSampler = new D3D11.SamplerState(Device, new D3D11.SamplerStateDescription() {
-                AddressU = D3D11.TextureAddressMode.Clamp,
-                AddressV = D3D11.TextureAddressMode.Clamp,
-                AddressW = D3D11.TextureAddressMode.Clamp,
+                AddressU = D3D11.TextureAddressMode.Wrap,
+                AddressV = D3D11.TextureAddressMode.Wrap,
+                AddressW = D3D11.TextureAddressMode.Wrap,
                 Filter = D3D11.Filter.Anisotropic,
             });
             #endregion

@@ -91,7 +91,7 @@ namespace Planetary_Terrain {
                 renderer.D2DContext.FillRectangle(new RawRectangleF(textx-3, rect.Bottom + lineA, textx-2, rect.Bottom + texty - 2), renderer.Brushes[Colors[lineC % Colors.Length]]);
         }
 
-        public void DrawCircle(Renderer renderer, Vector2 center, float radius, double a, double b, int c = 0, float txt = 0) {
+        public void DrawCircle(Renderer renderer, Vector2 center, float radius, float step, double a, double b, int col = 0, float txt = 0) {
             D2D1.PathGeometry path = new D2D1.PathGeometry(renderer.D2DFactory);
             D2D1.GeometrySink s = path.Open();
             s.SetFillMode(D2D1.FillMode.Winding);
@@ -113,21 +113,21 @@ namespace Planetary_Terrain {
                 renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
                 renderer.D2DContext.DrawText(
                     Name + " (" + Stopwatch.Elapsed.TotalMilliseconds.ToString("F1") + "ms)",
-                    renderer.Consolas14, r, renderer.Brushes[Colors[c % Colors.Length]], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
+                    renderer.Consolas14, r, renderer.Brushes[Colors[col % Colors.Length]], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
                 txt += 12;
             }
 
-            renderer.D2DContext.FillGeometry(path, renderer.Brushes[Colors[c % Colors.Length]]);
+            renderer.D2DContext.FillGeometry(path, renderer.Brushes[Colors[col % Colors.Length]]);
             s.Dispose();
             path.Dispose();
             
             double t = 0;
             foreach (Profiler p in Children) {
-                c++;
+                col++;
                 
                 double f = (p.Stopwatch.Elapsed.Ticks / (double)Stopwatch.Elapsed.Ticks) * (b - a);
-                p.DrawCircle(renderer, center, radius - 10, a + t, a + t + f, c, txt);
+                p.DrawCircle(renderer, center, radius - step, step, a + t, a + t + f, col, txt);
                 t += f;
             }
         }
@@ -149,7 +149,7 @@ namespace Planetary_Terrain {
 
         static List<Line> lines = new List<Line>();
 
-        public static int VerticiesDrawn;
+        public static int TrianglesDrawn;
         public static int TreesDrawn;
         public static int ImposterDrawn;
         public static int FPS;
@@ -172,7 +172,7 @@ namespace Planetary_Terrain {
         }
 
         public static void BeginFrame() {
-            VerticiesDrawn = 0;
+            TrianglesDrawn = 0;
             TreesDrawn = 0;
             ImposterDrawn = 0;
             immediateTrack.Clear();
@@ -223,8 +223,8 @@ namespace Planetary_Terrain {
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
             
             renderer.D2DContext.DrawText(
-                string.Format("{0} verts, {1} trees/{2} imposters    {3} fps    [{4} waiting / {5} generating]",
-                VerticiesDrawn.ToString("N0"), TreesDrawn.ToString("N0"), ImposterDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
+                string.Format("{0} tris, {1} trees/{2} imposters    {3} fps    [{4} waiting / {5} generating]",
+                TrianglesDrawn.ToString("N0"), TreesDrawn.ToString("N0"), ImposterDrawn.ToString("N0"), FPS, QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - 25, 300, renderer.Viewport.Height - 10), renderer.Brushes["White"]);
 
             renderer.D2DContext.DrawText(
@@ -273,8 +273,9 @@ namespace Planetary_Terrain {
             renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
 
             frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
-            
-            frameProfiler.DrawCircle(renderer, new Vector2(renderer.ResolutionX - 350, renderer.ResolutionY - 250), 200, 0, Math.PI * 2);
+
+            float r = renderer.ResolutionX * .075f;
+            frameProfiler.DrawCircle(renderer, new Vector2(renderer.ResolutionX - r - 10, renderer.ResolutionY - r - 10), r, r * .05f, 0, Math.PI * 2);
         }
 
         public static void Dispose() {

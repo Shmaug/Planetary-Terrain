@@ -4,11 +4,9 @@ using D3D11 = SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 
 namespace Planetary_Terrain {
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Sequential)]
     struct VertexNormal {
-        [FieldOffset(0)]
         public Vector3 Position;
-        [FieldOffset(12)]
         public Vector3 Normal;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
@@ -22,12 +20,9 @@ namespace Planetary_Terrain {
             Normal = norm;
         }
     }
-
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Sequential)]
     struct VertexTexture {
-        [FieldOffset(0)]
         public Vector3 Position;
-        [FieldOffset(12)]
         public Vector2 TexCoord;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
@@ -41,14 +36,28 @@ namespace Planetary_Terrain {
             TexCoord = texcoord;
         }
     }
-
     [StructLayout(LayoutKind.Explicit)]
-    struct VertexNormalTexture {
+    struct VertexColor {
         [FieldOffset(0)]
         public Vector3 Position;
         [FieldOffset(12)]
+        public Color4 Color;
+
+        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
+        {
+            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 12, 0)
+        };
+
+        public VertexColor(Vector3 pos, Color col) {
+            Position = pos;
+            Color = col;
+        }
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    struct VertexNormalTexture {
+        public Vector3 Position;
         public Vector3 Normal;
-        [FieldOffset(24)]
         public Vector2 TexCoord;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
@@ -64,18 +73,32 @@ namespace Planetary_Terrain {
             TexCoord = uv;
         }
     }
-
-    [StructLayout(LayoutKind.Explicit)]
-    struct ModelVertex {
-        [FieldOffset(0)]
+    [StructLayout(LayoutKind.Sequential)]
+    struct VertexNormalColor{
         public Vector3 Position;
-        [FieldOffset(12)]
         public Vector3 Normal;
-        [FieldOffset(24)]
+        public Color4 Color;
+        
+        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
+        {
+            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+            new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
+            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 24, 0)
+        };
+
+        public VertexNormalColor(Vector3 pos, Vector3 norm, Color col) {
+            Position = pos;
+            Normal = norm;
+            Color = col;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct ModelVertex {
+        public Vector3 Position;
+        public Vector3 Normal;
         public Vector3 Tangent;
-        [FieldOffset(36)]
         public Vector2 TexCoord;
-        [FieldOffset(44)]
         public Color4 Color;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
@@ -96,90 +119,36 @@ namespace Planetary_Terrain {
         }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    struct VertexColor {
-        [FieldOffset(0)]
-        public Vector3 Position;
-        [FieldOffset(12)]
-        public Color4 Color;
-
-        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
-        {
-            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
-            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 12, 0)
-        };
-
-        public VertexColor(Vector3 pos, Color col) {
-            Position = pos;
-            Color = col;
-        }
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    struct VertexNormalColor{
-        [FieldOffset(0)]
-        public Vector3 Position;
-        [FieldOffset(12)]
-        public Vector3 Normal;
-        [FieldOffset(24)]
-        public Color4 Color;
-        
-        public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
-        {
-            new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
-            new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
-            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 24, 0)
-        };
-
-        public VertexNormalColor(Vector3 pos, Vector3 norm, Color col) {
-            Position = pos;
-            Normal = norm;
-            Color = col;
-        }
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Sequential)]
     struct PlanetVertex {
-        [FieldOffset(0)]
         public Vector3 Position;
-        [FieldOffset(12)]
         public Vector3 Normal;
-        [FieldOffset(24)]
-        public Vector2 TexCoord;
-        [FieldOffset(32)]
-        public Vector3 Out;
-        [FieldOffset(44)]
-        public float Height;
-        [FieldOffset(48)]
         public Color4 Color;
+        public Vector3 UVW;
+        public Vector2 TempHumid;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
         {
             new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
             new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
-            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0),
-            new D3D11.InputElement("TEXCOORD", 1, Format.R32G32B32_Float, 32, 0),
-            new D3D11.InputElement("TEXCOORD", 2, Format.R32_Float, 44, 0),
-            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 48, 0),
+            new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 24, 0),
+            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32B32_Float, 40, 0),
+            new D3D11.InputElement("TEXCOORD", 1, Format.R32G32_Float, 52, 0),
         };
 
-        public PlanetVertex(Vector3 pos, Vector3 norm, Vector3 dir, Vector2 texCoord, float height) {
+        public PlanetVertex(Vector3 pos, Vector3 norm, Vector3 uvw, Vector2 tempHumid) {
             Position = pos;
             Normal = norm;
-            TexCoord = texCoord;
-            Height = height;
-            Out = dir;
+            UVW = uvw;
+            TempHumid = tempHumid;
             Color = Color4.White;
         }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Sequential)]
     struct WaterVertex {
-        [FieldOffset(0)]
         public Vector3 Position;
-        [FieldOffset(12)]
         public Vector3 Normal;
-        [FieldOffset(24)]
         public float Height;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]

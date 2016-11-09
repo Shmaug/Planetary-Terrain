@@ -49,41 +49,26 @@ v2f instancedvs(float4 vertex : POSITION0, float3 normal : NORMAL0, float3 tange
 	return modelvs(vertex, normal, tangent, uv, color, w, (float3x3)w);
 }
 
-float3 CalcNormal(float3 normal, float3 tangent, float3 samp) {
-	float3 Normal = normalize(normal);
-	float3 Tangent = normalize(tangent);
-	Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
-	float3 Bitangent = cross(Tangent, Normal);
-	float3 BumpMapNormal = samp.xyz;
-	BumpMapNormal = 2 * BumpMapNormal - 1;
-	float3 NewNormal;
-	float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
-	NewNormal = mul(TBN, BumpMapNormal);
-	NewNormal = normalize(NewNormal);
-	return NewNormal;
-}
-
 float4 psmain(v2f i) : SV_TARGET
 {
+	i.normal = normalize(i.normal);
+
 	float4 col = DiffuseTexture.Sample(AnisotropicSampler, i.uv) * i.color;
 	clip(col.a - .1);
 
-	float light = 0;
-	if (length(LightDirection) > 0) {
-		if (UseNormalTexture)
-			i.normal = CalcNormal(i.normal, i.tangent, NormalTexture.Sample(AnisotropicSampler, i.uv));
+	if (UseNormalTexture)
+		i.normal = BumpNormal(i.normal, normalize(i.tangent), NormalTexture.Sample(AnisotropicSampler, i.uv));
 
-		light = dot(LightDirection, -i.normal);
-		col.rgb *= clamp(light, 0, 1);
+	float light = dot(LightDirection, -i.normal);
+	col.rgb *= clamp(light, 0, 1);
 
-		if (light > 0 && SpecularIntensity > 0) {
-			float3 r = reflect(-LightDirection, i.normal);
-			float3 v = normalize(i.worldPos);
-			float dp = dot(r, v);
-			if (dp > 0) {
-				float s = SpecularTexture.Sample(AnisotropicSampler, i.uv).r;
-				col.rgb += SpecularColor * SpecularIntensity * pow(dp, Shininess) * s;
-			}
+	if (light > 0 && SpecularIntensity > 0) {
+		float3 r = reflect(-LightDirection, i.normal);
+		float3 v = normalize(i.worldPos);
+		float dp = dot(r, v);
+		if (dp > 0) {
+			float s = SpecularTexture.Sample(AnisotropicSampler, i.uv).r;
+			col.rgb += SpecularColor * SpecularIntensity * pow(dp, Shininess) * s;
 		}
 	}
 

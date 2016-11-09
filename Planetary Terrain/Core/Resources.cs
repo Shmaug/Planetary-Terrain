@@ -13,7 +13,9 @@ namespace Planetary_Terrain {
 
         public static Model TreeModel;
         public static D3D11.ShaderResourceView TreeModelImposter;
-        
+
+        public static D3D11.ShaderResourceView GrassTexture;
+
         public static void Load(D3D11.Device device) {
             QuadVertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, new float[] {
                     -1, -1, 0,      0, 0,
@@ -51,6 +53,7 @@ namespace Planetary_Terrain {
             TreeModel.SpecularIntensity = 0;
 
             ResourceUtil.LoadFromFile(device, modelFolder + "trees/tree0imposter.png", out TreeModelImposter);
+            ResourceUtil.LoadFromFile(device, "data/textures/grass.dds", out GrassTexture);
         }
 
         public static void Dispose() {

@@ -194,7 +194,7 @@ namespace Planetary_Terrain {
             }
             renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
             renderer.BeginDrawFrame();
-            renderer.Clear(Color.Black);
+            renderer.Clear(Color.White);
 
             // 3d
             Profiler.Begin("3d Draw");
