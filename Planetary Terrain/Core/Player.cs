@@ -93,8 +93,8 @@ namespace Planetary_Terrain {
             if (FirstPerson)
                 CameraEuler += new Vector3(Input.ms.Y, Input.ms.X, 0) * .003f;
             else {
-                if (Input.ms.Buttons[0])
-                    CameraEuler += new Vector3(Input.mousePos.Y - Input.lastMousePos.Y, Input.mousePos.X - Input.lastMousePos.X, 0) * .003f;
+                if (Input.ms.Buttons[0] && !Input.MouseBlocked)
+                    CameraEuler += new Vector3(Input.MousePos.Y - Input.LastMousePos.Y, Input.MousePos.X - Input.LastMousePos.X, 0) * .003f;
             }
             CameraEuler.X = MathUtil.Clamp(CameraEuler.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
         }

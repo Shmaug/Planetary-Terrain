@@ -216,7 +216,7 @@
     </Content>
     <Compile Include="Engine\Physics.cs" />
     <Compile Include="Tools\Debug.cs" />
-    <Compile Include="Tools\Icosphere.cs" />
+    <Compile Include="Tools\Shapes.cs" />
     <Compile Include="Core\QuadNode.cs" />
     <Compile Include="Engine\Game.cs" />
     <Compile Include="Engine\Renderer.cs" />

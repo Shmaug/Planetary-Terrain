@@ -49,6 +49,7 @@ namespace Planetary_Terrain {
         public DWrite.TextFormat Consolas14 { get; private set; }
 
         public Dictionary<string, D2D1.Brush> Brushes;
+        public D2D1.StrokeStyle DashStyle;
         #endregion
 
         #region 3d vars
@@ -124,8 +125,6 @@ namespace Planetary_Terrain {
             D3D11.Device.CreateWithSwapChain(DriverType.Hardware, creationFlags, swapChainDesc, out device, out swapChain);
             Device = device;
             Context = Device.ImmediateContext;
-
-            swapChain.GetParent<DXGI.Factory>().MakeWindowAssociation(renderForm.Handle, DXGI.WindowAssociationFlags.IgnoreAll);
             #endregion
             #region 2d device & context
             DXGI.Device dxgiDevice = Device.QueryInterface<D3D11.Device1>().QueryInterface<DXGI.Device2>();
@@ -149,13 +148,22 @@ namespace Planetary_Terrain {
             Brushes.Add("Magenta", new D2D1.SolidColorBrush(D2DContext, Color.Magenta));
             Brushes.Add("RosyBrown", new D2D1.SolidColorBrush(D2DContext, Color.RosyBrown));
 
+            DashStyle = new D2D1.StrokeStyle(D2DFactory, new D2D1.StrokeStyleProperties() {
+                StartCap = D2D1.CapStyle.Flat,
+                DashCap = D2D1.CapStyle.Round,
+                EndCap = D2D1.CapStyle.Flat,
+                DashStyle = D2D1.DashStyle.Custom,
+                DashOffset = 0,
+                LineJoin = D2D1.LineJoin.Round,
+                MiterLimit = 1
+            }, new float[] { 4f, 4f });
+
             FontFactory = new DWrite.Factory();
             SegoeUI24 = new DWrite.TextFormat(FontFactory, "Segoe UI", 24f);
             SegoeUI14 = new DWrite.TextFormat(FontFactory, "Segoe UI", 14f);
             Consolas14 = new DWrite.TextFormat(FontFactory, "Consolas", 14f);
             #endregion
-
-
+            
             #region blend states
             D3D11.BlendStateDescription opaqueDesc = new D3D11.BlendStateDescription();
             opaqueDesc.RenderTarget[0].IsBlendEnabled = false;
@@ -285,6 +293,8 @@ namespace Planetary_Terrain {
             Context.OutputMerger.SetDepthStencilState(depthStencilStateDefault);
             #endregion
 
+            //swapChain.GetParent<DXGI.Factory>().MakeWindowAssociation(renderForm.Handle, DXGI.WindowAssociationFlags.);
+
             Camera = new Camera(70, 16 / 9f);
             Resize(ResolutionX, ResolutionY);
         }
@@ -367,7 +377,7 @@ namespace Planetary_Terrain {
         public void BeginDrawFrame() {
             constants.View = Camera.View;
             constants.Projection = Camera.Projection;
-            constants.C = 1;
+            constants.C = 1f;
             constants.FC = (float)(1.0 / (Math.Log(constants.C * Camera.zFar + 1) / Math.Log(2)));
 
             Context.UpdateSubresource(ref constants, constantBuffer);
@@ -428,6 +438,7 @@ namespace Planetary_Terrain {
         public void Dispose() {
             foreach (KeyValuePair<string, D2D1.Brush> p in Brushes)
                 p.Value.Dispose();
+            DashStyle.Dispose();
             
             D2DTarget.Dispose();
             D2DDevice.Dispose();

@@ -67,8 +67,8 @@ namespace Planetary_Terrain {
             
             double rough = Noise.Ridged(direction * 50 + new Vector3d(-5000), 5, .2, .7) * .5 + .5;
 
-            double mntn = Noise.Fractal(direction * 1000 + new Vector3d(2000), 11, .03f, .5f);
-            double flat = Noise.SmoothSimplex(direction * 100 + new Vector3d(1000), 2, .01f, .45f) * .5 + .5;
+            double mntn = Noise.Fractal(direction * 1000 + new Vector3d(2000), 11, .03, .5);
+            double flat = Noise.SmoothSimplex(direction * 100 + new Vector3d(1000), 2, .01, .45) * .5 + .5;
 
             rough = rough * rough;
 
@@ -76,6 +76,10 @@ namespace Planetary_Terrain {
             mntn *= rough;
             
             total = mntn + flat;
+            
+            total += (Noise.SmoothSimplex(direction * 50 + new Vector3d(-100), 7, .3, .2) * .5 + .5);
+
+            total = (total + 1) / 3;
             
             min = Math.Min(min, total);
             max = Math.Max(max, total);
@@ -109,11 +113,7 @@ namespace Planetary_Terrain {
         }
 
         public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
-            Vector3d dir = camera.Position - Position;
-            double height = dir.Length();
-            dir /= height;
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].SplitDynamic(dir, height, device);
+            base.UpdateLOD(deltaTime, device, camera);
             Atmosphere?.UpdateLOD(device, camera);
         }
 

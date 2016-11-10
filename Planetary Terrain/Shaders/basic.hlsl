@@ -2,6 +2,7 @@
 
 cbuffer ObjectConstants : register(b1) {
 	float4x4 World;
+	float4 Color;
 }
 
 // COLORED //
@@ -14,7 +15,7 @@ coloredv2f coloredvs(float4 vertex : POSITION0, float4 color : COLOR0) {
 	coloredv2f v;
 	v.position = mul(vertex, mul(World, mul(View, Projection)));
 	v.position.z = LogDepth(v.position.w);
-	v.color = color;
+	v.color = color * Color;
 	return v;
 }
 

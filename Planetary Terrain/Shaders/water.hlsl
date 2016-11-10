@@ -5,7 +5,7 @@
 
 cbuffer WaterBuffer : register(b4) {
 	float3 SurfaceOffset;
-	float Fade;
+	float DetailDistance;
 	float Time;
 };
 struct v2f {
@@ -45,17 +45,18 @@ float4 psmain(v2f i) : SV_TARGET
 	float4 col = float4(waterColor, 1);
 
 	float l = length(i.worldPos);
-	col.a = 1 - dot(i.normal, -i.worldPos / l);
+	col.a = 1 - dot(i.normal, -i.worldPos / l) + (length(i.worldPos)*nodeScale / DetailDistance - .5);
 
 	// diffuse
-	col.rgb *= clamp(dot(LightDirection, -i.normal), 0, 1);
+	float light = clamp(dot(LightDirection, -i.normal), 0, 1);
+	col.rgb *= light;
 
 	// specular
 	float3 r = reflect(-LightDirection, i.normal);
 	float3 v = normalize(i.worldPos);
 	float dp = dot(r, v);
 	if (dp > 0)
-		col.rgb += pow(dp, 200);
+		col.rgb += pow(dp, 200) * light;
 
 	col.rgb = i.c1 + col.rgb * i.c0;
 

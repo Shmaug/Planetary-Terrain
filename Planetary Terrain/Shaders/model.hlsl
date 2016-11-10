@@ -59,8 +59,8 @@ float4 psmain(v2f i) : SV_TARGET
 	if (UseNormalTexture)
 		i.normal = BumpNormal(i.normal, normalize(i.tangent), NormalTexture.Sample(AnisotropicSampler, i.uv));
 
-	float light = dot(LightDirection, -i.normal);
-	col.rgb *= clamp(light, 0, 1);
+	float light = clamp(dot(LightDirection, -i.normal), 0, 1);
+	col.rgb *= light;
 
 	if (light > 0 && SpecularIntensity > 0) {
 		float3 r = reflect(-LightDirection, i.normal);
@@ -68,7 +68,7 @@ float4 psmain(v2f i) : SV_TARGET
 		float dp = dot(r, v);
 		if (dp > 0) {
 			float s = SpecularTexture.Sample(AnisotropicSampler, i.uv).r;
-			col.rgb += SpecularColor * SpecularIntensity * pow(dp, Shininess) * s;
+			col.rgb += SpecularColor * SpecularIntensity * pow(dp, Shininess) * s * light;
 		}
 	}
 

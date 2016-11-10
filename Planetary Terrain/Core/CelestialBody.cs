@@ -52,21 +52,30 @@ namespace Planetary_Terrain {
                 BaseQuads[i].Generate();
         }
 
-        public abstract void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera);
+        public virtual void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
+            Vector3d dir = camera.Position - Position;
+            double height = dir.Length();
+            dir /= height;
+            double alt = height - GetHeight(dir);
+            for (int i = 0; i < BaseQuads.Length; i++)
+                BaseQuads[i].SplitDynamic(dir, height, alt, device);
+        }
         public void DrawHUDIcon(Renderer renderer, double playerSpeed, Vector2 hudDir) {
             double h = (Position - renderer.Camera.Position).Length();
             if (h > SOI) {
-                Vector3 screenPos = renderer.WorldToScreen(Position);
-                double dir = Vector3d.Dot(renderer.Camera.Position - Position, renderer.Camera.Rotation.Forward);
-                
+                double dir = Vector3d.Dot(Position - renderer.Camera.Position, renderer.Camera.Rotation.Forward);
                 if (dir > 0) {
-                    float r = (float)((1f / Math.Tan(renderer.Camera.VerticalFieldOfView * .5) * Radius / Math.Sqrt(h * h - Radius * Radius)) * renderer.ResolutionY * .5f); // TODO: fix planet UI radius
-                    float radius = Math.Max(r, 30);
+                    Vector2 screenPos = (Vector2)renderer.WorldToScreen(Position);
+                    // TODO: UI radius still off
+
+                    float r = 20;
+                    r = Math.Max(r, 20);
+
                     int d = Math.Sign(hudDir.X);
 
                     renderer.SegoeUI14.TextAlignment = d > 0 ? DWrite.TextAlignment.Leading : DWrite.TextAlignment.Trailing;
 
-                    Vector2 pt2 = (Vector2)screenPos + hudDir * radius;
+                    Vector2 pt2 = screenPos + hudDir * r;
                     Vector2 pt3 = pt2 + hudDir * 60;
                     Vector2 pt4 = pt3 + new Vector2(d * 10, 0);
 
@@ -74,7 +83,7 @@ namespace Planetary_Terrain {
 
                     RawRectangleF rect = new RawRectangleF(pt4.X + d * 5, pt4.Y - 1, pt4.X + d * 5, pt4.Y - 1);
 
-                    renderer.D2DContext.DrawEllipse(new D2D1.Ellipse((Vector2)screenPos, radius, radius), renderer.Brushes["White"]);
+                    renderer.D2DContext.DrawEllipse(new D2D1.Ellipse(screenPos, r, r), renderer.Brushes["White"]);
                     renderer.D2DContext.DrawLine(pt2, pt3, renderer.Brushes["White"]);
                     renderer.D2DContext.DrawLine(pt3, pt4, renderer.Brushes["White"]);
                     renderer.D2DContext.DrawLine(pt4 + new Vector2(0, -20), pt4 + new Vector2(0, 20), renderer.Brushes["White"]);

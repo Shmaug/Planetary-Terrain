@@ -124,7 +124,6 @@ namespace Planetary_Terrain {
         public Vector3 Position;
         public Vector3 Normal;
         public Color4 Color;
-        public Vector3 UVW;
         public Vector2 TempHumid;
 
         public static D3D11.InputElement[] InputElements = new D3D11.InputElement[]
@@ -132,16 +131,14 @@ namespace Planetary_Terrain {
             new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
             new D3D11.InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
             new D3D11.InputElement("COLOR", 0, Format.R32G32B32A32_Float, 24, 0),
-            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32B32_Float, 40, 0),
-            new D3D11.InputElement("TEXCOORD", 1, Format.R32G32_Float, 52, 0),
+            new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 40, 0),
         };
 
-        public PlanetVertex(Vector3 pos, Vector3 norm, Vector3 uvw, Vector2 tempHumid) {
+        public PlanetVertex(Vector3 pos, Vector3 norm, Vector2 tempHumid) {
             Position = pos;
             Normal = norm;
-            UVW = uvw;
-            TempHumid = tempHumid;
             Color = Color4.White;
+            TempHumid = tempHumid;
         }
     }
 

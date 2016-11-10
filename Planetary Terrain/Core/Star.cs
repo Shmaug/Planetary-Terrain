@@ -51,15 +51,7 @@ namespace Planetary_Terrain {
 
             colorMap = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, file, out colorMapView);
         }
-
-        public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
-            Vector3d dir = camera.Position - Position;
-            double height = dir.Length();
-            dir /= height;
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].SplitDynamic(dir, height, device);
-        }
-
+        
         public override void Draw(Renderer renderer) {
             Profiler.Begin(Name + " Draw");
             // Get the entire planet's scale and scaled position

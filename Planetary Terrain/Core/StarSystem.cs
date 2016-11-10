@@ -38,7 +38,7 @@ namespace Planetary_Terrain {
                 }) {
                     HasOcean = true,
                     HasTrees = true,
-                    SurfaceTemperature = 14,
+                    SurfaceTemperature = 17,
                     TemperatureRange = 35
                 };
             earth.SetColormap("Data/Textures/Earth.dds", device);

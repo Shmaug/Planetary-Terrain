@@ -71,7 +71,15 @@ namespace Planetary_Terrain {
             makeView();
             makeProjection();
         }
-        
+
+        public bool Intersects(OrientedBoundingBox oob) {
+            Matrix invoob = Matrix.Invert(oob.Transformation);
+            BoundingFrustum frustum = new BoundingFrustum(oob.Transformation * View * Projection);
+
+            BoundingBox bbox = new BoundingBox(-oob.Extents, oob.Extents);
+            return frustum.Intersects(ref bbox);
+        }
+
         public void GetScaledSpace(Vector3d location, out Vector3d pos, out double scale) {
             double d;
             GetScaledSpace(location, out pos, out scale, out d);

@@ -27,7 +27,7 @@ namespace Planetary_Terrain.UI
         }
 
         public override void Update(float time) {
-            if (AbsoluteBounds.Contains(Input.mousePos.X, Input.mousePos.Y)) {
+            if (AbsoluteBounds.Contains(Input.MousePos.X, Input.MousePos.Y)) {
                 hoverTime += time;
             } else
                 hoverTime = 0f;

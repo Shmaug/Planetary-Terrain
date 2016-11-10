@@ -7,7 +7,8 @@ namespace Planetary_Terrain {
         public static Model ShipModel;
         public static Model GunModel;
         public static Model CylinderModel;
-
+        
+        public static D3D11.Buffer BoundingBoxVertexBuffer;
         public static D3D11.Buffer QuadVertexBuffer;
         public static D3D11.Buffer QuadIndexBuffer;
 
@@ -27,6 +28,33 @@ namespace Planetary_Terrain {
                     0, 1, 2,
                     1, 3, 2,
             });
+            BoundingBoxVertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer,
+                new VertexColor[] {
+                    new VertexColor(new Vector3(-1, -1, -1), Color.White),
+                    new VertexColor(new Vector3( 1, -1, -1), Color.White),
+                    new VertexColor(new Vector3(-1, -1,  1), Color.White),
+                    new VertexColor(new Vector3( 1, -1,  1), Color.White),
+                    new VertexColor(new Vector3(-1, -1,  1), Color.White),
+                    new VertexColor(new Vector3(-1, -1, -1), Color.White),
+                    new VertexColor(new Vector3( 1, -1,  1), Color.White),
+                    new VertexColor(new Vector3( 1, -1, -1), Color.White),
+                    new VertexColor(new Vector3(-1, -1, -1), Color.White),
+                    new VertexColor(new Vector3(-1,  1, -1), Color.White),
+                    new VertexColor(new Vector3( 1, -1, -1), Color.White),
+                    new VertexColor(new Vector3( 1,  1, -1), Color.White),
+                    new VertexColor(new Vector3(-1, -1,  1), Color.White),
+                    new VertexColor(new Vector3(-1,  1,  1), Color.White),
+                    new VertexColor(new Vector3( 1, -1,  1), Color.White),
+                    new VertexColor(new Vector3( 1,  1,  1), Color.White),
+                    new VertexColor(new Vector3(-1,  1, -1), Color.White),
+                    new VertexColor(new Vector3( 1,  1, -1), Color.White),
+                    new VertexColor(new Vector3(-1,  1,  1), Color.White),
+                    new VertexColor(new Vector3( 1,  1,  1), Color.White),
+                    new VertexColor(new Vector3(-1,  1,  1), Color.White),
+                    new VertexColor(new Vector3(-1,  1, -1), Color.White),
+                    new VertexColor(new Vector3( 1,  1,  1), Color.White),
+                    new VertexColor(new Vector3( 1,  1, -1), Color.White),
+                });
 
             ShipModel = new Model(modelFolder + "cruiser/ship.fbx", device, Matrix.Scaling(5) * Matrix.RotationY(MathUtil.Pi));
             ShipModel.Meshes[0].SetNormalTexture(device, modelFolder + "cruiser/normal.png");

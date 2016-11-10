@@ -13,7 +13,7 @@ struct v2f {
 };
 
 float4x4 billboard(float3 pos, float3 up) {
-	float3 look = normalize(pos);
+	float3 look = -normalize(pos);
 	float3 right = normalize(cross(up, look));
 
 	return float4x4(
@@ -29,7 +29,7 @@ v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0, float3 pos : TEXCOO
 	vertex.y += .5;
 	vertex.xyz *= .5;
 
-	vertex.xyz *= 30;
+	vertex.xyz *= 50;
 	
 	v.position = mul(vertex, mul(billboard(pos+offset, up), mul(View, Projection)));
 	v.position.z = LogDepth(v.position.w);

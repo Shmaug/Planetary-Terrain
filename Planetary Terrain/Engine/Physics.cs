@@ -180,9 +180,6 @@ namespace Planetary_Terrain {
                                 mu = MathUtil.Lerp((StaticFriction + b.StaticFriction) * .5, mu, l * 4); // static coefficient
 
                             Force f = AddForce(-Vector3d.Normalize(Velocity) * Mass * mu, contact.ContactPosition - Position);
-                            
-                            Debug.DrawLine(Color.Red, contact.ContactPosition, contact.ContactPosition + f.ForceVector);
-                            Debug.DrawLine(Color.Blue, contact.ContactPosition, contact.ContactPosition + Velocity);
                         }
                     }
                 }

@@ -8,9 +8,10 @@ using System.Diagnostics;
 
 namespace Planetary_Terrain {
     static class Input {
-        public static Vector2 mousePos, lastMousePos;
+        public static Vector2 MousePos, LastMousePos;
         public static DInput.KeyboardState ks, lastks;
         public static DInput.MouseState ms, lastms;
+        public static bool MouseBlocked;
     }
     class Game : IDisposable {
         #region game management
@@ -86,11 +87,10 @@ namespace Planetary_Terrain {
 
                 Profiler.Begin("Draw");
                 Draw();
-                Debug.Draw3D(renderer);
                 Profiler.End();
                 
                 Profiler.End();
-                Debug.EndFrame();
+                Debug.EndFrame(p.Stopwatch.Elapsed.TotalSeconds);
 
                 if (renderer.DrawGUI) {
                     renderer.D2DContext.BeginDraw();
@@ -116,19 +116,18 @@ namespace Planetary_Terrain {
 
             #region build UI
             float h = 35;
-            RawRectangleF bounds = new RawRectangleF(0, 300, 235, 300 + h);
+            float cpanelWidth = 235;
+            RawRectangleF bounds = new RawRectangleF(0, 300, cpanelWidth, 300 + h);
             ControlPanel = new UI.Frame(null, "Panel1", bounds, renderer.CreateBrush(new Color(.5f, .5f, .5f, .5f)));
             ControlPanel.Draggable = true;
 
             new UI.TextLabel(ControlPanel, "Title", new RawRectangleF(0, 0, 235, h), "NAVIGATOR", renderer.SegoeUI24, renderer.Brushes["White"]);
             float y = h;
+            Vector3d d = Vector3d.Normalize(new Vector3d(0, 1, -.45));
             foreach (CelestialBody p in StarSystem.ActiveSystem.bodies) {
-                Vector3d d = Vector3d.Normalize(new Vector3d(0, 1, -.45));
-                new UI.TextButton(ControlPanel, p.Name + "Button", new RawRectangleF(5, y, 170, y + h-2), p.Name, renderer.SegoeUI24, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
-                    ()=> {
-                        player.Teleport(p.Position + d * (p.SOI + 1000));
-                    });
-                new UI.TextButton(ControlPanel, p.Name + "SfcButton", new RawRectangleF(175, y, 230, y + h - 2), "Surface", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
+                new UI.TextLabel(ControlPanel, p.Name + "label", new RawRectangleF(2, y, cpanelWidth-2, y + h - 2), p.Name, renderer.SegoeUI24, renderer.Brushes["White"]);
+                y += 30;
+                new UI.TextButton(ControlPanel, p.Name + "SurfaceButton", new RawRectangleF(5, y, (cpanelWidth - 10) * .333f - 1, y + h), "Surface", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     () => {
                         double hh = p.GetHeight(d);
                         if (p is Planet) {
@@ -139,14 +138,22 @@ namespace Planetary_Terrain {
                         }
                         player.Teleport(p.Position + d * (hh + 50));
                     });
-                y += h;
-                bounds.Bottom += h;
+                new UI.TextButton(ControlPanel, p.Name + "LowOrbitButton", new RawRectangleF((cpanelWidth - 10) * .333f + 1, y, (cpanelWidth - 10) * .666f - 1, y + h), "Low Orbit", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
+                    ()=> {
+                        player.Teleport(p.Position + d * (p.SOI + 1000));
+                    });
+                new UI.TextButton(ControlPanel, p.Name + "HighOrbitButton", new RawRectangleF((cpanelWidth - 10) * .666f + 1, y, cpanelWidth - 2, y + h), "High Orbit", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
+                    () => {
+                        player.Teleport(p.Position + d * p.SOI * 3);
+                    });
+                y += h + 2;
             }
+            bounds.Bottom = bounds.Top + y;
             
             ControlPanel.LocalBounds = bounds;
             #endregion
 
-            (ControlPanel["EarthSfcButton"] as UI.TextButton).Click();
+            (ControlPanel["EarthSurfaceButton"] as UI.TextButton).Click();
         }
         
         void Update(double deltaTime) {
@@ -156,23 +163,29 @@ namespace Planetary_Terrain {
             Input.ms = mouse.GetCurrentState();
             if (Input.lastks == null) Input.lastks = Input.ks;
             if (Input.lastms == null) Input.lastms = Input.ms;
-            Input.mousePos = realMousePos;
+            Input.MousePos = realMousePos;
             #endregion
-
-            if (Input.ks.IsPressed(DInput.Key.F2) && !Input.lastks.IsPressed(DInput.Key.F2))
-                renderer.DrawGUI = !renderer.DrawGUI;
             
+            Input.MouseBlocked = ControlPanel.Contains(Input.MousePos.X, Input.MousePos.Y);
+
             if (Input.ks.IsPressed(DInput.Key.F1) && !Input.lastks.IsPressed(DInput.Key.F1))
                 renderer.DrawWireframe = !renderer.DrawWireframe;
+            if (Input.ks.IsPressed(DInput.Key.F2) && !Input.lastks.IsPressed(DInput.Key.F2))
+                renderer.DrawGUI = !renderer.DrawGUI;
+            if (Input.ks.IsPressed(DInput.Key.F3) && !Input.lastks.IsPressed(DInput.Key.F3))
+                Debug.DrawDebug = !Debug.DrawDebug;
+            if (Input.ks.IsPressed(DInput.Key.F4) && !Input.lastks.IsPressed(DInput.Key.F4))
+                Debug.DrawBoundingBoxes = !Debug.DrawBoundingBoxes;
 
             player.UpdateInput(deltaTime);
+
             if (player.FirstPerson)
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
             Profiler.End();
-            Profiler.Begin("StarSystem LOD Update");
+            Profiler.Begin("LOD Update");
             StarSystem.ActiveSystem.UpdateLOD(renderer, renderer.Device, deltaTime);
             Profiler.End();
-            Profiler.Begin("QuadNode generation Update");
+            Profiler.Begin("Generation Queue Update");
             QuadNode.Update();
             Profiler.End();
             Profiler.Begin("Physics Update");
@@ -184,7 +197,7 @@ namespace Planetary_Terrain {
             #region input state update
             Input.lastks = Input.ks;
             Input.lastms = Input.ms;
-            Input.lastMousePos = Input.mousePos;
+            Input.LastMousePos = Input.MousePos;
             #endregion
         }
         void Draw() {
@@ -202,6 +215,8 @@ namespace Planetary_Terrain {
             StarSystem.ActiveSystem.physics.Draw(renderer);
             Profiler.End();
 
+            Debug.Draw3D(renderer); // act like debug draws don't take a toll on performance
+            
             // 2d
             Profiler.Begin("2d Draw");
             if (renderer.DrawGUI) {

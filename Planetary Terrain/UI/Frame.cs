@@ -17,14 +17,14 @@ namespace Planetary_Terrain.UI
         public override void Update(float time) {
             if (Draggable) {
                 if (!Input.lastms.Buttons[0] && Input.ms.Buttons[0])
-                    if (Contains(Input.mousePos.X, Input.mousePos.Y) && !IntersectsChildren(Input.ms.X, Input.ms.Y))
+                    if (Contains(Input.MousePos.X, Input.MousePos.Y) && !IntersectsChildren(Input.ms.X, Input.ms.Y))
                         dragging = true;
 
                 if (!Input.ms.Buttons[0])
                     dragging = false;
 
                 if (dragging && Input.lastms.Buttons[0])
-                    Translate(Input.mousePos - Input.lastMousePos);
+                    Translate(Input.MousePos - Input.LastMousePos);
             }
 
             base.Update(time);
