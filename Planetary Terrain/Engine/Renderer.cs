@@ -93,7 +93,7 @@ namespace Planetary_Terrain {
 
         public double TotalTime;
 
-        public Camera Camera;
+        public Camera Camera; // TODO: multiple cameras
 
         D3D11.Buffer aeroFXBuffer;
         D3D11.Buffer screenVBuffer;

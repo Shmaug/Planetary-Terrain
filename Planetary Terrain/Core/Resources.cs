@@ -56,7 +56,7 @@ namespace Planetary_Terrain {
                     new VertexColor(new Vector3( 1,  1, -1), Color.White),
                 });
 
-            ShipModel = new Model(modelFolder + "cruiser/ship.fbx", device, Matrix.Scaling(5) * Matrix.RotationY(MathUtil.Pi));
+            ShipModel = new Model(modelFolder + "cruiser/ship.fbx", device, Matrix.Scaling(.05f) * Matrix.RotationY(MathUtil.Pi));
             ShipModel.Meshes[0].SetNormalTexture(device, modelFolder + "cruiser/normal.png");
             ShipModel.Meshes[0].SetEmissiveTexture(device, modelFolder + "cruiser/emissive.png");
             ShipModel.Meshes[0].SetSpecularTexture(device, modelFolder + "cruiser/specular.png");
