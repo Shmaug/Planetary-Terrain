@@ -550,7 +550,7 @@ namespace Planetary_Terrain {
                                 m.TranslationVector = pos;
                                 OOB.Transformation = Matrix.Scaling((float)Size) * (Matrix)NodeOrientation;
                                 if (OOB.Contains(pos) != ContainmentType.Disjoint)
-                                    trees.Add(m);
+                                    trees.Add(m); // TODO: Put trees in the right quadnode
                             }
                             Trees = trees.ToArray();
                         } else {
