@@ -9,6 +9,8 @@ namespace Planetary_Terrain {
         public Vector3 CameraEuler;
         public Camera Camera;
         public bool FirstPerson = false;
+        public double camDist = 50;
+        public double CameraDistance = 50;
 
         public Player() : base(62) {
             Drag = .2;
@@ -21,7 +23,7 @@ namespace Planetary_Terrain {
             Position = pos;
         }
 
-        public void UpdateInput(double deltaTime) {
+        public void HandleInput(double deltaTime) {
             if (Input.ks.IsPressed(DInput.Key.F) && !Input.lastks.IsPressed(DInput.Key.F)) {
                 if (Vehicle != null) {
                     Vehicle = null;
@@ -62,13 +64,11 @@ namespace Planetary_Terrain {
 
                 Vehicle.AngularVelocity = Vector3d.Lerp(Vehicle.AngularVelocity, new Vector3d(move.Z, move.X, move.Y) * .03, deltaTime);
             } else {
-                CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
-                Vector3d d = Vector3d.Normalize(Position - b.Position);
-                Vector3d planetUp = Vector3.Up;
-                if (b != null) {
-                    Rotation = b.OrientationFromDirection(d);
-                    planetUp = Rotation.Up;
-                    Rotation *= Matrix.RotationAxis(Rotation.Up, CameraEuler.Y);
+                CelestialBody cb = StarSystem.ActiveSystem.GetNearestBody(Position);
+                Matrix o = Matrix.Identity;
+                if (cb != null) {
+                    o = cb.OrientationFromDirection(Vector3d.Normalize(Position - cb.Position));
+                    Rotation = o * Matrix.RotationAxis(o.Up, CameraEuler.Y);
                 }
                 // walk around (now that collisions have been resolved)
                 move.Y = 0;
@@ -78,18 +78,28 @@ namespace Planetary_Terrain {
                     
                 for (int i = 0; i < Contacts.Length; i++) {
                     if (Vector3d.Dot(Contacts[i].ContactPosition - Position, Rotation.Down) > .5) { // object is below us
-                        move = Vector3d.Transform(move, (Matrix3x3)Camera.Rotation);
+                        move = Vector3d.Transform(move, Matrix3x3.RotationAxis(o.Up, CameraEuler.Y)); // TODO: player move vector rotates wrong
+                        move *= 2.6;
+                        if (Input.ks.IsPressed(DInput.Key.LeftShift))
+                            move *= 3;
 
                         Vector3d delta = move - Velocity;
-                        delta -= planetUp * Vector3d.Dot(delta, Contacts[i].ContactNormal);
+                        delta -= (Vector3d)o.Up * Vector3d.Dot(delta, Contacts[i].ContactNormal);
                         if (delta.LengthSquared() > .1)
                             AddForce(delta * 3.0 * Mass, Vector3.Zero);
+
+                        if (Input.ks.IsPressed(DInput.Key.Space))
+                            AddForce((Vector3d)o.Up * Mass * 250, Vector3.Zero);
+
                         break;
                     }
                 }
             }
 
             // Mouse look
+            camDist = Math.Max(camDist + camDist * -Input.ms.Z / 120, 30);
+            CameraDistance = MathUtil.Lerp(CameraDistance, camDist, 10*deltaTime);
+
             if (FirstPerson)
                 CameraEuler += new Vector3(Input.ms.Y, Input.ms.X, 0) * .003f;
             else {
@@ -115,7 +125,7 @@ namespace Planetary_Terrain {
                 if (Vehicle != null)
                     Camera.Position = Vehicle.Position + (Vector3)Vector3.Transform(Vehicle.CockpitCameraPosition, Vehicle.Rotation);
             } else
-                Camera.Position = Position + (Vector3d)Camera.Rotation.Forward * 50;
+                Camera.Position = Position + (Vector3d)Camera.Rotation.Forward * CameraDistance;
 
             CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Camera.Position);
             if (b != null) {
@@ -134,7 +144,7 @@ namespace Planetary_Terrain {
                 
                 Resources.GunModel.Draw(renderer,
                     Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),
-                    Matrix.Scaling(.02f) * (Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * Camera.Rotation));
+                    Matrix.Translation(new Vector3(.15f, -.1f, .2f)) * Camera.Rotation);
             }
         }
 

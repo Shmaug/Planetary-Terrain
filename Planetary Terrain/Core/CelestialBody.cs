@@ -63,9 +63,9 @@ namespace Planetary_Terrain {
         public void DrawHUDIcon(Renderer renderer, double playerSpeed, Vector2 hudDir) {
             double h = (Position - renderer.Camera.Position).Length();
             if (h > SOI) {
-                double dir = Vector3d.Dot(Position - renderer.Camera.Position, renderer.Camera.Rotation.Forward);
+                double dir = Vector3d.Dot(renderer.Camera.Position - Position, renderer.Camera.Rotation.Forward);
                 if (dir > 0) {
-                    Vector2 screenPos = (Vector2)renderer.WorldToScreen(Position);
+                    Vector2 screenPos = (Vector2)renderer.WorldToScreen(Position, renderer.Camera);
                     // TODO: UI radius still off
 
                     float r = 20;

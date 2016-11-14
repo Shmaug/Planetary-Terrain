@@ -139,9 +139,11 @@ namespace Planetary_Terrain {
                             }
 
                     Vector3D[] verts = mesh.Vertices.ToArray();
-                    Vector3D[] texCoords = mesh.TextureCoordinateChannels[0].ToArray();
                     Vector3D[] normals = mesh.Normals.ToArray();
-                    Vector3D[] tangents;
+                    Vector3D[] tangents = new Vector3D[verts.Length];
+                    Vector3D[] texCoords = new Vector3D[verts.Length];
+                    if (mesh.HasTextureCoords(0))
+                        texCoords = mesh.TextureCoordinateChannels[0].ToArray();
                     if (mesh.HasTangentBasis)
                         tangents = mesh.Tangents.ToArray();
                     else {

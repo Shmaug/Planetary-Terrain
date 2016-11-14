@@ -49,7 +49,9 @@ namespace Planetary_Terrain {
             colorMap?.Dispose();
             colorMapView?.Dispose();
 
-            colorMap = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, file, out colorMapView);
+            D3D11.Resource rsrc;
+            ResourceUtil.LoadFromFile(device, file, out colorMapView, out rsrc);
+            colorMap = rsrc as D3D11.Texture2D;
         }
         
         public override void Draw(Renderer renderer) {

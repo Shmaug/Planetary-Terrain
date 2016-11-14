@@ -109,7 +109,9 @@ namespace Planetary_Terrain {
             colorMap?.Dispose();
             colorMapView?.Dispose();
 
-            colorMap = (D3D11.Texture2D)ResourceUtil.LoadFromFile(device, file, out colorMapView);
+            D3D11.Resource rsrc;
+            ResourceUtil.LoadFromFile(device, file, out colorMapView, out rsrc);
+            colorMap = rsrc as D3D11.Texture2D;
         }
 
         public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
@@ -147,7 +149,6 @@ namespace Planetary_Terrain {
                 Atmosphere?.Draw(renderer, pos, scale);
                 Profiler.End();
             }
-
             List<QuadNode> nodesToDraw = new List<QuadNode>();
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].GetRenderLevelNodes(renderer, ref nodesToDraw);
@@ -158,6 +159,9 @@ namespace Planetary_Terrain {
             if (Atmosphere != null) {
                 renderer.Context.VertexShader.SetConstantBuffers(3, Atmosphere.constBuffer);
                 renderer.Context.PixelShader.SetConstantBuffers(3, Atmosphere.constBuffer);
+            } else {
+                renderer.Context.VertexShader.SetConstantBuffer(3, null);
+                renderer.Context.PixelShader.SetConstantBuffer(3, null);
             }
 
             // set constant buffer
@@ -210,15 +214,15 @@ namespace Planetary_Terrain {
                         n.DrawTrees(renderer, constants.lightDirection);
                 }
                 if (imposters.Count > 0) {
-                    // TODO: prerender tree imposter, add normals
-
+                    // TODO: imposter normals
                     renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                     renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
                     renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-
+                
                     Shaders.Imposter.Set(renderer);
-                    renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposter);
-
+                    renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposterDiffuse);
+                    renderer.Context.PixelShader.SetShaderResource(1, Resources.TreeModelImposterNormals);
+                
                     foreach (QuadNode n in imposters)
                         n.DrawImposters(renderer, constants.lightDirection);
                 }

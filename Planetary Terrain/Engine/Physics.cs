@@ -40,10 +40,6 @@ namespace Planetary_Terrain {
         /// Relative to BodyA
         /// </summary>
         public Vector3d ContactNormal;
-        /// <summary>
-        /// Relative to BodyA
-        /// </summary>
-        public Vector3d ContactVelocity;
     }
     class PhysicsHull {
         public enum HullShape {
@@ -51,14 +47,14 @@ namespace Planetary_Terrain {
         }
         public HullShape Shape;
 
-        public double SphereRaduis;
+        public double SphereRadius;
 
         public Vector3d[] Verticies;
         public int[] Indicies;
 
         public PhysicsHull(double radius) {
             Shape = HullShape.Sphere;
-            SphereRaduis = radius;
+            SphereRadius = radius;
         }
 
         public PhysicsHull(Vector3d[] verticies, int[] indicies) {
@@ -78,8 +74,9 @@ namespace Planetary_Terrain {
 
         public double Mass = 1;
         public double Drag = 1;
-        public double StaticFriction = 1;
-        public double DynamicFriction = 2;
+        public double Restitution = .2;
+        public double StaticFriction = .2;
+        public double DynamicFriction = .5;
 
         public bool DisablePhysics = false;
 
@@ -149,37 +146,46 @@ namespace Planetary_Terrain {
 
             List<Contact> contacts = new List<Contact>();
 
-            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Position);
-            if (b != null && b != this) {
+            // TODO: Turn quadtrees into contact meshes instead of this shit
+            CelestialBody cb = StarSystem.ActiveSystem.GetNearestBody(Position);
+            if (cb != null && cb != this) {
                 // check collision
                 if (Hull.Shape == PhysicsHull.HullShape.Sphere) {
-                    Vector3d dir = Position - b.Position;
+                    Vector3d dir = Position - cb.Position;
                     double h = dir.Length();
                     dir /= h;
-                    double t = b.GetHeight(dir);
-                    if (h < t + Hull.SphereRaduis) {
-                        Vector3d n = -b.GetNormal(dir);
-                        double vdn = Vector3d.Dot(Velocity, n);
+                    double f = cb.GetHeight(dir);
+                    if (h < f + Hull.SphereRadius) {
+                        Vector3d n = cb.GetNormal(dir);
+                        double vdn = Vector3d.Dot(Velocity, -n);
                         if (vdn > 0) {
+                            PhysicsBody b = cb as PhysicsBody;
+
                             Contact contact = new Contact();
                             contact.BodyA = b;
                             contact.BodyB = this;
-                            contact.ContactPosition = b.Position + dir * t;
-                            contact.ContactNormal = -n;
-                            contact.ContactVelocity = -n * vdn; // TODO: impulse collision
-
-                            Position = b.Position + dir * (t + Hull.SphereRaduis);
-                            Velocity += contact.ContactVelocity;
-
+                            contact.ContactPosition = b.Position + dir * f;
+                            contact.ContactNormal = n;
                             contacts.Add(contact);
 
+                            // Resolve position
+                            Position = b.Position + dir * (f + Hull.SphereRadius);
+                            double j = Math.Max(-(1 + Math.Max(Restitution, b.Restitution)) * -vdn, 0);
+                            
                             // Friction
-                            double mu = (DynamicFriction + b.DynamicFriction) * .5;
+                            double mu = 1;
                             double l = Velocity.LengthSquared();
                             if (l < .25)
-                                mu = MathUtil.Lerp((StaticFriction + b.StaticFriction) * .5, mu, l * 4); // static coefficient
+                                mu = MathUtil.Lerp((StaticFriction + b.StaticFriction) * .5, (DynamicFriction + b.DynamicFriction) * .5, l * 4); // static coefficient
 
-                            Force f = AddForce(-Vector3d.Normalize(Velocity) * Mass * mu, contact.ContactPosition - Position);
+                            double m = 1 / Mass;
+                            double i = 1 / (2 * Mass * Hull.SphereRadius * Hull.SphereRadius * .2);
+                            Vector3d r = contact.ContactPosition - Position;
+                            Vector3d t = Vector3d.Normalize(Velocity + n * vdn); // Tangent vector
+                            double jt = Vector3d.Dot(-Velocity, t) / (m + (i * Vector3d.Dot(Vector3d.Cross(Vector3d.Cross(r, t), r), t)));
+
+                            Velocity += n * j; // Collision impulse
+                            //Velocity = t * jt / Mass; // Friction impulse
                         }
                     }
                 }

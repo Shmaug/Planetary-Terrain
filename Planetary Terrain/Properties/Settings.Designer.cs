@@ -25,7 +25,7 @@ namespace Planetary_Terrain.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public double TreeImposterDistance {
             get {
                 return ((double)(this["TreeImposterDistance"]));

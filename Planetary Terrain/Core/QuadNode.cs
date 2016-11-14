@@ -366,6 +366,7 @@ namespace Planetary_Terrain {
         double oceanLevel;
         
         D3D11.Buffer TreeBuffer;
+        int TreeBufferSize = 0;
         D3D11.Buffer TreeImposterBuffer;
         D3D11.Buffer TreeImposerConstantBuffer;
 
@@ -556,7 +557,7 @@ namespace Planetary_Terrain {
                         } else {
                             // generate trees if the parent node has no trees (otherwise when we render, the parent renders it's trees)
                             Random r = new Random(NodeID);
-                            int c = (int)(s * VertexSpacing * s * VertexSpacing * .005); // .005 trees per square meter
+                            int c = (int)(s * VertexSpacing * s * VertexSpacing * .001); // .001 trees per square meter
                             double x, z;
                             Matrix rot;
                             List<Matrix> trees = new List<Matrix>();
@@ -1085,36 +1086,38 @@ namespace Planetary_Terrain {
         }
 
         public void DrawTrees(Renderer renderer, Vector3 lightDirection) {
-            if (TreeBuffer == null) {
-                float[] data = new float[Trees.Length * Matrix.SizeInBytes];
+            if (TreeBuffer == null || TreeBufferSize < Trees.Length) {
+                float[] data = new float[Trees.Length * 16];
                 for (int i = 0; i < Trees.Length; i++) {
-                    data[i * Matrix.SizeInBytes + 0] = Trees[i].M11;
-                    data[i * Matrix.SizeInBytes + 1] = Trees[i].M12;
-                    data[i * Matrix.SizeInBytes + 2] = Trees[i].M13;
-                    data[i * Matrix.SizeInBytes + 3] = Trees[i].M14;
+                    data[i * 16 + 0] = Trees[i].M11;
+                    data[i * 16 + 1] = Trees[i].M12;
+                    data[i * 16 + 2] = Trees[i].M13;
+                    data[i * 16 + 3] = Trees[i].M14;
 
-                    data[i * Matrix.SizeInBytes + 4] = Trees[i].M21;
-                    data[i * Matrix.SizeInBytes + 5] = Trees[i].M22;
-                    data[i * Matrix.SizeInBytes + 6] = Trees[i].M23;
-                    data[i * Matrix.SizeInBytes + 7] = Trees[i].M24;
+                    data[i * 16 + 4] = Trees[i].M21;
+                    data[i * 16 + 5] = Trees[i].M22;
+                    data[i * 16 + 6] = Trees[i].M23;
+                    data[i * 16 + 7] = Trees[i].M24;
 
-                    data[i * Matrix.SizeInBytes + 8] = Trees[i].M31;
-                    data[i * Matrix.SizeInBytes + 9] = Trees[i].M32;
-                    data[i * Matrix.SizeInBytes + 10] = Trees[i].M33;
-                    data[i * Matrix.SizeInBytes + 11] = Trees[i].M34;
+                    data[i * 16 + 8] = Trees[i].M31;
+                    data[i * 16 + 9] = Trees[i].M32;
+                    data[i * 16 + 10] = Trees[i].M33;
+                    data[i * 16 + 11] = Trees[i].M34;
 
-                    data[i * Matrix.SizeInBytes + 12] = Trees[i].M41;
-                    data[i * Matrix.SizeInBytes + 13] = Trees[i].M42;
-                    data[i * Matrix.SizeInBytes + 14] = Trees[i].M43;
-                    data[i * Matrix.SizeInBytes + 15] = Trees[i].M44;
+                    data[i * 16 + 12] = Trees[i].M41;
+                    data[i * 16 + 13] = Trees[i].M42;
+                    data[i * 16 + 14] = Trees[i].M43;
+                    data[i * 16 + 15] = Trees[i].M44;
                 }
+                TreeBufferSize = Trees.Length;
+                TreeBuffer?.Dispose();
                 TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, data);
             }
 
             Vector3d pos;
             double scale;
             renderer.Camera.GetScaledSpace(MeshCenter + Body.Position, out pos, out scale);
-
+            
             renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
             Resources.TreeModel.DrawInstanced(
                 renderer,
@@ -1145,10 +1148,14 @@ namespace Planetary_Terrain {
             
             renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeImposterBuffer, sizeof(float) * 6, 0));
 
+            float[] cbuffer = new float[8] {
+                posf.X, posf.Y, posf.Z, 0,
+                lightDirection.X, lightDirection.Y,lightDirection.Z, 0
+            };
             if (TreeImposerConstantBuffer == null)
-                TreeImposerConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref posf, 16);
+                TreeImposerConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, cbuffer, 32);
             else
-                renderer.Context.UpdateSubresource(ref posf, TreeImposerConstantBuffer);
+                renderer.Context.UpdateSubresource(cbuffer, TreeImposerConstantBuffer);
             renderer.Context.VertexShader.SetConstantBuffer(1, TreeImposerConstantBuffer);
 
             renderer.Context.DrawIndexedInstanced(6, Trees.Length, 0, 0, 0);

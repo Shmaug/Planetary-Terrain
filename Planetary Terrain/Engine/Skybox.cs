@@ -12,12 +12,12 @@ namespace Planetary_Terrain {
 
         public Skybox(string dir, D3D11.Device device) {
             TextureViews = new D3D11.ShaderResourceView[6];
-            ResourceUtil.LoadFromFile(device, dir + "/NegativeX.png", out TextureViews[0]).Dispose();
-            ResourceUtil.LoadFromFile(device, dir + "/PositiveX.png", out TextureViews[1]).Dispose();
-            ResourceUtil.LoadFromFile(device, dir + "/NegativeY.png", out TextureViews[2]).Dispose();
-            ResourceUtil.LoadFromFile(device, dir + "/PositiveY.png", out TextureViews[3]).Dispose();
-            ResourceUtil.LoadFromFile(device, dir + "/NegativeZ.png", out TextureViews[4]).Dispose();
-            ResourceUtil.LoadFromFile(device, dir + "/PositiveZ.png", out TextureViews[5]).Dispose();
+            ResourceUtil.LoadFromFile(device, dir + "/NegativeX.png", out TextureViews[0]);
+            ResourceUtil.LoadFromFile(device, dir + "/PositiveX.png", out TextureViews[1]);
+            ResourceUtil.LoadFromFile(device, dir + "/NegativeY.png", out TextureViews[2]);
+            ResourceUtil.LoadFromFile(device, dir + "/PositiveY.png", out TextureViews[3]);
+            ResourceUtil.LoadFromFile(device, dir + "/NegativeZ.png", out TextureViews[4]);
+            ResourceUtil.LoadFromFile(device, dir + "/PositiveZ.png", out TextureViews[5]);
             sides = new Matrix[6] {
                 Matrix.RotationY(-MathUtil.PiOverTwo) * Matrix.Translation(-1,  0,  0),
                 Matrix.RotationY( MathUtil.PiOverTwo) * Matrix.Translation( 1,  0,  0),

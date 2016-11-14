@@ -43,7 +43,8 @@ namespace Planetary_Terrain {
                 shaderDirectory + "Model",
                 device, context, ModelVertex.InputElements);
 
-            List<D3D11.InputElement> ime = new List<D3D11.InputElement>(ModelVertex.InputElements);
+            List<D3D11.InputElement> ime = new List<D3D11.InputElement>();
+            ime.AddRange(ModelVertex.InputElements);
             ime.Add(new D3D11.InputElement("WORLD", 0, Format.R32G32B32A32_Float, 0, 1, D3D11.InputClassification.PerInstanceData, 1));
             ime.Add(new D3D11.InputElement("WORLD", 1, Format.R32G32B32A32_Float, 16, 1, D3D11.InputClassification.PerInstanceData, 1));
             ime.Add(new D3D11.InputElement("WORLD", 2, Format.R32G32B32A32_Float, 32, 1, D3D11.InputClassification.PerInstanceData, 1));
@@ -81,12 +82,16 @@ namespace Planetary_Terrain {
 
         public static void Dispose() {
             BasicShader.Dispose();
+            TexturedShader.Dispose();
             PlanetShader.Dispose();
             WaterShader.Dispose();
-            StarShader.Dispose();
             AtmosphereShader.Dispose();
+            StarShader.Dispose();
             ModelShader.Dispose();
-            TexturedShader.Dispose();
+            InstancedModel.Dispose();
+            Imposter.Dispose();
+            AeroFXShader.Dispose();
+            BlurShader.Dispose();
         }
     }
 }

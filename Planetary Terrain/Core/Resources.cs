@@ -7,13 +7,16 @@ namespace Planetary_Terrain {
         public static Model ShipModel;
         public static Model GunModel;
         public static Model CylinderModel;
-        
+
+        public static Model MemeModel;
+
         public static D3D11.Buffer BoundingBoxVertexBuffer;
         public static D3D11.Buffer QuadVertexBuffer;
         public static D3D11.Buffer QuadIndexBuffer;
 
         public static Model TreeModel;
-        public static D3D11.ShaderResourceView TreeModelImposter;
+        public static D3D11.ShaderResourceView TreeModelImposterDiffuse;
+        public static D3D11.ShaderResourceView TreeModelImposterNormals;
 
         public static D3D11.ShaderResourceView GrassTexture;
 
@@ -64,7 +67,7 @@ namespace Planetary_Terrain {
             ShipModel.Shininess = 200;
             ShipModel.SpecularIntensity = 1;
 
-            GunModel = new Model(modelFolder + "gun/gun.fbx", device);
+            GunModel = new Model(modelFolder + "gun/gun.fbx", device, Matrix.Scaling(.02f));
             GunModel.Meshes[0].SetNormalTexture(device, modelFolder + "gun/normal.png");
             GunModel.Meshes[0].SetSpecularTexture(device, modelFolder + "gun/specular.png");
             GunModel.SpecularColor = Color.White;
@@ -75,16 +78,20 @@ namespace Planetary_Terrain {
             CylinderModel.Shininess = 200;
             CylinderModel.SpecularIntensity = 0;
             
-            TreeModel = new Model(modelFolder + "trees/tree0.fbx", device);
+            TreeModel = new Model(modelFolder + "tree/tree.fbx", device);
+            TreeModel.Meshes[0].SetNormalTexture(device, modelFolder + "tree/leaf_normal.png");
+            TreeModel.Meshes[0].SetSpecularTexture(device, modelFolder + "tree/leaf_specular.png");
             TreeModel.SpecularColor = Color.White;
             TreeModel.Shininess = 0;
             TreeModel.SpecularIntensity = 0;
-
-            ResourceUtil.LoadFromFile(device, modelFolder + "trees/tree0imposter.png", out TreeModelImposter);
+            
+            ResourceUtil.LoadFromFile(device, modelFolder + "tree/imposter_diffuse.png", out TreeModelImposterDiffuse);
+            ResourceUtil.LoadFromFile(device, modelFolder + "tree/imposter_normal.png", out TreeModelImposterNormals);
             ResourceUtil.LoadFromFile(device, "data/textures/grass.dds", out GrassTexture);
         }
 
         public static void Dispose() {
+            MemeModel?.Dispose();
             ShipModel.Dispose();
             GunModel.Dispose();
             CylinderModel.Dispose();

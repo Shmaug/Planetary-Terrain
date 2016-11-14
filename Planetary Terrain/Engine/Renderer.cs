@@ -367,13 +367,6 @@ namespace Planetary_Terrain {
             aeroFXShaderResourceView = new D3D11.ShaderResourceView(Device, aeroFXRenderTargetView.Resource);
         }
         
-        public Vector3 WorldToScreen(Vector3d point) {
-            point -= Camera.Position;
-            point.Normalize();
-
-            return Viewport.Project(point, Camera.Projection, Camera.View, Matrix.Identity);
-        }
-
         public void BeginDrawFrame() {
             constants.View = Camera.View;
             constants.Projection = Camera.Projection;
@@ -434,7 +427,14 @@ namespace Planetary_Terrain {
                 Context.Rasterizer.State = DrawWireframe ? rasterizerStateWireframeCullBack : rasterizerStateSolidCullBack;
             }
         }
-        
+
+        public Vector3 WorldToScreen(Vector3d point, Camera camera) {
+            point -= camera.Position;
+            point.Normalize();
+
+            return Viewport.Project(point * (camera.zFar + camera.zNear) * .5, camera.Projection, camera.View, Matrix.Identity);
+        }
+
         public void Dispose() {
             foreach (KeyValuePair<string, D2D1.Brush> p in Brushes)
                 p.Value.Dispose();

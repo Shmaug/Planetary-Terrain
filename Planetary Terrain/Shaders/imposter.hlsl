@@ -2,26 +2,18 @@
 
 cbuffer perFrame : register(b1) {
 	float3 offset;
+	float3 LightDirection;
 }
 
-Texture2D tex : register(t0);
-Texture2D normtex : register(t1);
+Texture2D diffusetex : register(t0);
+Texture2D normaltex : register(t1);
 
 struct v2f {
 	float4 position : SV_POSITION;
 	float2 uv : TEXCOORD0;
+	float3 normal : TEXCOORD1;
+	float3 tangent : TEXCOORD2;
 };
-
-float4x4 billboard(float3 pos, float3 up) {
-	float3 look = -normalize(pos);
-	float3 right = normalize(cross(up, look));
-
-	return float4x4(
-		right.x, right.y, right.z, 0,
-		up   .x, up   .y, up   .z, 0,
-		look .x, look .y, look .z, 0,
-		pos  .x, pos  .y, pos  .z, 1);
-}
 
 v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0, float3 pos : TEXCOORD1, float3 up : TEXCOORD2, uint instanceID : SV_InstanceID) {
 	v2f v;
@@ -29,18 +21,39 @@ v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0, float3 pos : TEXCOO
 	vertex.y += .5;
 	vertex.xyz *= .5;
 
-	vertex.xyz *= 50;
-	
-	v.position = mul(vertex, mul(billboard(pos+offset, up), mul(View, Projection)));
+	vertex.xyz *= 60;
+
+	pos += offset;
+
+	float3 look = -normalize(pos);// cross(right, up);
+	float3 right = normalize(cross(up, look));
+
+	float4x4 billboard = float4x4(
+		right.x, right.y, right.z, 0,
+		up.x, up.y, up.z, 0,
+		look.x, look.y, look.z, 0,
+		pos.x, pos.y, pos.z, 1);
+
+	v.position = mul(vertex, mul(billboard, mul(View, Projection)));
 	v.position.z = LogDepth(v.position.w);
-	v.uv = float2(uv.x, 1-uv.y);
+	v.uv = float2(uv.x, 1 - uv.y);
+
+	v.normal = mul(float3(0,0,1), (float3x3)billboard);
+	v.tangent = mul(float3(0,1,0), (float3x3)billboard);
+
 	return v;
 }
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float4 c = tex.Sample(AnisotropicSampler, i.uv);
-	float4 n = normtex.Sample(AnisotropicSampler, i.uv);
+	float4 c = diffusetex.Sample(AnisotropicSampler, i.uv);
 	clip(c.a - .1);
+	c.a = 1;
+
+	float3 n = UnpackNormal(normalize(i.normal), normalize(i.tangent), normaltex.Sample(AnisotropicSampler, i.uv).rgb);
+
+	float light = clamp(dot(LightDirection, -n), 0, 1);
+	c.rgb *= light;
+
 	return c;
 }

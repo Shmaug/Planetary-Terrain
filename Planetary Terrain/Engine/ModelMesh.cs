@@ -26,19 +26,19 @@ namespace Planetary_Terrain {
         
         public void SetDiffuseTexture(D3D11.Device device, string filePath) {
             DiffuseTextureView?.Dispose();
-            ResourceUtil.LoadFromFile(device, filePath, out DiffuseTextureView).Dispose();
+            ResourceUtil.LoadFromFile(device, filePath, out DiffuseTextureView);
         }
         public void SetEmissiveTexture(D3D11.Device device, string filePath) {
             EmissiveTextureView?.Dispose();
-            ResourceUtil.LoadFromFile(device, filePath, out EmissiveTextureView).Dispose();
+            ResourceUtil.LoadFromFile(device, filePath, out EmissiveTextureView);
         }
         public void SetSpecularTexture(D3D11.Device device, string filePath) {
             SpecularTextureView?.Dispose();
-            ResourceUtil.LoadFromFile(device, filePath, out SpecularTextureView).Dispose();
+            ResourceUtil.LoadFromFile(device, filePath, out SpecularTextureView);
         }
         public void SetNormalTexture(D3D11.Device device, string filePath) {
             NormalTextureView?.Dispose();
-            ResourceUtil.LoadFromFile(device, filePath, out NormalTextureView).Dispose();
+            ResourceUtil.LoadFromFile(device, filePath, out NormalTextureView);
         }
         
         public void SetResources(Renderer renderer) {

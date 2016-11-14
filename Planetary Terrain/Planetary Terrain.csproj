@@ -145,10 +145,22 @@
     <Content Include="Data\Models\Gun\specular.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Trees\tree0.png">
+    <Content Include="Data\Models\Tree\bark.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Models\Trees\tree0imposter.png">
+    <Content Include="Data\Models\Tree\imposter_diffuse.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Tree\imposter_normal.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Tree\leaf_diffuse.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Tree\leaf_normal.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Models\Tree\leaf_specular.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Textures\Background\NegativeX.png">
@@ -169,22 +181,26 @@
     <Content Include="Data\Textures\Background\PositiveZ.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Textures\Grass.dds">
+    <Content Include="Data\Textures\moon.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Textures\Earth.dds">
+    <Content Include="Data\Textures\grass.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Data\Textures\Sun.dds">
+    <Content Include="Data\Textures\earth.dds">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Textures\sun.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="ShaderCompilation\d3dcompiler_47.dll" />
     <Content Include="ShaderCompilation\fxc.exe" />
     <Content Include="Shaders\imposter.hlsl" />
-    <None Include="Data\Models\Cruiser\mask.fbx">
+    <None Include="Data\Models\blender\tree.blend" />
+    <None Include="Data\Models\Cruiser\ship.fbx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Data\Models\Cruiser\ship.fbx">
+    <None Include="Data\Models\Tree\tree.fbx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Shaders\.manifest" />
@@ -241,9 +257,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Data\Models\Ship\ship.fbx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Models\Trees\tree0.fbx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />

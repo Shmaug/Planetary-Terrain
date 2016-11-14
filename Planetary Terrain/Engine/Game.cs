@@ -82,7 +82,21 @@ namespace Planetary_Terrain {
                 Profiler p = Profiler.Begin("Frame");
 
                 Profiler.Begin("Update");
+                #region input state update
+                if (renderForm.Focused) {
+                    Input.ks = keyboard.GetCurrentState();
+                    if (Input.lastks == null) Input.lastks = Input.ks;
+                }
+                Input.ms = mouse.GetCurrentState();
+                if (Input.lastms == null) Input.lastms = Input.ms;
+                Input.MousePos = realMousePos;
+                #endregion
                 Update(deltaTime);
+                #region input state update
+                Input.lastks = Input.ks;
+                Input.lastms = Input.ms;
+                Input.LastMousePos = Input.MousePos;
+                #endregion
                 Profiler.End();
 
                 Profiler.Begin("Draw");
@@ -90,6 +104,7 @@ namespace Planetary_Terrain {
                 Profiler.End();
                 
                 Profiler.End();
+
                 Debug.EndFrame(p.Stopwatch.Elapsed.TotalSeconds);
 
                 if (renderer.DrawGUI) {
@@ -97,6 +112,7 @@ namespace Planetary_Terrain {
                     Debug.Draw2D(renderer, p);
                     renderer.D2DContext.EndDraw();
                 }
+                
                 renderer.Present();
             });
         }
@@ -105,12 +121,13 @@ namespace Planetary_Terrain {
             skybox = new Skybox("Data/Textures/Background", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
 
+            renderer.Camera = new Camera(MathUtil.DegreesToRadians(80), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
+
             player = new Player();
-            player.Camera = new Camera(MathUtil.DegreesToRadians(70), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
+            player.Camera = renderer.Camera;
             player.Vehicle = new Ship(renderer.Device);
-            player.Vehicle.CockpitCameraPosition = new Vector3(0, 5.5f, 7.5f);
+            player.Vehicle.CockpitCameraPosition = new Vector3(0, 2.6f, 7.6f);
             player.DisablePhysics = true;
-            renderer.Camera = player.Camera;
             StarSystem.ActiveSystem.physics.AddBody(player);
             StarSystem.ActiveSystem.physics.AddBody(player.Vehicle);
 
@@ -123,7 +140,7 @@ namespace Planetary_Terrain {
 
             new UI.TextLabel(ControlPanel, "Title", new RawRectangleF(0, 0, 235, h), "NAVIGATOR", renderer.SegoeUI24, renderer.Brushes["White"]);
             float y = h;
-            Vector3d d = Vector3d.Normalize(new Vector3d(0, 1, -.45));
+            Vector3d d = Vector3d.Normalize(new Vector3d(.25, .85, -.33));
             foreach (CelestialBody p in StarSystem.ActiveSystem.bodies) {
                 new UI.TextLabel(ControlPanel, p.Name + "label", new RawRectangleF(2, y, cpanelWidth-2, y + h - 2), p.Name, renderer.SegoeUI24, renderer.Brushes["White"]);
                 y += 30;
@@ -158,13 +175,6 @@ namespace Planetary_Terrain {
         
         void Update(double deltaTime) {
             Profiler.Begin("Input Processing");
-            #region input state update
-            Input.ks = keyboard.GetCurrentState();
-            Input.ms = mouse.GetCurrentState();
-            if (Input.lastks == null) Input.lastks = Input.ks;
-            if (Input.lastms == null) Input.lastms = Input.ms;
-            Input.MousePos = realMousePos;
-            #endregion
             
             Input.MouseBlocked = ControlPanel.Contains(Input.MousePos.X, Input.MousePos.Y);
 
@@ -177,7 +187,7 @@ namespace Planetary_Terrain {
             if (Input.ks.IsPressed(DInput.Key.F4) && !Input.lastks.IsPressed(DInput.Key.F4))
                 Debug.DrawBoundingBoxes = !Debug.DrawBoundingBoxes;
 
-            player.UpdateInput(deltaTime);
+            player.HandleInput(deltaTime);
 
             if (player.FirstPerson)
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
@@ -193,12 +203,6 @@ namespace Planetary_Terrain {
             Profiler.End();
 
             ControlPanel.Update((float)deltaTime);
-            
-            #region input state update
-            Input.lastks = Input.ks;
-            Input.lastms = Input.ms;
-            Input.LastMousePos = Input.MousePos;
-            #endregion
         }
         void Draw() {
             if (resizePending) {
@@ -214,19 +218,21 @@ namespace Planetary_Terrain {
             skybox.Draw(renderer);
             StarSystem.ActiveSystem.physics.Draw(renderer);
             Profiler.End();
-
-            Debug.Draw3D(renderer); // act like debug draws don't take a toll on performance
             
+            Debug.Draw3D(renderer); // act like debug draws don't take a toll on performance
+
             // 2d
-            Profiler.Begin("2d Draw");
             if (renderer.DrawGUI) {
+                Profiler.Begin("2d Draw");
                 renderer.D2DContext.BeginDraw();
+
                 StarSystem.ActiveSystem.DrawPlanetHudIcons(renderer, player.Velocity.Length());
                 player.DrawHUD(renderer);
                 ControlPanel.Draw(renderer);
+                
                 renderer.D2DContext.EndDraw();
+                Profiler.End();
             }
-            Profiler.End();
         }
 
         public void Dispose() {

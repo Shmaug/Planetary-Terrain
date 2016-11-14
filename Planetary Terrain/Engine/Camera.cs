@@ -7,8 +7,7 @@ namespace Planetary_Terrain {
         private float _fov, _fovy, _aspect, _near = 1f, _far = 10000000;
         private Matrix _rotation = Matrix.Identity, _view, _proj;
         private BoundingFrustum _frustum;
-
-        #region make functions
+        
         private void makeProjection() {
             _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
             _frustum = new BoundingFrustum(_view * _proj);
@@ -17,7 +16,6 @@ namespace Planetary_Terrain {
             _view = Matrix.LookAtLH(Vector3.Zero, _rotation.Backward, _rotation.Up);
             _frustum = new BoundingFrustum(_view * _proj);
         }
-        #endregion
 
         public Vector3d Position {
             get { return _position; }
@@ -29,7 +27,7 @@ namespace Planetary_Terrain {
             set { _rotation = value; makeView(); }
         }
 
-        #region projection parameters
+        #region public parameters
         public float FieldOfView { get { return _fov; }
             set
             {
@@ -57,12 +55,12 @@ namespace Planetary_Terrain {
                 makeProjection();
             }
         }
-        #endregion
         
         public Matrix View { get { return _view; } }
         public Matrix Projection { get { return _proj; } }
         public BoundingFrustum Frustum { get { return _frustum; } }
         public float VerticalFieldOfView { get { return _fovy; } }
+        #endregion
 
         public Camera(float fieldOfView, float aspectRatio) {
             _aspect = aspectRatio;
@@ -71,6 +69,7 @@ namespace Planetary_Terrain {
             makeView();
             makeProjection();
         }
+
 
         public bool Intersects(OrientedBoundingBox oob) {
             Matrix invoob = Matrix.Invert(oob.Transformation);

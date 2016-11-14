@@ -383,11 +383,11 @@ namespace Planetary_Terrain {
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Center;
             renderer.D2DContext.DrawText(frameGraphSize + " frames", renderer.Consolas14,
                 new RawRectangleF(30 + gWidth, y0, 30 + gWidth, y0 + 25), renderer.Brushes["White"]);
-            foreach (RawVector2 m in marks) {
-                renderer.D2DContext.DrawLine(
-                    m,
-                    new Vector2(m.X, y0), renderer.Brushes["Yellow"], .25f);
-            }
+            //foreach (RawVector2 m in marks) {
+            //    renderer.D2DContext.DrawLine(
+            //        m,
+            //        new Vector2(m.X, y0), renderer.Brushes["Yellow"], .25f);
+            //}
             #endregion
         }
 

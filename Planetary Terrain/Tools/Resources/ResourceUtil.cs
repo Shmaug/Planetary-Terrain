@@ -68,21 +68,25 @@ namespace Planetary_Terrain {
             return result;
         }
 
-        public static D3D11.Resource LoadFromFile(D3D11.Device device, string fileName, out D3D11.ShaderResourceView srv) {
+        public static void LoadFromFile(D3D11.Device device, string fileName, out D3D11.ShaderResourceView srv) {
+            D3D11.Resource rsrc;
+            LoadFromFile(device, fileName, out srv, out rsrc);
+            rsrc.Dispose();
+        }
+        public static void LoadFromFile(D3D11.Device device, string fileName, out D3D11.ShaderResourceView srv, out D3D11.Resource rsrc) {
             if (!File.Exists(fileName)) {
                 srv = null;
-                return null;
+                rsrc = null;
             }
             if (Path.GetExtension(fileName).ToLower() == ".dds") {
-                var result = LoadDDSFromBuffer(device, SharpDX.IO.NativeFile.ReadAllBytes(fileName), out srv);
-                return result;
+                rsrc = LoadDDSFromBuffer(device, SharpDX.IO.NativeFile.ReadAllBytes(fileName), out srv);
             } else {
                 SharpDX.WIC.ImagingFactory2 fac = new SharpDX.WIC.ImagingFactory2();
                 var bs = LoadBitmap(fac, fileName);
                 var texture = CreateTexture2DFromBitmap(device, bs);
                 srv = new D3D11.ShaderResourceView(device, texture);
                 fac.Dispose();
-                return texture;
+                rsrc = texture;
             }
         }
     }

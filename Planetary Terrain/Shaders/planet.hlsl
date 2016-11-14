@@ -27,10 +27,16 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float4 color : CO
 	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
 	v.tempHumid = tempHumid;
 	v.color = color;
-
-	ScatterOutput o = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos);
-	v.c0 = o.c0;
-	v.c1 = o.c1;
+	
+	if (CameraHeight > 0) { // should be 0 if atmosphere is null
+		ScatterOutput o = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos);
+		v.c0 = o.c0;
+		v.c1 = o.c1;
+	}
+	else {
+		v.c0 = 0;
+		v.c1 = 0;
+	}
 
 	return v;
 }
@@ -44,7 +50,8 @@ float4 psmain(v2f i) : SV_TARGET
 
 	col *= clamp(dot(LightDirection, -i.normal), 0, 1);
 
-	col = i.c1 + col * i.c0;
+	if (CameraHeight > 0) // should be 0 if atmosphere is null
+		col = i.c1 + col * i.c0;
 
 	return float4(col, 1) * i.color;
 }

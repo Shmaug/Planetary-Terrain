@@ -44,6 +44,20 @@ namespace Planetary_Terrain {
             earth.SetColormap("Data/Textures/Earth.dds", device);
             bodies.Add(earth);
 
+            Planet moon = new Planet(
+                "Moon",
+                earth.Position + Vector3d.Normalize(new Vector3d(.75, 0, .25)) * 362570000,
+                1737000,
+                7.34767309e22,
+                20000) {
+                HasOcean = false,
+                HasTrees = false,
+                SurfaceTemperature = 0,
+                TemperatureRange = 15
+            };
+            moon.SetColormap("Data/Textures/moon.dds", device);
+            bodies.Add(moon);
+
             //Planet mars = new Planet("Mars", new Vector3d(0, 0, 227940000000), 3397000, 6.39e23, 10000,
             //    new Atmosphere(3397000 + 10000) {
             //        SurfacePressure = 100, //kPa

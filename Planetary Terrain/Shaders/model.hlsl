@@ -57,7 +57,7 @@ float4 psmain(v2f i) : SV_TARGET
 	clip(col.a - .1);
 
 	if (UseNormalTexture)
-		i.normal = BumpNormal(i.normal, normalize(i.tangent), NormalTexture.Sample(AnisotropicSampler, i.uv));
+		i.normal = UnpackNormal(i.normal, normalize(i.tangent), NormalTexture.Sample(AnisotropicSampler, i.uv));
 
 	float light = clamp(dot(LightDirection, -i.normal), 0, 1);
 	col.rgb *= light;
