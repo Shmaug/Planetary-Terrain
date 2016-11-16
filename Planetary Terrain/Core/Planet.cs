@@ -147,11 +147,13 @@ namespace Planetary_Terrain {
                 Atmosphere?.Draw(renderer, pos, scale);
                 Profiler.End();
             }
+
+            Profiler.Begin(Name + " Draw Prepare");
             List<QuadNode> nodesToDraw = new List<QuadNode>();
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].GetRenderLevelNodes(renderer, ref nodesToDraw);
             
-            Shaders.PlanetShader.Set(renderer);
+            Shaders.Planet.Set(renderer);
 
             // atmosphere constants
             if (Atmosphere != null) {
@@ -170,6 +172,7 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetShaderResource(1, colorMapView);
 
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
+            Profiler.End();
 
             Profiler.Begin(Name + " Ground Draw");
             foreach (QuadNode n in nodesToDraw)
@@ -179,7 +182,7 @@ namespace Planetary_Terrain {
             if (HasOcean) {
                 Profiler.Begin(Name + " Water Draw");
                 // set water shader
-                Shaders.WaterShader.Set(renderer);
+                Shaders.Water.Set(renderer);
 
                 renderer.Context.VertexShader.SetConstantBuffers(2, constBuffer);
                 renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
@@ -196,7 +199,6 @@ namespace Planetary_Terrain {
                 Profiler.End();
             }
             if (HasTrees && Properties.Settings.Default.DrawTrees) {
-
                 // tree pass
                 Profiler.Begin("Draw Trees");
                 
@@ -206,7 +208,7 @@ namespace Planetary_Terrain {
                     BaseQuads[i].GetTreeNodes(renderer, ref trees, ref imposters);
 
                 if (trees.Count > 0) {
-                    Shaders.InstancedModel.Set(renderer);
+                    Shaders.ModelInstanced.Set(renderer);
                     foreach (QuadNode n in trees)
                         n.DrawTrees(renderer);
                 }

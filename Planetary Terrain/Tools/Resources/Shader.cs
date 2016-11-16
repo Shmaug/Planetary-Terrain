@@ -16,6 +16,7 @@ namespace Planetary_Terrain {
                 using (var byteCode = ShaderBytecode.FromFile(file + "_vs.cso")) {
                     Signature = ShaderSignature.GetInputSignature(byteCode);
                     VertexShader = new D3D11.VertexShader(device, byteCode);
+                    InputLayout = new D3D11.InputLayout(device, Signature, inputElements);
                 }
 
             if (File.Exists(file + "_ps.cso"))
@@ -25,8 +26,6 @@ namespace Planetary_Terrain {
             if (File.Exists(file + "_gs.cso"))
                 using (var byteCode = ShaderBytecode.FromFile(file + "_gs.cso"))
                     GeometryShader = new D3D11.GeometryShader(device, byteCode);
-
-            InputLayout = new D3D11.InputLayout(device, Signature, inputElements);
         }
 
         public void Set(Renderer renderer) {
@@ -41,10 +40,11 @@ namespace Planetary_Terrain {
         }
 
         public void Dispose() {
-            VertexShader.Dispose();
-            PixelShader.Dispose();
-            Signature.Dispose();
-            InputLayout.Dispose();
+            VertexShader?.Dispose();
+            PixelShader?.Dispose();
+            GeometryShader?.Dispose();
+            Signature?.Dispose();
+            InputLayout?.Dispose();
         }
     }
 }

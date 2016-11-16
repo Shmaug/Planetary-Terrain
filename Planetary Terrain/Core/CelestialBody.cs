@@ -34,6 +34,8 @@ namespace Planetary_Terrain {
             MaxVertexSpacing = radius*.5 / QuadNode.GridSize;
             
             InitializeQuadTree();
+
+            Hull.Shape = PhysicsHull.HullShape.Celestial;
         }
         void InitializeQuadTree() {
             double s = 1.41421356237 * Radius;

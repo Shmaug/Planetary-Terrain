@@ -275,6 +275,7 @@ namespace Planetary_Terrain {
             ShadowCamera.zFar = 1000;
             ShadowCamera.CreateResources(Device, 1, 0, 1024, 1024);
             //Cameras.Add(ShadowCamera);
+            // TODO: Shadow camera has no depth
 
             Resize(ResolutionX, ResolutionY);
         }
@@ -335,13 +336,14 @@ namespace Planetary_Terrain {
 
             Context.UpdateSubresource(ref constants, constantBuffer);
 
+            Context.OutputMerger.ResetTargets();
             Context.OutputMerger.SetTargets(camera.depthStencilView, camera.renderTargetView);
         }
         
         public void Clear(Color color) {
             foreach (Camera c in Cameras) {
                 Context.ClearRenderTargetView(c.renderTargetView, color);
-                Context.ClearDepthStencilView(c.depthStencilView, D3D11.DepthStencilClearFlags.Depth, 1f, 0);
+                Context.ClearDepthStencilView(c.depthStencilView, D3D11.DepthStencilClearFlags.Depth | D3D11.DepthStencilClearFlags.Stencil, 1f, 0);
             }
         }
         

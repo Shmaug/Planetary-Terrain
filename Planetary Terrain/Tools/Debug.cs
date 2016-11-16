@@ -228,7 +228,7 @@ namespace Planetary_Terrain {
             cbuffer?.Dispose();
             cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, b);
 
-            Shaders.BasicShader.Set(renderer);
+            Shaders.Colored.Set(renderer);
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineStrip;
 
             foreach (Line line in lines) {
@@ -394,7 +394,7 @@ namespace Planetary_Terrain {
         }
 
         public static void DrawTexture(Renderer renderer, Vector4 pos, D3D11.ShaderResourceView texture) {
-            Shaders.BlurShader.Set(renderer);
+            Shaders.Bllur.Set(renderer);
             
             cbuffer?.Dispose();
             cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref pos);

@@ -163,7 +163,7 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetConstantBuffers(3, constBuffer);
         }
         public void Draw(Renderer renderer, Vector3d pos, double scale) {
-            Shaders.AtmosphereShader.Set(renderer);
+            Shaders.Atmosphere.Set(renderer);
             
             SetConstants(pos, scale);
             

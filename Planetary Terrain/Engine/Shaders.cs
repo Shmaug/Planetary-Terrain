@@ -6,40 +6,41 @@ namespace Planetary_Terrain {
     static class Shaders {
         public const string shaderDirectory = "Data/Shaders/";
         
-        public static Shader BasicShader;
-        public static Shader TexturedShader;
-        public static Shader PlanetShader;
-        public static Shader WaterShader;
-        public static Shader AtmosphereShader;
-        public static Shader StarShader;
-        public static Shader ModelShader;
-        public static Shader InstancedModel;
+        public static Shader Colored;
+        public static Shader Textured;
+        public static Shader Planet;
+        public static Shader Water;
+        public static Shader Atmosphere;
+        public static Shader Star;
+        public static Shader Model;
+        public static Shader ModelInstanced;
         public static Shader Imposter;
-        public static Shader AeroFXShader;
-        public static Shader BlurShader;
+        public static Shader AeroFX;
+        public static Shader Bllur;
+        public static Shader Depth;
 
         public static void Load(D3D11.Device device, D3D11.DeviceContext context) {
-            StarShader = new Shader(
+            Star = new Shader(
                 shaderDirectory + "Star",
                 device, context, PlanetVertex.InputElements);
 
-            PlanetShader = new Shader(
+            Planet = new Shader(
                 shaderDirectory + "Planet",
                 device, context, PlanetVertex.InputElements);
 
-            WaterShader = new Shader(
+            Water = new Shader(
                 shaderDirectory + "Water",
                 device, context, WaterVertex.InputElements);
 
-            AtmosphereShader = new Shader(
+            Atmosphere = new Shader(
                 shaderDirectory + "Atmosphere",
                 device, context, VertexNormal.InputElements);
 
-            BasicShader = new Shader(
+            Colored = new Shader(
                 shaderDirectory + "Colored",
                 device, context, VertexColor.InputElements);
 
-            ModelShader = new Shader(
+            Model = new Shader(
                 shaderDirectory + "Model",
                 device, context, ModelVertex.InputElements);
 
@@ -49,23 +50,23 @@ namespace Planetary_Terrain {
             ime.Add(new D3D11.InputElement("WORLD", 1, Format.R32G32B32A32_Float, 16, 1, D3D11.InputClassification.PerInstanceData, 1));
             ime.Add(new D3D11.InputElement("WORLD", 2, Format.R32G32B32A32_Float, 32, 1, D3D11.InputClassification.PerInstanceData, 1));
             ime.Add(new D3D11.InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, D3D11.InputClassification.PerInstanceData, 1));
-            InstancedModel = new Shader(
+            ModelInstanced = new Shader(
                 shaderDirectory + "InstancedModel",
                 device, context,
                 ime.ToArray());
 
-            TexturedShader = new Shader(
+            Textured = new Shader(
                 shaderDirectory + "Textured",
                 device, context,
                 new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
                 new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 12, 0)
             );
             
-            AeroFXShader = new Shader(
+            AeroFX = new Shader(
                 shaderDirectory + "AeroFX",
                 device, context, VertexNormal.InputElements);
 
-            BlurShader = new Shader(
+            Bllur = new Shader(
                 shaderDirectory + "Blur",
                 device, context,
                 new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, D3D11.InputClassification.PerVertexData, 0),
@@ -80,20 +81,23 @@ namespace Planetary_Terrain {
                 new D3D11.InputElement("TEXCOORD", 1, Format.R32G32B32_Float, 0 , 1, D3D11.InputClassification.PerInstanceData, 1),
                 new D3D11.InputElement("TEXCOORD", 2, Format.R32G32B32_Float, 12, 1, D3D11.InputClassification.PerInstanceData, 1)
             );
+
+            Depth = new Shader(shaderDirectory + "Depth", device, context);
         }
 
         public static void Dispose() {
-            BasicShader.Dispose();
-            TexturedShader.Dispose();
-            PlanetShader.Dispose();
-            WaterShader.Dispose();
-            AtmosphereShader.Dispose();
-            StarShader.Dispose();
-            ModelShader.Dispose();
-            InstancedModel.Dispose();
+            Colored.Dispose();
+            Textured.Dispose();
+            Planet.Dispose();
+            Water.Dispose();
+            Atmosphere.Dispose();
+            Star.Dispose();
+            Model.Dispose();
+            ModelInstanced.Dispose();
             Imposter.Dispose();
-            AeroFXShader.Dispose();
-            BlurShader.Dispose();
+            AeroFX.Dispose();
+            Bllur.Dispose();
+            Depth.Dispose();
         }
     }
 }

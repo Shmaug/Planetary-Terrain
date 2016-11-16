@@ -44,3 +44,8 @@ float4 texturedps(texturedv2f i) : SV_TARGET
 {
 	return Texture.Sample(AnisotropicSampler, i.uv);
 }
+
+float4 depthps(float4 position : POSITION0) : SV_TARGET
+{
+	return position.z;
+}

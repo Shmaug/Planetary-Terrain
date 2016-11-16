@@ -15,10 +15,10 @@ namespace Planetary_Terrain {
             Hull.SphereRadius = 7;
         }
 
-        public override void updateForces(double deltaTime) {
+        public override void UpdateForces(double deltaTime) {
             AddForce((Vector3d)Rotation.Backward * 460000 * Throttle, Vector3.Zero);
 
-            base.updateForces(deltaTime);
+            base.UpdateForces(deltaTime);
         }
         
         public override void Draw(Renderer renderer) {
@@ -29,7 +29,7 @@ namespace Planetary_Terrain {
 
             Matrix world = Rotation * Matrix.Translation(Position - renderer.ActiveCamera.Position);
 
-            Shaders.ModelShader.Set(renderer);
+            Shaders.Model.Set(renderer);
             Resources.ShipModel.EmissiveIntensity = (float)Throttle;
             Resources.ShipModel.Draw(renderer, light, world);
         }

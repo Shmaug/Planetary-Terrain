@@ -26,12 +26,23 @@ namespace Planetary_Terrain {
         public void HandleInput(double deltaTime) {
             if (Input.ks.IsPressed(DInput.Key.F) && !Input.lastks.IsPressed(DInput.Key.F)) {
                 if (Vehicle != null) {
+                    Position = Vehicle.Position + (Vector3d)Vehicle.Rotation.Right * (Vehicle.Hull.SphereRadius + Hull.SphereRadius + 3);
                     Vehicle = null;
                     DisablePhysics = false;
                 } else {
                     //TODO: enter vehicle
+                    PhysicsBody b;
+                    double t;
+                    Vector3d n;
+                    if (PhysicsSystem.Raycast(Input.MouseRayOrigin, Input.MouseRayDirection, out b, out t, out n)) {
+                        if (b is Ship) {
+                            Vehicle = b as Ship;
+                            DisablePhysics = true;
+                        }
+                    }
                 }
             }
+
             if (Input.ks.IsPressed(DInput.Key.T) && !Input.lastks.IsPressed(DInput.Key.T)) {
                 FirstPerson = !FirstPerson;
                 if (FirstPerson)
@@ -70,7 +81,8 @@ namespace Planetary_Terrain {
                     o = cb.OrientationFromDirection(Vector3d.Normalize(Position - cb.Position));
                     Rotation = o * Matrix.RotationAxis(o.Up, CameraEuler.Y);
                 }
-                // walk around (now that collisions have been resolved)
+
+                // walk around on whatever we're standing on (based on last frame's collisions)
                 move.Y = 0;
                 double l = move.Length();
                 if (l > 0)
@@ -109,7 +121,7 @@ namespace Planetary_Terrain {
             CameraEuler.X = MathUtil.Clamp(CameraEuler.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
 
             // Teleport to double right click
-            if (!Input.MouseBlocked) {
+            if (!Input.MouseBlocked && !FirstPerson) {
                 if (Input.ms.Buttons[1]) {
                     double t = -1;
                     CelestialBody hit = null;
@@ -201,7 +213,7 @@ namespace Planetary_Terrain {
 
         public override void Draw(Renderer renderer) {
             if (FirstPerson && Vehicle == null) {
-                Shaders.ModelShader.Set(renderer);
+                Shaders.Model.Set(renderer);
                 
                 Resources.GunModel.Draw(renderer,
                     Vector3d.Normalize(Position - StarSystem.ActiveSystem.GetStar().Position),

@@ -962,6 +962,8 @@ namespace Planetary_Terrain {
         }
 
         #region Rendering
+        Vector3d frameScaledPos;
+        double frameScaledScale;
         public void GetRenderLevelNodes(Renderer renderer, ref List<QuadNode> list) {
             bool draw = true;
 
@@ -979,6 +981,8 @@ namespace Planetary_Terrain {
 
             if (draw) {
                 if (IsAboveHorizon(renderer.ActiveCamera.Position)) {
+
+
                     list.Add(this);
                 }
             }
@@ -1077,8 +1081,8 @@ namespace Planetary_Terrain {
                     foreach (Camera c in renderer.Cameras) {
                         renderer.SetCamera(c);
                         renderer.Context.DrawIndexed(indexCount, 0, 0);
-                        Debug.TrianglesDrawn += indexCount / 3;
                     }
+                    Debug.TrianglesDrawn += indexCount / 3;
                     break;
             }
         }

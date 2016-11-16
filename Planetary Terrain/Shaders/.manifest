@@ -23,6 +23,11 @@ Shader
 	PixelShader texturedps
 /Shader
 Shader
+	Path basic.hlsl
+	Name Depth
+	PixelShader depthps
+/Shader
+Shader
 	Path imposter.hlsl
 	Name Imposter
 	VertexShader vsmain

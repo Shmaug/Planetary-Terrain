@@ -229,7 +229,7 @@ namespace Planetary_Terrain {
             renderer.SetCamera(renderer.MainCamera);
             Star a = StarSystem.ActiveSystem.GetStar();
             Vector3d d = Vector3d.Normalize(renderer.MainCamera.Position - a.Position);
-            renderer.ShadowCamera.Position = renderer.MainCamera.Position;// - d * 100;
+            renderer.ShadowCamera.Position = renderer.MainCamera.Position;
             Matrix v = Matrix.LookAtLH(-d * 100, Vector3.Zero, Vector3.Up);
             Vector3d p = v.Right * renderer.ShadowCamera.OrthographicSize * renderer.ShadowCamera.AspectRatio * .25f;
             renderer.ShadowCamera.View = Matrix.LookAtLH(-d * 100 + p, p, Vector3.Up);
@@ -242,11 +242,11 @@ namespace Planetary_Terrain {
             
             Debug.Draw3D(renderer); // act like debug draws don't take a toll on performance
 
-            renderer.SetCamera(renderer.MainCamera);
-            Debug.DrawTexture(
-                renderer,
-                new Vector4(0, 0, .25f, .25f * renderer.ResolutionX / renderer.ResolutionY),
-                renderer.ShadowCamera.renderTargetResource);
+            //renderer.SetCamera(renderer.MainCamera);
+            //Debug.DrawTexture(
+            //    renderer,
+            //    new Vector4(0, 0, .25f, .25f * renderer.ResolutionX / renderer.ResolutionY),
+            //    renderer.ShadowCamera.renderTargetResource);
 
             // 2d
             if (renderer.DrawGUI) {
