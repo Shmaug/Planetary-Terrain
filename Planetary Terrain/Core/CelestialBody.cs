@@ -10,8 +10,6 @@ namespace Planetary_Terrain {
         public double MaxVertexSpacing = 10000000; // m/vertex
         public double MinVertexSpacing = 1;       // m/vertex
         
-        // TODO: planet rotation
-
         /// <summary>
         /// The 6 base quadtrees composing the planet
         /// </summary>
@@ -52,7 +50,7 @@ namespace Planetary_Terrain {
                 BaseQuads[i].Generate();
         }
 
-        public virtual void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
+        public virtual void UpdateLOD(D3D11.Device device, Camera camera) {
             Vector3d dir = camera.Position - Position;
             double height = dir.Length();
             dir /= height;
@@ -61,11 +59,11 @@ namespace Planetary_Terrain {
                 BaseQuads[i].SplitDynamic(dir, height, alt, device);
         }
         public void DrawHUDIcon(Renderer renderer, double playerSpeed, Vector2 hudDir) {
-            double h = (Position - renderer.Camera.Position).Length();
+            double h = (Position - renderer.MainCamera.Position).Length();
             if (h > SOI) {
-                double dir = Vector3d.Dot(renderer.Camera.Position - Position, renderer.Camera.Rotation.Forward);
+                double dir = Vector3d.Dot(renderer.MainCamera.Position - Position, renderer.MainCamera.Rotation.Forward);
                 if (dir > 0) {
-                    Vector2 screenPos = (Vector2)renderer.WorldToScreen(Position, renderer.Camera);
+                    Vector2 screenPos = (Vector2)renderer.WorldToScreen(Position, renderer.MainCamera);
                     // TODO: UI radius still off
 
                     float r = 20;
@@ -79,7 +77,7 @@ namespace Planetary_Terrain {
                     Vector2 pt3 = pt2 + hudDir * 60;
                     Vector2 pt4 = pt3 + new Vector2(d * 10, 0);
 
-                    string text = Name + "\nArrive in " + Physics.CalculateTime((renderer.Camera.Position - Position).Length(), playerSpeed);
+                    string text = Name + "\nArrive in " + Physics.CalculateTime((renderer.MainCamera.Position - Position).Length(), playerSpeed);
 
                     RawRectangleF rect = new RawRectangleF(pt4.X + d * 5, pt4.Y - 1, pt4.X + d * 5, pt4.Y - 1);
 
@@ -94,16 +92,16 @@ namespace Planetary_Terrain {
             }
         }
 
-        public abstract double GetHeight(Vector3d direction);
+        public abstract double GetHeight(Vector3d direction, bool transformDirection = true);
         public abstract void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double height);
 
-        public Vector3d GetNormal(Vector3d direction) {
-            Vector3d p1 = direction * GetHeight(direction);
-            Matrix m = OrientationFromDirection(direction);
+        public Vector3d GetNormal(Vector3d direction, bool transformDirection = true) {
+            Vector3d p1 = direction * GetHeight(direction, transformDirection);
+            Matrix m = (transformDirection ? Rotation : Matrix.Identity) * OrientationFromDirection(direction);
             Vector3d p2 = Vector3d.Normalize(p1 + m.Right);
             Vector3d p3 = Vector3d.Normalize(p1 + m.Forward);
-            p2 *= GetHeight(p2);
-            p3 *= GetHeight(p3);
+            p2 *= GetHeight(p2, transformDirection);
+            p3 *= GetHeight(p3, transformDirection);
 
             return Vector3d.Cross(Vector3d.Normalize(p2 - p1), Vector3d.Normalize(p3 - p1));
         }

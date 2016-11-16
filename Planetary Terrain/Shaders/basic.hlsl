@@ -25,7 +25,7 @@ float4 coloredps(coloredv2f i) : SV_TARGET
 }
 
 // TEXTURED //
-Texture2D Texture : register(t0);
+Texture2D Texture : register(t1);
 
 struct texturedv2f {
 	float4 position : SV_POSITION;

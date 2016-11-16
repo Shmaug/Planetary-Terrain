@@ -7,9 +7,7 @@ namespace Planetary_Terrain {
         public static Model ShipModel;
         public static Model GunModel;
         public static Model CylinderModel;
-
-        public static Model MemeModel;
-
+        
         public static D3D11.Buffer BoundingBoxVertexBuffer;
         public static D3D11.Buffer QuadVertexBuffer;
         public static D3D11.Buffer QuadIndexBuffer;
@@ -19,9 +17,10 @@ namespace Planetary_Terrain {
         public static D3D11.ShaderResourceView TreeModelImposterNormals;
 
         public static D3D11.ShaderResourceView GrassTexture;
-
+        
         public static void Load(D3D11.Device device) {
             QuadVertexBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.VertexBuffer, new float[] {
+                  // POSITION0,   TEXCOORD0
                     -1, -1, 0,      0, 0,
                      1, -1, 0,      1, 0,
                     -1,  1, 0,      0, 1,
@@ -91,7 +90,6 @@ namespace Planetary_Terrain {
         }
 
         public static void Dispose() {
-            MemeModel?.Dispose();
             ShipModel.Dispose();
             GunModel.Dispose();
             CylinderModel.Dispose();

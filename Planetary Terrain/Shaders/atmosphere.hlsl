@@ -1,11 +1,11 @@
 #include "_constants.hlsli"
-#include "_planet.hlsli"
 #include "_atmosphere.hlsli"
 
 cbuffer AtmoQuadNodeConstants : register(b1) {
 	float4x4 World;
 	float4x4 WorldInverseTranspose;
 	float4x4 NodeToPlanet;
+	float3 AtmoLightDirection;
 }
 struct v2f {
 	float4 position : SV_POSITION;
@@ -20,7 +20,6 @@ v2f vsmain(float4 vertex : POSITION0) {
 	float4 worldPosition = mul(vertex, World);
 	o.position = mul(worldPosition, mul(View, Projection));
 	o.position.z = LogDepth(o.position.w);
-
 	float3 v3CameraPos = -planetPos;
 
 	// Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)
@@ -67,7 +66,7 @@ v2f vsmain(float4 vertex : POSITION0) {
 	{
 		float fHeight = length(v3SamplePoint);
 		float fDepth = exp(ScaleOverScaleDepth * (InnerRadius - fHeight));
-		float fLightAngle = dot(-LightDirection, v3SamplePoint) / fHeight;
+		float fLightAngle = dot(-AtmoLightDirection, v3SamplePoint) / fHeight;
 		float fCameraAngle = dot(v3Ray, v3SamplePoint) / fHeight;
 		float fScatter = (fStartOffset + fDepth*(scale(fLightAngle) - scale(fCameraAngle)));
 		float3 v3Attenuate = exp(-fScatter * (InvWavelength * Kr4PI + Km4PI));
@@ -86,7 +85,7 @@ v2f vsmain(float4 vertex : POSITION0) {
 
 float4 psmain(v2f i) : SV_TARGET
 {
-	float fCos = dot(-LightDirection, i.rd) / length(i.rd);
+	float fCos = dot(-AtmoLightDirection, i.rd) / length(i.rd);
 	float fCos2 = fCos*fCos;
 	float3 color = getRayleighPhase(fCos2) * i.c0 + getMiePhase(fCos, fCos2, g, g*g) * i.c1;
 

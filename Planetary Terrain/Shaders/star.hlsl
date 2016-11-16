@@ -4,7 +4,7 @@
 cbuffer StarConstants : register(b2) {
 	float num;
 }
-Texture2D ColorMapTexture : register(t0);
+Texture2D ColorMapTexture : register(t1);
 
 struct v2f {
 	float4 position : SV_POSITION;

@@ -31,7 +31,7 @@ namespace Planetary_Terrain {
             Radius = radius;
         }
         
-        public override double GetHeight(Vector3d direction) {
+        public override double GetHeight(Vector3d direction, bool transformDirection = true) {
             return Radius;
         }
         public override void GetSurfaceInfo(Vector3d direction, out Vector2 data, out double h) {
@@ -60,7 +60,7 @@ namespace Planetary_Terrain {
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
             double scale;
-            renderer.Camera.GetScaledSpace(Position, out pos, out scale);
+            renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale);
             if (scale * Radius < 1)
                 return;
 
@@ -75,7 +75,7 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
 
             // color map
-            renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
+            renderer.Context.PixelShader.SetShaderResource(1, colorMapView);
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 

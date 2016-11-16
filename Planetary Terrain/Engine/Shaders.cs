@@ -67,7 +67,9 @@ namespace Planetary_Terrain {
 
             BlurShader = new Shader(
                 shaderDirectory + "Blur",
-                device, context, VertexTexture.InputElements);
+                device, context,
+                new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, D3D11.InputClassification.PerVertexData, 0),
+                new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 12, 0, D3D11.InputClassification.PerVertexData, 0));
 
             Imposter = new Shader(
                 shaderDirectory + "Imposter",

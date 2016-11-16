@@ -11,10 +11,10 @@ cbuffer ModelConstants : register (b1) {
 	bool UseNormalTexture;
 }
 
-Texture2D DiffuseTexture  : register(t0);
-Texture2D EmissiveTexture : register(t1);
-Texture2D SpecularTexture : register(t2);
-Texture2D NormalTexture : register(t3);
+Texture2D DiffuseTexture  : register(t1);
+Texture2D EmissiveTexture : register(t2);
+Texture2D SpecularTexture : register(t3);
+Texture2D NormalTexture   : register(t4);
 
 struct v2f {
 	float4 position : SV_POSITION;
@@ -57,7 +57,7 @@ float4 psmain(v2f i) : SV_TARGET
 	clip(col.a - .1);
 
 	if (UseNormalTexture)
-		i.normal = UnpackNormal(i.normal, normalize(i.tangent), NormalTexture.Sample(AnisotropicSampler, i.uv));
+		i.normal = UnpackNormal(i.normal, normalize(i.tangent), NormalTexture.Sample(AnisotropicSampler, i.uv).rgb);
 
 	float light = clamp(dot(LightDirection, -i.normal), 0, 1);
 	col.rgb *= light;
@@ -73,7 +73,7 @@ float4 psmain(v2f i) : SV_TARGET
 	}
 
 	if (EmissiveIntensity > 0)
-		col.rgb = lerp(col, EmissiveTexture.Sample(AnisotropicSampler, i.uv).rgb * EmissiveIntensity, (1-light) * EmissiveIntensity);
+		col.rgb = lerp(col.rgb, EmissiveTexture.Sample(AnisotropicSampler, i.uv).rgb * EmissiveIntensity, (1 - light) * EmissiveIntensity);
 
 	return col;
 }

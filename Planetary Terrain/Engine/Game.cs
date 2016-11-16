@@ -5,6 +5,8 @@ using D3D11 = SharpDX.Direct3D11;
 using DInput = SharpDX.DirectInput;
 using SharpDX.Mathematics.Interop;
 using System.Diagnostics;
+using System.Collections.Generic;
+using SharpDX.Direct3D;
 
 namespace Planetary_Terrain {
     static class Input {
@@ -12,6 +14,8 @@ namespace Planetary_Terrain {
         public static DInput.KeyboardState ks, lastks;
         public static DInput.MouseState ms, lastms;
         public static bool MouseBlocked;
+        public static Vector3d MouseRayOrigin;
+        public static Vector3d MouseRayDirection;
     }
     class Game : IDisposable {
         #region game management
@@ -36,6 +40,8 @@ namespace Planetary_Terrain {
 
         int frameCount = 0;
         double frameTime = 0;
+
+        double TimeWarp = 1;
 
         public Game() {
             renderForm = new RenderForm("D3D11 Planets");
@@ -92,6 +98,7 @@ namespace Planetary_Terrain {
                 Input.MousePos = realMousePos;
                 #endregion
                 Update(deltaTime);
+                renderer.ScreenToWorld(Input.MousePos, renderer.ActiveCamera, out Input.MouseRayOrigin, out Input.MouseRayDirection);
                 #region input state update
                 Input.lastks = Input.ks;
                 Input.lastms = Input.ms;
@@ -121,10 +128,11 @@ namespace Planetary_Terrain {
             skybox = new Skybox("Data/Textures/Background", renderer.Device);
             StarSystem.ActiveSystem = new StarSystem(renderer.Device);
 
-            renderer.Camera = new Camera(MathUtil.DegreesToRadians(80), renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width);
+            renderer.MainCamera.FieldOfView = MathUtil.DegreesToRadians(80);
+            renderer.MainCamera.AspectRatio = renderForm.ClientSize.Width / (float)renderForm.ClientSize.Width;
 
             player = new Player();
-            player.Camera = renderer.Camera;
+            player.Camera = renderer.MainCamera;
             player.Vehicle = new Ship(renderer.Device);
             player.Vehicle.CockpitCameraPosition = new Vector3(0, 2.6f, 7.6f);
             player.DisablePhysics = true;
@@ -153,15 +161,15 @@ namespace Planetary_Terrain {
                                 hh = Math.Max(hh, planet.Radius + planet.TerrainHeight * planet.OceanHeight);
                             }
                         }
-                        player.Teleport(p.Position + d * (hh + 50));
+                        player.MoveTo(p.Position + d * (hh + 50));
                     });
                 new UI.TextButton(ControlPanel, p.Name + "LowOrbitButton", new RawRectangleF((cpanelWidth - 10) * .333f + 1, y, (cpanelWidth - 10) * .666f - 1, y + h), "Low Orbit", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     ()=> {
-                        player.Teleport(p.Position + d * (p.SOI + 1000));
+                        player.MoveTo(p.Position + d * (p.SOI + 1000));
                     });
                 new UI.TextButton(ControlPanel, p.Name + "HighOrbitButton", new RawRectangleF((cpanelWidth - 10) * .666f + 1, y, cpanelWidth - 2, y + h), "High Orbit", renderer.SegoeUI14, renderer.Brushes["Black"], renderer.Brushes["LightGray"],
                     () => {
-                        player.Teleport(p.Position + d * p.SOI * 3);
+                        player.MoveTo(p.Position + d * p.SOI * 3);
                     });
                 y += h + 2;
             }
@@ -189,17 +197,23 @@ namespace Planetary_Terrain {
 
             player.HandleInput(deltaTime);
 
+            if (Input.ks.IsPressed(DInput.Key.Period) && !Input.lastks.IsPressed(DInput.Key.Period))
+                TimeWarp *= 10;
+            else if (Input.ks.IsPressed(DInput.Key.Comma) && !Input.lastks.IsPressed(DInput.Key.Comma))
+                TimeWarp /= 10;
+            TimeWarp = Math.Min(Math.Max(TimeWarp, 1), 1000);
+
             if (player.FirstPerson)
                 System.Windows.Forms.Cursor.Position = new System.Drawing.Point(renderForm.ClientRectangle.X + renderForm.ClientSize.Width / 2, renderForm.ClientRectangle.Y + renderForm.ClientSize.Height / 2);
             Profiler.End();
             Profiler.Begin("LOD Update");
-            StarSystem.ActiveSystem.UpdateLOD(renderer, renderer.Device, deltaTime);
+            StarSystem.ActiveSystem.UpdateLOD(renderer);
             Profiler.End();
             Profiler.Begin("Generation Queue Update");
             QuadNode.Update();
             Profiler.End();
             Profiler.Begin("Physics Update");
-            StarSystem.ActiveSystem.physics.Update(deltaTime);
+            StarSystem.ActiveSystem.physics.Update(deltaTime * TimeWarp);
             Profiler.End();
 
             ControlPanel.Update((float)deltaTime);
@@ -210,8 +224,15 @@ namespace Planetary_Terrain {
                 resizePending = false;
             }
             renderer.TotalTime = gameTimer.Elapsed.TotalSeconds;
-            renderer.BeginDrawFrame();
             renderer.Clear(Color.White);
+
+            renderer.SetCamera(renderer.MainCamera);
+            Star a = StarSystem.ActiveSystem.GetStar();
+            Vector3d d = Vector3d.Normalize(renderer.MainCamera.Position - a.Position);
+            renderer.ShadowCamera.Position = renderer.MainCamera.Position;// - d * 100;
+            Matrix v = Matrix.LookAtLH(-d * 100, Vector3.Zero, Vector3.Up);
+            Vector3d p = v.Right * renderer.ShadowCamera.OrthographicSize * renderer.ShadowCamera.AspectRatio * .25f;
+            renderer.ShadowCamera.View = Matrix.LookAtLH(-d * 100 + p, p, Vector3.Up);
 
             // 3d
             Profiler.Begin("3d Draw");
@@ -221,17 +242,152 @@ namespace Planetary_Terrain {
             
             Debug.Draw3D(renderer); // act like debug draws don't take a toll on performance
 
+            renderer.SetCamera(renderer.MainCamera);
+            Debug.DrawTexture(
+                renderer,
+                new Vector4(0, 0, .25f, .25f * renderer.ResolutionX / renderer.ResolutionY),
+                renderer.ShadowCamera.renderTargetResource);
+
             // 2d
             if (renderer.DrawGUI) {
                 Profiler.Begin("2d Draw");
                 renderer.D2DContext.BeginDraw();
 
                 StarSystem.ActiveSystem.DrawPlanetHudIcons(renderer, player.Velocity.Length());
-                player.DrawHUD(renderer);
+                DrawHUD(renderer);
                 ControlPanel.Draw(renderer);
                 
                 renderer.D2DContext.EndDraw();
                 Profiler.End();
+            }
+        }
+
+        public void DrawHUD(Renderer renderer) {
+            double v = player.Velocity.Length();
+
+            float xmid = renderer.ResolutionX * .5f;
+            renderer.D2DContext.FillRectangle(
+                new RawRectangleF(xmid - 150, 0, xmid + 150, 50),
+                renderer.Brushes["White"]);
+
+            renderer.SegoeUI24.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+            renderer.SegoeUI14.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+
+            renderer.D2DContext.DrawText(Physics.FormatSpeed(v), renderer.SegoeUI24,
+                new RawRectangleF(xmid - 130, 0, xmid, 40),
+                renderer.Brushes["Black"]);
+
+            CelestialBody cb = StarSystem.ActiveSystem.GetNearestBody(player.Position);
+            if (cb != null) {
+                Vector3d dir = cb.Position - player.Position;
+                double h = dir.Length();
+                dir /= h;
+
+                double r = cb.Radius;
+                double radarAltitude = h - cb.GetHeight(dir);
+
+                if (cb is Planet) {
+                    Planet p = cb as Planet;
+                    r = p.Radius + p.OceanHeight * p.TerrainHeight;
+
+                    #region surface info
+                    double temp = p.GetTemperature(dir);
+                    double humid = p.GetHumidity(dir) * 100;
+
+                    renderer.D2DContext.FillRectangle(
+                        new RawRectangleF(xmid + 155, 0, xmid + 260, 80),
+                        renderer.Brushes["White"]);
+
+                    renderer.D2DContext.DrawText("Surface: ", renderer.SegoeUI14,
+                        new RawRectangleF(xmid + 155, 3, xmid + 240, 10),
+                        renderer.Brushes["Black"]);
+
+                    renderer.D2DContext.DrawText(temp.ToString("F1") + "°C", renderer.SegoeUI14,
+                        new RawRectangleF(xmid + 165, 15, xmid + 240, 30),
+                        renderer.Brushes["Black"]);
+
+                    renderer.D2DContext.DrawText(humid.ToString("F1") + "%", renderer.SegoeUI14,
+                        new RawRectangleF(xmid + 165, 30, xmid + 240, 45),
+                        renderer.Brushes["Black"]);
+                    #endregion
+                    #region atmosphere info
+                    Atmosphere a = p.Atmosphere;
+                    if (a != null && h < a.Radius * 1.5) {
+                        double atemp;
+                        double pressure;
+                        double density;
+                        double c;
+                        a.MeasureProperties(dir, h, out pressure, out density, out atemp, out c);
+                        if (pressure > .1) {
+                            renderer.D2DContext.FillRectangle(
+                                new RawRectangleF(xmid - 260, 0, xmid - 155, 80),
+                                renderer.Brushes["White"]);
+
+                            renderer.D2DContext.DrawText("Atmosphere: ", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 250, 3, xmid - 155, 10),
+                                renderer.Brushes["Black"]);
+
+                            renderer.D2DContext.DrawText(atemp.ToString("F1") + "°C", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 15, xmid - 155, 30),
+                                renderer.Brushes["Black"]);
+
+                            renderer.D2DContext.DrawText(pressure.ToString("F1") + " kPa", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 30, xmid - 155, 45),
+                                renderer.Brushes["Black"]);
+
+                            renderer.D2DContext.DrawText(density.ToString("F1") + " kg/m^3", renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 45, xmid - 155, 60),
+                                renderer.Brushes["Black"]);
+
+                            renderer.D2DContext.DrawText("Mach " + (player.Velocity.Length() / c).ToString("F2"), renderer.SegoeUI14,
+                                new RawRectangleF(xmid - 240, 60, xmid - 155, 75),
+                                renderer.Brushes["Black"]);
+                        }
+                    }
+                    #endregion
+                }
+
+                // altitude
+                renderer.D2DContext.DrawText(Physics.FormatDistance(h - r), renderer.SegoeUI24,
+                    new RawRectangleF(xmid, 0, xmid + 150, 40),
+                    renderer.Brushes["Black"]);
+                // planet label
+                renderer.D2DContext.DrawText("(" + cb.Name + ")", renderer.SegoeUI14,
+                    new RawRectangleF(xmid, 30, xmid + 150, 50),
+                    renderer.Brushes["Black"]);
+                
+                renderer.D2DContext.FillRectangle(
+                    new RawRectangleF(0, 0, 100, 40),
+                    renderer.Brushes["White"]);
+                renderer.D2DContext.DrawText("x" + TimeWarp.ToString("N0"), renderer.SegoeUI24,
+                    new RawRectangleF(10, 0, 100, 40),
+                    renderer.Brushes["Black"]);
+                
+                Orbit o = new Orbit(player.Position - cb.Position, player.Velocity - cb.Velocity, cb);
+
+                renderer.SegoeUI14.ParagraphAlignment = SharpDX.DirectWrite.ParagraphAlignment.Far;
+                renderer.SegoeUI14.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
+                renderer.D2DContext.DrawText(o.ToString(), renderer.SegoeUI14,
+                    new RawRectangleF(renderer.ResolutionX * .5f, renderer.ResolutionY, renderer.ResolutionX * .5f, renderer.ResolutionY),
+                    renderer.Brushes["White"]);
+                
+                // TODO: fix keplerian orbits
+                //List<Vector3d> pts = new List<Vector3d>();
+                //Vector3d op, ov;
+                //for (double t = 0; t < o.T; t += o.T * .05) {
+                //    o.ToCartesian(cb, t, out op, out ov);
+                //    pts.Add(cb.Position + op);
+                //}
+                //o.ToCartesian(cb, o.T, out op, out ov);
+                //pts.Add(cb.Position + op);
+                //Debug.DrawLine(Color.CornflowerBlue, pts.ToArray());
+                //
+                //foreach (Vector3d p in pts) {
+                //    Vector3d pos;
+                //    double scale;
+                //    renderer.Camera.GetScaledSpace(p + cb.Position, out pos, out scale);
+                //    Debug.DrawBox(Color.Green, new OrientedBoundingBox(pos - (Vector3d)Vector3.One * 10000 * scale, pos + (Vector3d)Vector3.One * 10000 * scale));
+                //}
             }
         }
 

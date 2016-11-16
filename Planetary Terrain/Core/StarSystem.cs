@@ -42,6 +42,7 @@ namespace Planetary_Terrain {
                     TemperatureRange = 35
                 };
             earth.SetColormap("Data/Textures/Earth.dds", device);
+            earth.AngularVelocity.Y = 0.00007272205;
             bodies.Add(earth);
 
             Planet moon = new Planet(
@@ -128,9 +129,9 @@ namespace Planetary_Terrain {
             return null;
         }
         
-        public void UpdateLOD(Renderer renderer, D3D11.Device device, double deltaTime) {
+        public void UpdateLOD(Renderer renderer) {
             foreach (CelestialBody b in bodies)
-                b.UpdateLOD(deltaTime, device, renderer.Camera);
+                b.UpdateLOD(renderer.Device, renderer.ActiveCamera);
         }
 
         public void DrawPlanetHudIcons(Renderer renderer, double playerSpeed) {

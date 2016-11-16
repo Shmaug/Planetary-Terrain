@@ -225,19 +225,21 @@ namespace Planetary_Terrain {
                     1,1,1,1,
                     0,0,0,0,0,0,0,0,0,0,0,0
                 };
-            if (cbuffer == null)
-                cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, b);
-            else
-                renderer.Context.UpdateSubresource(b, cbuffer);
+            cbuffer?.Dispose();
+            cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, b);
 
             Shaders.BasicShader.Set(renderer);
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineStrip;
 
             foreach (Line line in lines) {
                 VertexColor[] verts = new VertexColor[line.points.Length];
-                for (int i = 0; i < line.points.Length; i++)
-                    verts[i] = new VertexColor(line.points[i] - renderer.Camera.Position, line.color);
-
+                for (int i = 0; i < line.points.Length; i++) {
+                    double s;
+                    Vector3d p;
+                    renderer.ActiveCamera.GetScaledSpace(line.points[i], out p, out s);
+                    verts[i] = new VertexColor(p, line.color);
+                }
+                
                 if (vbuffer == null)
                     vbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verts);
                 else
@@ -254,15 +256,15 @@ namespace Planetary_Terrain {
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
             foreach (Box box in boxes) {
                 m = Matrix.Scaling(box.oob.Extents) * box.oob.Transformation;
-                b = new float[32] {
+                b = new float[20] {
                     m.M11,m.M12,m.M13,m.M14,
                     m.M21,m.M22,m.M23,m.M24,
                     m.M31,m.M32,m.M33,m.M34,
                     m.M41,m.M42,m.M43,m.M44,
                     box.color.R/255f, box.color.G/255f, box.color.B/255f, box.color.A/255f,
-                    0,0,0,0,0,0,0,0,0,0,0,0
                 };
-                renderer.Context.UpdateSubresource(b, cbuffer);
+                cbuffer?.Dispose();
+                cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, b);
 
                 renderer.Context.VertexShader.SetConstantBuffer(1, cbuffer);
                 renderer.Context.PixelShader.SetConstantBuffer(1, cbuffer);
@@ -274,7 +276,7 @@ namespace Planetary_Terrain {
         }
         public static void Draw2D(Renderer renderer, Profiler frameProfiler) {
             if (!DrawDebug) return;
-
+            
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
 
@@ -389,6 +391,24 @@ namespace Planetary_Terrain {
             //        new Vector2(m.X, y0), renderer.Brushes["Yellow"], .25f);
             //}
             #endregion
+        }
+
+        public static void DrawTexture(Renderer renderer, Vector4 pos, D3D11.ShaderResourceView texture) {
+            Shaders.BlurShader.Set(renderer);
+            
+            cbuffer?.Dispose();
+            cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref pos);
+
+            renderer.Context.PixelShader.SetShaderResource(0, texture);
+
+            renderer.Context.VertexShader.SetConstantBuffer(1, cbuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(1, cbuffer);
+
+            renderer.Context.Rasterizer.State = renderer.rasterizerStateSolidNoCull;
+            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
+            renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+            renderer.Context.DrawIndexed(6, 0, 0);
         }
 
         public static void Dispose() {

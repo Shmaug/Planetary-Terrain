@@ -42,10 +42,10 @@ namespace Planetary_Terrain {
         }
         
         public void SetResources(Renderer renderer) {
-            renderer.Context.PixelShader.SetShaderResource(0, DiffuseTextureView ?? renderer.WhiteTextureView);
-            renderer.Context.PixelShader.SetShaderResource(1, EmissiveTextureView ?? renderer.BlackTextureView);
-            renderer.Context.PixelShader.SetShaderResource(2, SpecularTextureView ?? renderer.WhiteTextureView);
-            renderer.Context.PixelShader.SetShaderResource(3, NormalTextureView ?? renderer.BlackTextureView);
+            renderer.Context.PixelShader.SetShaderResource(1, DiffuseTextureView ?? renderer.WhiteTextureView);
+            renderer.Context.PixelShader.SetShaderResource(2, EmissiveTextureView ?? renderer.BlackTextureView);
+            renderer.Context.PixelShader.SetShaderResource(3, SpecularTextureView ?? renderer.WhiteTextureView);
+            renderer.Context.PixelShader.SetShaderResource(4, NormalTextureView ?? renderer.BlackTextureView);
 
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology;
             renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(VertexBuffer, VertexSize, 0));
@@ -53,20 +53,19 @@ namespace Planetary_Terrain {
         }
         public void Draw(Renderer renderer) {
             SetResources(renderer);
-            renderer.Context.DrawIndexed(IndexCount, 0, 0);
-            Debug.TrianglesDrawn += IndexCount / 3;
+            foreach (Camera c in renderer.Cameras) {
+                renderer.SetCamera(c);
+                renderer.Context.DrawIndexed(IndexCount, 0, 0);
+                Debug.TrianglesDrawn += IndexCount / 3;
+            }
         }
         public void DrawInstanced(Renderer renderer, int instanceCount) {
             SetResources(renderer);
-            renderer.Context.DrawIndexedInstanced(IndexCount, instanceCount, 0, 0, 0);
-            Debug.TrianglesDrawn += (IndexCount / 3) * instanceCount;
-        }
-        public void DrawNoResources(Renderer renderer) {
-            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology;
-            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(VertexBuffer, VertexSize, 0));
-            renderer.Context.InputAssembler.SetIndexBuffer(IndexBuffer, Format.R16_UInt, 0);
-
-            renderer.Context.DrawIndexed(IndexCount, 0, 0);
+            foreach (Camera c in renderer.Cameras) {
+                renderer.SetCamera(c);
+                renderer.Context.DrawIndexedInstanced(IndexCount, instanceCount, 0, 0, 0);
+                Debug.TrianglesDrawn += (IndexCount / 3) * instanceCount;
+            }
         }
 
         public void Dispose() {

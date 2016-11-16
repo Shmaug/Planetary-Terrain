@@ -20,7 +20,7 @@ cbuffer WorldConstants : register(b0) {
 SamplerState AnisotropicSampler : register(s0);
 
 float LogDepth(float w) {
-	return max(log2(C*w + 1),1e-6)*FC*w;
+	return max(log2(C*w + 1),1e-5)*FC*w;
 }
 
 float3 UnpackNormal(float3 normal, float3 tangent, float3 mapSample) {

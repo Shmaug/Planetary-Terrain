@@ -4,7 +4,7 @@ struct ScatterOutput {
 	float3 c0;
 	float3 c1;
 };
-ScatterOutput GroundScatter(float3 pos) {
+ScatterOutput GroundScatter(float3 pos, float3 lightDir) {
 	float3 v3CameraPos = -planetPos;
 
 	float3 v3Ray = pos - v3CameraPos;
@@ -33,7 +33,7 @@ ScatterOutput GroundScatter(float3 pos) {
 
 	float fDepth = exp((InnerRadius - OuterRadius) / ScaleDepth);
 	float fCameraAngle = 1;// dot(-v3Ray, pos) / length(pos);
-	float fLightAngle = dot(-LightDirection, pos) / length(pos);
+	float fLightAngle = dot(-lightDir, pos) / length(pos);
 	float fCameraScale = scale(fCameraAngle);
 	float fLightScale = scale(fLightAngle);
 	float fCameraOffset = fDepth*fCameraScale;

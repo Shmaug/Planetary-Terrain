@@ -3,6 +3,7 @@ cbuffer QuadNodeConstants : register(b1) {
     float4x4 WorldInverseTranspose;
 	float4x4 NodeToPlanet;
 	float4x4 NodeOrientation;
+	float3 NodeLightDirection;
 	float3 NodeColor;
 	float nodeScale;
 	float WaterDetailDistance;

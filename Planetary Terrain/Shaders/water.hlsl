@@ -18,6 +18,7 @@ struct v2f {
 	float3 c1 : COLOR1;
 };
 
+
 v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float height : TEXCOORD0) {
 	v2f v;
 
@@ -29,9 +30,15 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float height : TE
 
 	v.height = height;
 
-	ScatterOutput so = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos);
-	v.c0 = so.c0;
-	v.c1 = so.c1;
+	if (CameraHeight > 0) { // should be 0 if atmosphere is null
+		ScatterOutput o = GroundScatter(mul(vertex, NodeToPlanet).xyz - planetPos, NodeLightDirection);
+		v.c0 = o.c0;
+		v.c1 = o.c1;
+	}
+	else {
+		v.c0 = 1;
+		v.c1 = 0;
+	}
 
 	v.worldPos = wp.xyz;
 
@@ -48,11 +55,11 @@ float4 psmain(v2f i) : SV_TARGET
 	col.a = 1 - dot(i.normal, -i.worldPos / l) + (length(i.worldPos)*nodeScale / DetailDistance - .5);
 
 	// diffuse
-	float light = clamp(dot(LightDirection, -i.normal), 0, 1);
+	float light = clamp(dot(NodeLightDirection, -i.normal), 0, 1);
 	col.rgb *= light;
 
 	// specular
-	float3 r = reflect(-LightDirection, i.normal);
+	float3 r = reflect(-NodeLightDirection, i.normal);
 	float3 v = normalize(i.worldPos);
 	float dp = dot(r, v);
 	if (dp > 0)

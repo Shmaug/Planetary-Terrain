@@ -43,7 +43,7 @@ namespace Planetary_Terrain {
             renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
             for (int i = 0; i < 6; i++) {
-                renderer.Context.PixelShader.SetShaderResource(0, TextureViews[i]);
+                renderer.Context.PixelShader.SetShaderResource(1, TextureViews[i]);
                 renderer.Context.UpdateSubresource(ref sides[i], constBuffer);
                 renderer.Context.VertexShader.SetConstantBuffer(1, constBuffer);
                 renderer.Context.DrawIndexed(6, 0, 0);

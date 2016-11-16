@@ -39,11 +39,9 @@ namespace Planetary_Terrain {
         [StructLayout(LayoutKind.Explicit, Size = 32)]
         struct Constants {
             [FieldOffset(0)]
-            public Vector3 lightDirection;
+            public Vector3 oceanColor;
             [FieldOffset(12)]
             public float oceanLevel;
-            [FieldOffset(16)]
-            public Vector3 oceanColor;
         }
         Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
@@ -86,7 +84,10 @@ namespace Planetary_Terrain {
 
             return total;
         }
-        public override double GetHeight(Vector3d direction) {
+        public override double GetHeight(Vector3d direction, bool transformDirection = true) {
+            if (transformDirection)
+                direction = Vector3d.Transform(direction, (Matrix3x3)Matrix.Invert(Rotation));
+
             return Radius + height(direction) * TerrainHeight;
         }
 
@@ -114,8 +115,8 @@ namespace Planetary_Terrain {
             colorMap = rsrc as D3D11.Texture2D;
         }
 
-        public override void UpdateLOD(double deltaTime, D3D11.Device device, Camera camera) {
-            base.UpdateLOD(deltaTime, device, camera);
+        public override void UpdateLOD(D3D11.Device device, Camera camera) {
+            base.UpdateLOD(device, camera);
             Atmosphere?.UpdateLOD(device, camera);
         }
 
@@ -127,13 +128,10 @@ namespace Planetary_Terrain {
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
             double scale;
-            renderer.Camera.GetScaledSpace(Position, out pos, out scale);
+            renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale);
             if (scale * Radius < 1)
                 return;
-
-            Star star = StarSystem.ActiveSystem.GetStar();
-            if (star != null)
-                constants.lightDirection = Vector3d.Normalize(Position - star.Position);
+            
             constants.oceanLevel = (float)OceanHeight;
             constants.oceanColor = OceanColor.ToVector3();
 
@@ -169,8 +167,7 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetConstantBuffers(2, constBuffer);
 
             // color map
-            renderer.Context.PixelShader.SetShaderResource(0, colorMapView);
-            renderer.Context.PixelShader.SetShaderResource(1, Resources.GrassTexture);
+            renderer.Context.PixelShader.SetShaderResource(1, colorMapView);
 
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
 
@@ -211,20 +208,19 @@ namespace Planetary_Terrain {
                 if (trees.Count > 0) {
                     Shaders.InstancedModel.Set(renderer);
                     foreach (QuadNode n in trees)
-                        n.DrawTrees(renderer, constants.lightDirection);
+                        n.DrawTrees(renderer);
                 }
                 if (imposters.Count > 0) {
-                    // TODO: imposter normals
                     renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                     renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(Resources.QuadVertexBuffer, sizeof(float) * 5, 0));
                     renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
                 
                     Shaders.Imposter.Set(renderer);
-                    renderer.Context.PixelShader.SetShaderResource(0, Resources.TreeModelImposterDiffuse);
-                    renderer.Context.PixelShader.SetShaderResource(1, Resources.TreeModelImposterNormals);
+                    renderer.Context.PixelShader.SetShaderResource(1, Resources.TreeModelImposterDiffuse);
+                    renderer.Context.PixelShader.SetShaderResource(2, Resources.TreeModelImposterNormals);
                 
                     foreach (QuadNode n in imposters)
-                        n.DrawImposters(renderer, constants.lightDirection);
+                        n.DrawImposters(renderer);
                 }
 
                 Profiler.End();
