@@ -60,7 +60,8 @@ namespace Planetary_Terrain {
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
             double scale;
-            renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale);
+            double dist;
+            renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale, out dist);
             if (scale * Radius < 1)
                 return;
 
@@ -81,7 +82,7 @@ namespace Planetary_Terrain {
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
             
             foreach (QuadNode n in VisibleNodes)
-                n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
+                n.Draw(renderer, pos, scale, dist);
             
             Profiler.End();
         }

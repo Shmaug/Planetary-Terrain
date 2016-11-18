@@ -84,9 +84,9 @@ namespace Planetary_Terrain {
 
                 // walk around on whatever we're standing on (based on last frame's collisions)
                 move.Y = 0;
-                double l = move.Length();
+                double l = move.LengthSquared();
                 if (l > 0) {
-                    move /= l;
+                    move /= Math.Sqrt(l);
 
                     foreach (Contact c in Contacts) {
                         if (Vector3d.Dot(c.ContactPosition - Position, Rotation.Down) > .5) { // object is below us

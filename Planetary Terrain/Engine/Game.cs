@@ -123,7 +123,7 @@ namespace Planetary_Terrain {
                     //renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
                     //frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
                     float r = renderer.ResolutionX * .075f;
-                    p.DrawCircle(renderer, new Vector2(renderer.ResolutionX - r - 10, renderer.ResolutionY - r - 10), r, r * .05f, 0, Math.PI * 2);
+                    p.DrawCircle(renderer, new Vector2(renderer.ResolutionX - r - 10, renderer.ResolutionY - r - 10), r);
                     renderer.D2DContext.EndDraw();
                 } else
                     Profiler.End();

@@ -982,7 +982,6 @@ namespace Planetary_Terrain {
             if (draw)
                 list.Add(this);
         }
-        public enum QuadRenderPass { Ground, Water }
 
         Vector3d scaledPos;
         double scaledScale;
@@ -992,99 +991,118 @@ namespace Planetary_Terrain {
             renderer.ActiveCamera.GetScaledSpace(MeshPosition, out scaledPos, out scaledScale);
             scaledScale *= Size;
         }
-        public void Draw(Renderer renderer, QuadRenderPass pass, Vector3d planetPos, double planetScale) {
+        public void Draw(Renderer renderer, Vector3d planetPos, double planetScale, double camHeight) {
+            if (!Profiler.Resume("Node Data Set")) Profiler.Begin("Node Data Set");
             // early exits
-            if (vertexBuffer == null || indexBuffer == null) return;
-            if (pass == QuadRenderPass.Water && !hasWaterVerticies) return;
-            if (!IsAboveHorizon(renderer.ActiveCamera.Position)) return;
-
-            double camHeight = (renderer.ActiveCamera.Position - Body.Position).Length();
-            if (pass == QuadRenderPass.Ground && hasWaterVerticies && !hasVerticiesAboveWater && camHeight > oceanLevel + WaterDetailDistance) return;
+            if (hasWaterVerticies && !hasVerticiesAboveWater && camHeight > oceanLevel + WaterDetailDistance) { Profiler.End(); return; }
+            if (vertexBuffer == null || indexBuffer == null) { Profiler.End(); return; }
+            if (!IsAboveHorizon(renderer.ActiveCamera.Position)) { Profiler.End(); return; }
             
-            if (pass == QuadRenderPass.Ground || pass == QuadRenderPass.Water) {
-                // get scaled space
-                double wscale;
-                Vector3d wpos;
-                if (pass == QuadRenderPass.Water) {
-                    renderer.ActiveCamera.GetScaledSpace(WaterMeshPosition, out wpos, out wscale);
-                    wscale *= Size;
-                    WaterOOB.Transformation = Matrix.Scaling((float)wscale) * Body.Rotation * NodeOrientation * Matrix.Translation(wpos);
-                    if (!renderer.ActiveCamera.Intersects(WaterOOB)) return;
-                    constants.World = Matrix.Scaling((float)wscale) * Body.Rotation * Matrix.Translation(wpos);
-                    constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (WaterMeshPosition - Body.Position) * planetScale);
-                } else {
-                    OOB.Transformation = Matrix.Scaling((float)scaledScale) * Body.Rotation * NodeOrientation * Matrix.Translation(scaledPos);
-                    if (!renderer.ActiveCamera.Intersects(OOB)) return;
-                    constants.World = Matrix.Scaling((float)scaledScale) * Body.Rotation * Matrix.Translation(scaledPos);
-                    constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (MeshPosition - Body.Position) * planetScale);
-                }
-                constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(constants.World));
-                constants.NodeOrientation = Body.Rotation * NodeOrientation;
-                constants.NodeScale = (float)scaledScale;
-                constants.LightDirection = Vector3d.Normalize(MeshPosition - StarSystem.ActiveSystem.GetStar().Position);
+            OOB.Transformation = Matrix.Scaling((float)scaledScale) * Body.Rotation * NodeOrientation * Matrix.Translation(scaledPos);
+            if (!renderer.ActiveCamera.Intersects(OOB)) { Profiler.End(); return; }
+            constants.World = Matrix.Scaling((float)scaledScale) * Body.Rotation * Matrix.Translation(scaledPos);
+            constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (MeshPosition - Body.Position) * planetScale);
+            constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(constants.World));
+            constants.NodeOrientation = Body.Rotation * NodeOrientation;
+            constants.NodeScale = (float)scaledScale;
+            constants.LightDirection = Vector3d.Normalize(MeshPosition - StarSystem.ActiveSystem.GetStar().Position);
                 
-                // constant buffer
-                if (constantBuffer == null)
-                    constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            // constant buffer
+            if (constantBuffer == null)
+                constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            else
+                renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+
+            renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
+
+            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            Profiler.End();
+
+            if (!Profiler.Resume("Node Draw")) Profiler.Begin("Node Draw");
+            if (Debug.DrawBoundingBoxes) {
+                Ray r = new Ray(Vector3.Zero, Input.MouseRayDirection);
+                if (OOB.Intersects(ref r))
+                    Debug.DrawBox(Color.White, OOB);
                 else
-                    renderer.Context.UpdateSubresource(ref constants, constantBuffer);
-
-                renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
-                renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
-
-                renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                    Debug.DrawBox(Color.Red, OOB);
             }
 
-            switch (pass) {
-                case QuadRenderPass.Water:
-                    if (Debug.DrawBoundingBoxes) Debug.DrawBox(Color.Blue, WaterOOB);
-                    waterConstants.Offset = Vector3.Zero;
-                    waterConstants.FadeDistance = (float)WaterDetailDistance;
-                    waterConstants.Time = (float)renderer.TotalTime;
+            // only draw the triangles above the water if we're far away
+            if (hasWaterVerticies && hasVerticiesAboveWater && camHeight > oceanLevel + WaterDetailDistance)
+                renderer.Context.InputAssembler.SetIndexBuffer(farIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+            else
+                renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
-                    // water constant buffer
-                    if (waterConstantBuffer == null)
-                        waterConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref waterConstants);
-                    else
-                        renderer.Context.UpdateSubresource(ref waterConstants, waterConstantBuffer);
+            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
 
-                    renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
-                    renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
-
-                    renderer.Context.InputAssembler.SetIndexBuffer(waterIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-                    renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<WaterVertex>(), 0));
-
-                    foreach (Camera c in renderer.Cameras) {
-                        renderer.SetCamera(c);
-                        renderer.Context.DrawIndexed(waterIndexCount, 0, 0);
-                    }
-                    Debug.TrianglesDrawn += waterIndexCount / 3;
-                    break;
-                case QuadRenderPass.Ground:
-                    if (Debug.DrawBoundingBoxes) {
-                        Ray r = new Ray(Vector3.Zero, Input.MouseRayDirection);
-                        if (OOB.Intersects(ref r))
-                            Debug.DrawBox(Color.White, OOB);
-                        else
-                            Debug.DrawBox(Color.Red, OOB);
-                    }
-
-                    // only draw the triangles above the water if we're far away
-                    if (hasWaterVerticies && hasVerticiesAboveWater && camHeight > oceanLevel + WaterDetailDistance)
-                        renderer.Context.InputAssembler.SetIndexBuffer(farIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-                    else
-                        renderer.Context.InputAssembler.SetIndexBuffer(indexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
-
-                    renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vertexBuffer, Utilities.SizeOf<PlanetVertex>(), 0));
-
-                    foreach (Camera c in renderer.Cameras) {
-                        renderer.SetCamera(c);
-                        renderer.Context.DrawIndexed(indexCount, 0, 0);
-                    }
-                    Debug.TrianglesDrawn += indexCount / 3;
-                    Debug.NodesDrawn++;
-                    break;
+            foreach (Camera c in renderer.Cameras) {
+                renderer.SetCamera(c);
+                renderer.Context.DrawIndexed(indexCount, 0, 0);
             }
+            Debug.TrianglesDrawn += indexCount / 3;
+            Debug.NodesDrawn++;
+            Profiler.End();
+        }
+        public void DrawWater(Renderer renderer, Vector3d planetPos, double planetScale, double camHeight) {
+            if (!Profiler.Resume("Node Data Set")) Profiler.Begin("Node Data Set");
+            // early exits
+            if (!hasWaterVerticies) { Profiler.End(); return; }
+            if (waterVertexBuffer == null || waterIndexBuffer == null) { Profiler.End(); return; }
+            if (!IsAboveHorizon(renderer.ActiveCamera.Position)) { Profiler.End(); return; }
+            
+            // get scaled space
+            double wscale;
+            Vector3d wpos;
+            renderer.ActiveCamera.GetScaledSpace(WaterMeshPosition, out wpos, out wscale);
+            wscale *= Size;
+            WaterOOB.Transformation = Matrix.Scaling((float)wscale) * Body.Rotation * NodeOrientation * Matrix.Translation(wpos);
+            if (!renderer.ActiveCamera.Intersects(WaterOOB)) { Profiler.End(); return; }
+
+            constants.World = Matrix.Scaling((float)wscale) * Body.Rotation * Matrix.Translation(wpos);
+            constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (WaterMeshPosition - Body.Position) * planetScale);
+            constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(constants.World));
+            constants.NodeOrientation = Body.Rotation * NodeOrientation;
+            constants.NodeScale = (float)scaledScale;
+            constants.LightDirection = Vector3d.Normalize(WaterMeshPosition - StarSystem.ActiveSystem.GetStar().Position);
+
+            // constant buffer
+            if (constantBuffer == null)
+                constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
+            else
+                renderer.Context.UpdateSubresource(ref constants, constantBuffer);
+
+            renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
+
+            renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+
+            Profiler.End();
+
+            if (!Profiler.Resume("Node Draw")) Profiler.Begin("Node Draw");
+            if (Debug.DrawBoundingBoxes) Debug.DrawBox(Color.Blue, WaterOOB);
+            waterConstants.Offset = Vector3.Zero;
+            waterConstants.FadeDistance = (float)WaterDetailDistance;
+            waterConstants.Time = (float)renderer.TotalTime;
+
+            // water constant buffer
+            if (waterConstantBuffer == null)
+                waterConstantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref waterConstants);
+            else
+                renderer.Context.UpdateSubresource(ref waterConstants, waterConstantBuffer);
+
+            renderer.Context.VertexShader.SetConstantBuffer(4, waterConstantBuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(4, waterConstantBuffer);
+
+            renderer.Context.InputAssembler.SetIndexBuffer(waterIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
+            renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(waterVertexBuffer, Utilities.SizeOf<WaterVertex>(), 0));
+
+            foreach (Camera c in renderer.Cameras) {
+                renderer.SetCamera(c);
+                renderer.Context.DrawIndexed(waterIndexCount, 0, 0);
+            }
+            Debug.TrianglesDrawn += waterIndexCount / 3;
+            Profiler.End();
         }
 
         public bool GetTreeNodes(Renderer renderer, ref List<QuadNode> trees, ref List<QuadNode> imposters) {
@@ -1112,7 +1130,6 @@ namespace Planetary_Terrain {
             }
             return false;
         }
-
         public void DrawTrees(Renderer renderer) {
             if (TreeBuffer == null || TreeBufferSize < Trees.Length) {
                 float[] data = new float[Trees.Length * 16];

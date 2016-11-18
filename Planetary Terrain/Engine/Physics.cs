@@ -166,7 +166,6 @@ namespace Planetary_Terrain {
         /// </summary>
         public Vector3d VelocityOnPoint(Vector3d position) {
             double r = position.Length();
-            if (r * AngularVelocity.Length() < .0001) return Vector3.Zero;
             Vector3d dx = AngularVelocity.X * (Vector3d)Rotation.Right;
             Vector3d dy = AngularVelocity.Y * (Vector3d)Rotation.Up;
             Vector3d dz = AngularVelocity.Z * (Vector3d)Rotation.Backward;

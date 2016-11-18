@@ -14,13 +14,14 @@ namespace Planetary_Terrain {
         public Vector3d(Vector3 v) {
             X = v.X; Y = v.Y; Z = v.Z;
         }
-
+        
         public double Length() {
             return Math.Sqrt(X * X + Y * Y + Z * Z);
         }
         public double LengthSquared() {
             return X * X + Y * Y + Z * Z;
         }
+
         public void Normalize() {
             double l = 1 / Length();
             X *= l;

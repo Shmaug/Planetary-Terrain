@@ -107,7 +107,15 @@ namespace Planetary_Terrain {
                 renderer.D2DContext.FillRectangle(new RawRectangleF(textx-3, rect.Bottom + lineA, textx-2, rect.Bottom + texty - 2), renderer.Brushes[Colors[lineC % Colors.Length]]);
         }
 
-        public void DrawCircle(Renderer renderer, Vector2 center, float radius, float step, double a, double b, int col = 0, float txt = 0) {
+        public void DrawCircle(Renderer renderer, Vector2 center, float radius) {
+            D2D1.PathGeometry outline = null;
+            DrawCircle(renderer, center, radius, radius * .05f, 0, Math.PI * 2, ref outline, 0, 0);
+            if (outline != null) {
+                renderer.D2DContext.DrawGeometry(outline, renderer.Brushes["Black"], 2);
+                outline.Dispose();
+            }
+        }
+        public void DrawCircle(Renderer renderer, Vector2 center, float radius, float step, double a, double b, ref D2D1.PathGeometry outline, int col, float txt) {
             D2D1.PathGeometry path = new D2D1.PathGeometry(renderer.D2DFactory);
             D2D1.GeometrySink s = path.Open();
             s.SetFillMode(D2D1.FillMode.Winding);
@@ -120,23 +128,25 @@ namespace Planetary_Terrain {
 
             s.EndFigure(D2D1.FigureEnd.Closed);
             s.Close();
+            s.Dispose();
+
+            renderer.D2DContext.FillGeometry(path, renderer.Brushes[Colors[col % Colors.Length]]);
 
             if (path.FillContainsPoint(Input.MousePos, 1)) {
                 if (txt == 0)
                     txt = radius + 50;
-                RawRectangleF r = new RawRectangleF(center.X - 100, center.Y - txt, center.X + 100, center.Y - txt + 12);
+                RawRectangleF r = new RawRectangleF(center.X - 100, center.Y - txt, center.X + 100, center.Y - txt + 16);
                 renderer.D2DContext.FillRectangle(r, renderer.Brushes["TransparentBlack"]);
                 renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
                 renderer.D2DContext.DrawText(
                     Name + " (" + Stopwatch.Elapsed.TotalMilliseconds.ToString("F1") + "ms)",
                     renderer.Consolas14, r, renderer.Brushes[Colors[col % Colors.Length]], D2D1.DrawTextOptions.None, D2D1.MeasuringMode.GdiNatural);
 
-                txt += 12;
-            }
+                txt += 16;
 
-            renderer.D2DContext.FillGeometry(path, renderer.Brushes[Colors[col % Colors.Length]]);
-            s.Dispose();
-            path.Dispose();
+                outline = path;
+            } else
+                path.Dispose();
             
             double t = 0;
             foreach (Profiler p in Children) {
@@ -146,7 +156,7 @@ namespace Planetary_Terrain {
                 //    t += (p.ParentTickOffset / (double)Stopwatch.Elapsed.Ticks) * (b - a);
 
                 double f = (p.Stopwatch.Elapsed.Ticks / (double)Stopwatch.Elapsed.Ticks) * (b - a);
-                p.DrawCircle(renderer, center, radius - step, step, a + t, a + t + f, col, txt);
+                p.DrawCircle(renderer, center, radius - step, step, a + t, a + t + f, ref outline, col, txt);
                 t += f;
             }
         }

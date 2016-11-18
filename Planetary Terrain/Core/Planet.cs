@@ -125,10 +125,10 @@ namespace Planetary_Terrain {
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
 
             // Get the entire planet's scale and scaled position
-            // This ensures the planet is always within the clipping planes
             Vector3d pos;
             double scale;
-            renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale);
+            double dist;
+            renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale, out dist);
             if (scale * Radius < 1)
                 return;
             
@@ -178,7 +178,7 @@ namespace Planetary_Terrain {
 
             Profiler.Begin("Ground Draw");
             foreach (QuadNode n in VisibleNodes)
-                n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
+                n.Draw(renderer, pos, scale, dist);
             Profiler.End();
 
             if (HasOcean) {
@@ -196,7 +196,7 @@ namespace Planetary_Terrain {
                 }
 
                 foreach (QuadNode n in VisibleNodes)
-                    n.Draw(renderer, QuadNode.QuadRenderPass.Water, pos, scale);
+                    n.DrawWater(renderer, pos, scale, dist);
 
                 Profiler.End();
             }
