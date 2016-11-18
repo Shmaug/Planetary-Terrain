@@ -56,7 +56,7 @@ namespace Planetary_Terrain {
                 atmosphere.Planet = this;
             
             OceanHeight = .5;
-            OceanColor = new Color(45, 100, 245);
+            OceanColor = new Color(35, 90, 200);
         }
 
         public static double min=1, max=-1;

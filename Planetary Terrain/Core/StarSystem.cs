@@ -41,13 +41,14 @@ namespace Planetary_Terrain {
                     SurfaceTemperature = 17,
                     TemperatureRange = 35
                 };
+            earth.Velocity = new Vector3d(30000, 0, 0);
             earth.SetColormap("Data/Textures/Earth.dds", device);
             earth.AngularVelocity.Y = 0.00007272205;
             bodies.Add(earth);
 
             Planet moon = new Planet(
                 "Moon",
-                earth.Position + Vector3d.Normalize(new Vector3d(.75, 0, .25)) * 362570000,
+                earth.Position + new Vector3d(0, 0, 362570000),
                 1737000,
                 7.34767309e22,
                 20000) {
@@ -56,6 +57,7 @@ namespace Planetary_Terrain {
                 SurfaceTemperature = 0,
                 TemperatureRange = 15
             };
+            moon.Velocity = earth.Velocity + new Vector3d(1022, 0, 0);
             moon.SetColormap("Data/Textures/moon.dds", device);
             bodies.Add(moon);
 
@@ -100,7 +102,7 @@ namespace Planetary_Terrain {
             Atmosphere n = null;
             foreach (CelestialBody b in bodies) {
                 if (b is Planet && (b as Planet).Atmosphere != null) {
-                    double d = (b.Position - pos).Length();
+                    double d = (b.Position - pos).LengthSquared();
                     if (d < near) {
                         near = d;
                         n = (b as Planet).Atmosphere;
@@ -109,12 +111,12 @@ namespace Planetary_Terrain {
             }
             return n;
         }
-        public CelestialBody GetNearestBody(Vector3d pos) {
+        public CelestialBody GetCurrentSOI(Vector3d pos) {
             double near = double.MaxValue;
-            CelestialBody n = null;
+            CelestialBody n = bodies[0];
             foreach (CelestialBody b in bodies) {
-                double d = (b.Position - pos).Length();
-                if (d < near) {
+                double d = (b.Position - pos).LengthSquared();
+                if (d < near && d < b.SOI*b.SOI) {
                     near = d;
                     n = b;
                 }
@@ -147,8 +149,7 @@ namespace Planetary_Terrain {
         }
 
         public void Dispose() {
-            foreach (CelestialBody p in bodies)
-                p.Dispose();
+            physics.Dispose();
         }
     }
 }

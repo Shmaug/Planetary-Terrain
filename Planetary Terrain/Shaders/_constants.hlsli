@@ -4,8 +4,10 @@
 
 // BUFFERS //
 // b0: Camera (View, Projection)
-// b1: Model (Quadnode constants, model constants)
-// b2: Planet constants
+// b1: Model/Quadnode/Object
+// b2: Planet
+// b3: Atmosphere
+// b4: Water
 
 // SAMPLERS //
 // s0: Anisotropic sampler
@@ -20,7 +22,7 @@ cbuffer WorldConstants : register(b0) {
 SamplerState AnisotropicSampler : register(s0);
 
 float LogDepth(float w) {
-	return max(log2(C*w + 1),1e-5)*FC*w;
+	return max(log2(C*w + 1), 1e-5)*FC*w;
 }
 
 float3 UnpackNormal(float3 normal, float3 tangent, float3 mapSample) {

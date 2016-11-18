@@ -29,7 +29,7 @@ namespace Planetary_Terrain {
         public CelestialBody(Vector3d pos, double radius, double mass) : base(mass) {
             Position = pos;
             Radius = radius;
-            SOI = Radius * 1.02;
+            SOI = Math.Sqrt(Physics.G * Mass / .1); // SOI is defined as point where acceleration due to gravity is less than .1 m/s^2
 
             MaxVertexSpacing = radius*.5 / QuadNode.GridSize;
             
@@ -62,7 +62,7 @@ namespace Planetary_Terrain {
         }
         public void DrawHUDIcon(Renderer renderer, double playerSpeed, Vector2 hudDir) {
             double h = (Position - renderer.MainCamera.Position).Length();
-            if (h > SOI) {
+            if (h > Radius * 2) {
                 double dir = Vector3d.Dot(renderer.MainCamera.Position - Position, renderer.MainCamera.Rotation.Forward);
                 if (dir > 0) {
                     Vector2 screenPos = (Vector2)renderer.WorldToScreen(Position, renderer.MainCamera);

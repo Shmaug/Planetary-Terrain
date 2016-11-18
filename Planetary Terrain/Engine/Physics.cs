@@ -161,6 +161,18 @@ namespace Planetary_Terrain {
         public Vector3d Velocity;
         public Matrix Rotation = Matrix.Identity;
         public Vector3d AngularVelocity;
+        /// <summary>
+        /// Returns linear velocity due to angular velocity
+        /// </summary>
+        public Vector3d VelocityOnPoint(Vector3d position) {
+            double r = position.Length();
+            if (r * AngularVelocity.Length() < .0001) return Vector3.Zero;
+            Vector3d dx = AngularVelocity.X * (Vector3d)Rotation.Right;
+            Vector3d dy = AngularVelocity.Y * (Vector3d)Rotation.Up;
+            Vector3d dz = AngularVelocity.Z * (Vector3d)Rotation.Backward;
+            return Vector3d.Cross(dx + dy + dz, position);
+        }
+
         public Orbit Orbit;
         public PhysicsHull Hull;
         public OrientedBoundingBox OOB;
@@ -211,7 +223,7 @@ namespace Planetary_Terrain {
                     double h = dir.Length();
                     dir /= h;
                     if (h < a.Radius) {
-                        Vector3d airspeed = (Velocity - a.Planet.Velocity) - a.GetAirspeed(Position - a.Planet.Position);
+                        Vector3d airspeed = (Velocity - a.Planet.Velocity) - a.Planet.VelocityOnPoint(Position - a.Planet.Position);
                         double v = airspeed.LengthSquared();
                         if (v > .1) {
                             double temp;
@@ -229,6 +241,62 @@ namespace Planetary_Terrain {
         }
         public virtual void PostUpdate() { }
         public virtual void Draw(Renderer renderer) { }
+    }
+    class Collision {
+        public static bool SphereSphereCollision(PhysicsBody a, PhysicsBody b, out Contact contact) {
+            // TODO: Elastic sphere collision
+            contact = new Contact();
+            if ((b.Position - a.Position).LengthSquared() > (a.Hull.SphereRadius + b.Hull.SphereRadius) * (a.Hull.SphereRadius + b.Hull.SphereRadius)) return false;
+
+            contact.BodyA = a;
+            contact.BodyB = b;
+            contact.ContactPosition = (b.Position * b.Hull.SphereRadius - a.Position * a.Hull.SphereRadius) / (a.Hull.SphereRadius + b.Hull.SphereRadius);
+            contact.ContactNormal = Vector3d.Normalize(b.Position - a.Position);
+            contact.Penetration = (b.Position - a.Position).Length() - (a.Hull.SphereRadius + b.Hull.SphereRadius);
+
+            a.Velocity = a.Velocity * (a.Mass - b.Mass) + (2 * b.Mass * b.Velocity) / (a.Mass + b.Mass);
+            b.Velocity = b.Velocity * (b.Mass - a.Mass) + (2 * a.Mass * a.Velocity) / (a.Mass + b.Mass);
+
+            return true;
+        }
+        public static bool CelestialSphereCollision(CelestialBody a, PhysicsBody b, out Contact contact) {
+            contact = new Contact();
+            // TODO: turn celestial bodies into triangle meshes for collision
+
+            // check collision
+            Vector3d dir = b.Position - a.Position;
+            double h = dir.Length();
+            if (h > a.SOI + b.Hull.SphereRadius) return false;
+            dir /= h;
+            double f = a.GetHeight(dir);
+            if (h < f + b.Hull.SphereRadius) {
+                Vector3d n = a.GetNormal(dir);
+                double vdn = Vector3d.Dot(b.Velocity - a.Velocity, -n);
+                if (vdn > 0) {
+                    contact.BodyA = a;
+                    contact.BodyB = b;
+                    contact.ContactPosition = a.Position + dir * f;
+                    contact.ContactNormal = n;
+                    contact.Penetration = b.Hull.SphereRadius - (h - f);
+
+                    // Resolve position
+                    b.Position = a.Position + dir * (f + b.Hull.SphereRadius);
+                    double j = Math.Max(-(1 + Math.Max(b.Restitution, a.Restitution)) * -vdn, 0);
+                    b.Velocity += n * j / b.Mass; // Collision impulse
+
+                    // Friction
+                    double mu = 1;
+                    double l = b.Velocity.LengthSquared();
+                    if (l < .25)
+                        mu = MathUtil.Lerp((b.StaticFriction + a.StaticFriction) * .5, (b.DynamicFriction + a.DynamicFriction) * .5, l * 4); // static coefficient
+                    Vector3d r = contact.ContactPosition - b.Position;
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
     class Physics {
         public const double LIGHT_SPEED = 299792458;
@@ -284,9 +352,7 @@ namespace Planetary_Terrain {
                 return "Forever";
             return FormatTime(dist / speed);
         }
-
-        public List<PhysicsBody> bodies = new List<PhysicsBody>();
-
+        
         /// <summary>
         /// Calculates gravity force vector
         /// </summary>
@@ -303,6 +369,8 @@ namespace Planetary_Terrain {
             return Vector3.Zero;
         }
 
+        public List<PhysicsBody> bodies = new List<PhysicsBody>();
+
         public void AddBody(PhysicsBody body) {
             if (!bodies.Contains(body)) {
                 bodies.Add(body);
@@ -314,65 +382,22 @@ namespace Planetary_Terrain {
             body.PhysicsSystem = null;
         }
         
+
         bool Detect(PhysicsBody a, PhysicsBody b, out Contact contact) {
             contact = new Contact();
             switch (a.Hull.Shape) {
                 case PhysicsHull.HullShape.Sphere:
                     switch (b.Hull.Shape) {
                         case PhysicsHull.HullShape.Celestial:
-                            return Detect(b, a, out contact);
+                            return Collision.CelestialSphereCollision(b as CelestialBody, a, out contact);
                         case PhysicsHull.HullShape.Sphere:
-                            // TODO: Elastic sphere collision
-                            if ((b.Position - a.Position).LengthSquared() > (a.Hull.SphereRadius + b.Hull.SphereRadius) * (a.Hull.SphereRadius + b.Hull.SphereRadius)) return false;
-                            contact.BodyA = a;
-                            contact.BodyB = b;
-                            contact.ContactPosition = (b.Position * b.Hull.SphereRadius - a.Position * a.Hull.SphereRadius) / (a.Hull.SphereRadius + b.Hull.SphereRadius);
-                            contact.ContactNormal = Vector3d.Normalize(b.Position - a.Position);
-                            contact.Penetration = (b.Position - a.Position).Length() - (a.Hull.SphereRadius + b.Hull.SphereRadius);
-
-                            a.Velocity = a.Velocity * (a.Mass - b.Mass) + (2 * b.Mass * b.Velocity) / (a.Mass + b.Mass);
-                            b.Velocity = b.Velocity * (b.Mass - a.Mass) + (2 * a.Mass * a.Velocity) / (a.Mass + b.Mass);
-                            break;
+                            return Collision.SphereSphereCollision(a, b, out contact);
                     }
                     break;
                 case PhysicsHull.HullShape.Celestial:
-                    CelestialBody cb = a as CelestialBody;
                     switch (b.Hull.Shape) {
                         case PhysicsHull.HullShape.Sphere:
-                            if ((b.Position - cb.Position).LengthSquared() > (cb.SOI + b.Hull.SphereRadius) * (cb.SOI + b.Hull.SphereRadius)) return false;
-                            
-                            // TODO: turn celestial bodies into triangle meshes for collision
-                            // check collision
-                            Vector3d dir = b.Position - cb.Position;
-                            double h = dir.Length();
-                            dir /= h;
-                            double f = cb.GetHeight(dir);
-                            if (h < f + b.Hull.SphereRadius) {
-                                Vector3d n = cb.GetNormal(dir);
-                                double vdn = Vector3d.Dot(b.Velocity, -n);
-                                if (vdn > 0) {
-                                    contact.BodyA = a;
-                                    contact.BodyB = b;
-                                    contact.ContactPosition = a.Position + dir * f;
-                                    contact.ContactNormal = n;
-                                    contact.Penetration = b.Hull.SphereRadius - (h - f);
-
-                                    // Resolve position
-                                    b.Position = a.Position + dir * (f + b.Hull.SphereRadius);
-                                    double j = Math.Max(-(1 + Math.Max(b.Restitution, a.Restitution)) * -vdn, 0);
-                                    b.Velocity += n * j / b.Mass; // Collision impulse
-
-                                    // Friction
-                                    double mu = 1;
-                                    double l = b.Velocity.LengthSquared();
-                                    if (l < .25)
-                                        mu = MathUtil.Lerp((b.StaticFriction + a.StaticFriction) * .5, (b.DynamicFriction + a.DynamicFriction) * .5, l * 4); // static coefficient
-                                    Vector3d r = contact.ContactPosition - b.Position;
-
-                                    return true;
-                                }
-                            }
-                            break;
+                            return Collision.CelestialSphereCollision(a as CelestialBody, b, out contact);
                     }
                     break;
             }
@@ -396,6 +421,7 @@ namespace Planetary_Terrain {
                     Matrix.RotationAxis(b.Rotation.Right, (float)(b.AngularVelocity.X * deltaTime)) *
                     Matrix.RotationAxis(b.Rotation.Up, (float)(b.AngularVelocity.Y * deltaTime)) *
                     Matrix.RotationAxis(b.Rotation.Backward, (float)(b.AngularVelocity.Z * deltaTime));
+
                 b.OOB.Transformation = b.Rotation;
 
                 b.Contacts.Clear();
@@ -416,10 +442,10 @@ namespace Planetary_Terrain {
                     if (f) continue;
 
                     Contact contact;
-                    if (Detect(a, b, out contact)) {
-                        b.Contacts.Add(contact);
-                        contacts.Add(contact);
-                    }
+                   if (Detect(a, b, out contact)) {
+                       b.Contacts.Add(contact);
+                       contacts.Add(contact);
+                   }
                 }
             }
         }
@@ -473,6 +499,12 @@ namespace Planetary_Terrain {
             }
 
             return t >= 0;
+        }
+
+        public void Dispose() {
+            foreach (PhysicsBody b in bodies)
+                if (b is IDisposable)
+                    (b as IDisposable).Dispose();
         }
     }
 }

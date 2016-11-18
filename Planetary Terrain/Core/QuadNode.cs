@@ -962,8 +962,6 @@ namespace Planetary_Terrain {
         }
 
         #region Rendering
-        Vector3d frameScaledPos;
-        double frameScaledScale;
         public void GetRenderLevelNodes(Renderer renderer, ref List<QuadNode> list) {
             bool draw = true;
 

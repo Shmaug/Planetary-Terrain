@@ -63,7 +63,7 @@ float4 psmain(v2f i) : SV_TARGET
 	float3 v = normalize(i.worldPos);
 	float dp = dot(r, v);
 	if (dp > 0)
-		col.rgb += pow(dp, 200) * light;
+		col.rgb += pow(dp, 10) * light;
 
 	col.rgb = i.c1 + col.rgb * i.c0;
 

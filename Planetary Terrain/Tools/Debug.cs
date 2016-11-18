@@ -150,7 +150,7 @@ namespace Planetary_Terrain {
         }
         struct FrameSnapshot {
             public float FPS;
-            public float FrameTime;
+            public float FrameTimeMS;
             public int RealFPS;
             public bool mark;
         }
@@ -202,7 +202,7 @@ namespace Planetary_Terrain {
             boxes.Clear();
         }
         public static void EndFrame(double frameTime) {
-            frameGraph.Add(new FrameSnapshot() { RealFPS = FPS, FrameTime = (float)frameTime, FPS = (float)(1.0 / frameTime), mark = frameMarked });
+            frameGraph.Add(new FrameSnapshot() { RealFPS = FPS, FrameTimeMS = (float)(frameTime * 1000), FPS = (float)(1.0 / frameTime), mark = frameMarked });
             if (frameGraph.Count > frameGraphSize)
                 frameGraph.RemoveAt(0);
         }
@@ -217,40 +217,53 @@ namespace Planetary_Terrain {
         public static void Draw3D(Renderer renderer) {
             if (!DrawDebug) return;
             Matrix m = Matrix.Identity;
-            float[] b = new float[32] {
-                    m.M11,m.M12,m.M13,m.M14,
-                    m.M21,m.M22,m.M23,m.M24,
-                    m.M31,m.M32,m.M33,m.M34,
-                    m.M41,m.M42,m.M43,m.M44,
-                    1,1,1,1,
-                    0,0,0,0,0,0,0,0,0,0,0,0
+            float[] b = new float[20] {
+                    1,0,0,0, // Matrix
+                    0,1,0,0, // Matrix
+                    0,0,1,0, // Matrix
+                    0,0,0,1, // Matrix
+                    1,1,1,1, // Color
                 };
             cbuffer?.Dispose();
             cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, b);
 
             Shaders.Colored.Set(renderer);
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineStrip;
+            renderer.Context.VertexShader.SetConstantBuffer(1, cbuffer);
+            renderer.Context.PixelShader.SetConstantBuffer(1, cbuffer);
 
+            Random r = new Random();
             foreach (Line line in lines) {
-                VertexColor[] verts = new VertexColor[line.points.Length];
+                List<VertexColor> verts = new List<VertexColor>();
                 for (int i = 0; i < line.points.Length; i++) {
                     double s;
                     Vector3d p;
                     renderer.ActiveCamera.GetScaledSpace(line.points[i], out p, out s);
-                    verts[i] = new VertexColor(p, line.color);
-                }
-                
-                if (vbuffer == null)
-                    vbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verts);
-                else
-                    renderer.Context.UpdateSubresource(verts, vbuffer);
-                
-                renderer.Context.VertexShader.SetConstantBuffer(1, cbuffer);
-                renderer.Context.PixelShader.SetConstantBuffer(1, cbuffer);
+                    
+                    verts.Add(new VertexColor(p, line.color));
 
+                    // tesselate line if its got gaps (to reduce depth error from logarithmic depth buffer)
+                    if (i + 1 < line.points.Length) {
+                        Vector2 sp1 = (Vector2)renderer.WorldToScreen(line.points[i], renderer.MainCamera);
+                        Vector2 sp2 = (Vector2)renderer.WorldToScreen(line.points[i + 1], renderer.MainCamera);
+                        
+                        double d = (sp1 - sp2).Length();
+                        if (d > 10) {
+                            double s2;
+                            Vector3d p2;
+                            renderer.ActiveCamera.GetScaledSpace(line.points[i + 1], out p2, out s2);
+                            for (double t = 0; t < 1; t += 10 / d)
+                                verts.Add(new VertexColor(Vector3d.Lerp(p, p2, t), line.color));
+                        }
+                    }
+                }
+
+                vbuffer?.Dispose();
+                vbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verts.ToArray());
+                
                 renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vbuffer, Utilities.SizeOf<VertexColor>(), 0));
 
-                renderer.Context.Draw(verts.Length, 0);
+                renderer.Context.Draw(verts.Count, 0);
             }
 
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
@@ -324,72 +337,79 @@ namespace Planetary_Terrain {
                 ly -= lh + 5;
             }
             #endregion
+
             #region profiler
-            int py = frameProfiler.TotalChildren()*Profiler.lineHeight + Profiler.lineHeight;
-            renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
-            frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
+            //int py = frameProfiler.TotalChildren()*Profiler.lineHeight + Profiler.lineHeight;
+            //renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
+            //frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
             float r = renderer.ResolutionX * .075f;
             frameProfiler.DrawCircle(renderer, new Vector2(renderer.ResolutionX - r - 10, renderer.ResolutionY - r - 10), r, r * .05f, 0, Math.PI * 2);
             #endregion
 
             #region graph
-            float minfps = frameGraph[0].FPS;
-            float maxfps = frameGraph[0].FPS;
+            float min = frameGraph[0].FrameTimeMS;
+            float max = frameGraph[0].FrameTimeMS;
             for (int i = 0; i < frameGraph.Count; i++) {
-                minfps = Math.Min(minfps, frameGraph[i].FPS);
-                maxfps = Math.Max(maxfps, frameGraph[i].FPS);
+                min = Math.Min(min, frameGraph[i].FrameTimeMS);
+                max = Math.Max(max, frameGraph[i].FrameTimeMS);
             }
-            minfps = (int)Math.Floor(minfps / 30) * 30;
-            maxfps = (int)Math.Ceiling(maxfps / 30) * 30;
-            float gHeight = 400;
-            float gWidth = 350;
+            float step = Math.Max((int)((max - min) / 10 / .5f) * .5f, .5f);
+            min = (int)Math.Floor(min / step) * step;
+            max = (int)Math.Ceiling(max / step) * step;
 
-            float xScale = gWidth / frameGraphSize;
-            float ppf = gHeight / (maxfps - minfps); // pixels per frame
-            float y0 = renderer.ResolutionY - 100; // bottom of the graph
+            RawRectangleF grect = new RawRectangleF(renderer.ResolutionX - 360, 10, renderer.ResolutionX - 10, 360);
+            float xScale = (grect.Right - grect.Left - 30) / frameGraphSize;
+            float ppf = (grect.Bottom - grect.Top - 20) / (max - min); // pixels per ms
 
             RawVector2[] pts = new RawVector2[frameGraph.Count];
             List<RawVector2> marks = new List<RawVector2>();
             for (int i = 0; i < frameGraph.Count; i++) {
-                pts[i] = new RawVector2(30 + i * xScale, MathUtil.Clamp(y0 - (frameGraph[i].FPS - minfps) * ppf, y0 - gHeight, y0));
-                if (frameGraph[i].mark)
-                    marks.Add(pts[i]);
+                pts[i] = new RawVector2(grect.Left + 30 + i * xScale, MathUtil.Clamp(grect.Bottom - 20 - (frameGraph[i].FrameTimeMS - min) * ppf, grect.Top, grect.Bottom - 20));
+            }
+            D2D1.PathGeometry graphline = new D2D1.PathGeometry(renderer.D2DFactory);
+            D2D1.GeometrySink graphsink = graphline.Open();
+            graphsink.SetFillMode(D2D1.FillMode.Winding);
+            graphsink.BeginFigure(pts[0], D2D1.FigureBegin.Hollow);
+            graphsink.AddLines(pts);
+            graphsink.EndFigure(D2D1.FigureEnd.Open);
+            graphsink.Close();
+
+            renderer.D2DContext.FillRectangle(grect, renderer.Brushes["TransparentBlack"]);
+
+            renderer.D2DContext.DrawLine( // y axis
+                new RawVector2(grect.Left + 30, grect.Bottom - (max - min) * ppf - 20),
+                new RawVector2(grect.Left + 30, grect.Bottom - 20), renderer.Brushes["White"], 2);
+                renderer.D2DContext.DrawLine(
+                    new RawVector2(grect.Left + 30, grect.Bottom - 20),
+                    new RawVector2(grect.Right, grect.Bottom - 20), renderer.Brushes["White"], 2); // x axis
+
+            renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Trailing;
+            renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
+            for (float ms = min; ms <= max; ms += step) {
+                float y = grect.Bottom - 20 - (ms - min) * ppf;
+
+                // y axis numbers
+                if (ms.ToString().Length <= 3)
+                    renderer.D2DContext.DrawText(ms.ToString(), renderer.Consolas14,
+                        new RawRectangleF(grect.Left, y, grect.Left + 25, y), renderer.Brushes["White"]);
+                
+                if (ms > min)
+                    renderer.D2DContext.DrawLine(new RawVector2(grect.Left + 28, y), new RawVector2(grect.Right, y), renderer.Brushes["White"], .25f);
             }
             
-            D2D1.PathGeometry fpsline = new D2D1.PathGeometry(renderer.D2DFactory);
-            D2D1.GeometrySink fpssink = fpsline.Open();
-            fpssink.SetFillMode(D2D1.FillMode.Winding);
-            fpssink.BeginFigure(pts[0], D2D1.FigureBegin.Hollow);
-            fpssink.AddLines(pts);
-            fpssink.EndFigure(D2D1.FigureEnd.Open);
-            fpssink.Close();
+            renderer.D2DContext.DrawGeometry(graphline, renderer.Brushes["CornflowerBlue"]); // graph line
 
-            renderer.D2DContext.FillRectangle(new RawRectangleF(0, y0 - gHeight - 10, 30 + gWidth + 10, y0+10), renderer.Brushes["TransparentBlack"]);
+            // x axis label
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Trailing;
-            for (int fps = (int)minfps; fps <= maxfps; fps += 30) {
-                float y = y0 - (fps - minfps) * ppf;
-                // y axis label
-                renderer.D2DContext.DrawText(fps.ToString(), renderer.Consolas14,
-                    new RawRectangleF(0, y, 25, y), renderer.Brushes["White"]);
-
-                // dash/solid line
-                if (fps - minfps > 0)
-                    renderer.D2DContext.DrawLine(new RawVector2(28, y), new RawVector2(30+gWidth, y), renderer.Brushes["White"], 1, renderer.DashStyle);
-                else
-                    renderer.D2DContext.DrawLine(new RawVector2(30, y), new RawVector2(30+gWidth, y), renderer.Brushes["White"], 2);
-            }
-            renderer.D2DContext.DrawLine(new RawVector2(30, y0 - (maxfps-minfps) * ppf), new RawVector2(30, y0), renderer.Brushes["White"], 2);
-
-            renderer.D2DContext.DrawGeometry(fpsline, renderer.Brushes["CornflowerBlue"]);
-
-            renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Center;
+            renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Far;
             renderer.D2DContext.DrawText(frameGraphSize + " frames", renderer.Consolas14,
-                new RawRectangleF(30 + gWidth, y0, 30 + gWidth, y0 + 25), renderer.Brushes["White"]);
-            //foreach (RawVector2 m in marks) {
-            //    renderer.D2DContext.DrawLine(
-            //        m,
-            //        new Vector2(m.X, y0), renderer.Brushes["Yellow"], .25f);
-            //}
+                new RawRectangleF(grect.Right, grect.Bottom, grect.Right, grect.Bottom), renderer.Brushes["White"]);
+            
+            // y axis label
+            renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Center;
+            renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Near;
+            renderer.D2DContext.DrawText("Draw+Update Time (ms)", renderer.Consolas14, // y axis label
+                new RawRectangleF(grect.Left + 30, grect.Top, grect.Right, grect.Top), renderer.Brushes["White"]);
             #endregion
         }
 

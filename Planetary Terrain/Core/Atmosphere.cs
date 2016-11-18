@@ -100,20 +100,7 @@ namespace Planetary_Terrain {
 
             c = 331.3 + (.6 * temperature);
         }
-
-        /// <summary>
-        /// Returns air speed corrected for planet rotation
-        /// </summary>
-        public Vector3d GetAirspeed(Vector3d position) {
-            double w = Planet.AngularVelocity.Length();
-            double r = position.Length();
-            if (r * w < .0001) return Vector3.Zero;
-            Vector3d dx = Planet.AngularVelocity.X * (Vector3d)Planet.Rotation.Right;
-            Vector3d dy = Planet.AngularVelocity.Y * (Vector3d)Planet.Rotation.Up;
-            Vector3d dz = Planet.AngularVelocity.Z * (Vector3d)Planet.Rotation.Forward;
-            return r * w * Vector3d.Normalize(Vector3d.Cross(dx + dy + dz, position));
-        }
-
+        
         public void UpdateLOD(D3D11.Device device, Camera camera) {
             for (int i = 0; i < BaseQuads.Length; i++)
                 BaseQuads[i].SplitDynamic(camera.Position, device);

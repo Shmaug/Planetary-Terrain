@@ -24,6 +24,6 @@ v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0) {
 }
 
 float4 blurps(v2f i) : SV_TARGET {
-	float3 r = ScreenTexture.Sample(AnisotropicSampler, i.uv);
+	float3 r = ScreenTexture.Sample(AnisotropicSampler, i.uv).rgb;
 	return float4(r, 1);
 }

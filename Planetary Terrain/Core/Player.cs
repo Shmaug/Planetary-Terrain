@@ -65,6 +65,7 @@ namespace Planetary_Terrain {
             if (Input.ks.IsPressed(DInput.Key.E))
                 move.Y -= 1;
 
+            CelestialBody cb = StarSystem.ActiveSystem.GetCurrentSOI(Position);
             if (Vehicle != null) {
                 // move vehicle
                 if (Input.ks.IsPressed(DInput.Key.LeftShift))
@@ -75,7 +76,6 @@ namespace Planetary_Terrain {
 
                 Vehicle.AngularVelocity = Vector3d.Lerp(Vehicle.AngularVelocity, new Vector3d(move.Z, move.X, move.Y) * Math.PI * .25, deltaTime);
             } else {
-                CelestialBody cb = StarSystem.ActiveSystem.GetNearestBody(Position);
                 Matrix o = Matrix.Identity;
                 if (cb != null) {
                     o = cb.OrientationFromDirection(Vector3d.Normalize(Position - cb.Position));
@@ -85,25 +85,26 @@ namespace Planetary_Terrain {
                 // walk around on whatever we're standing on (based on last frame's collisions)
                 move.Y = 0;
                 double l = move.Length();
-                if (l > 0)
+                if (l > 0) {
                     move /= l;
-                    
-                foreach (Contact c in Contacts) {
-                    if (Vector3d.Dot(c.ContactPosition - Position, Rotation.Down) > .5) { // object is below us
-                        move = Vector3d.Transform(move, (Matrix3x3)Rotation);
-                        move *= 2.6;
-                        if (Input.ks.IsPressed(DInput.Key.LeftShift))
-                            move *= 3;
 
-                        Vector3d delta = move - Velocity;
-                        delta -= (Vector3d)o.Up * Vector3d.Dot(delta, c.ContactNormal);
-                        if (delta.LengthSquared() > .1)
-                            AddForce(delta * 3.0 * Mass, Vector3.Zero);
+                    foreach (Contact c in Contacts) {
+                        if (Vector3d.Dot(c.ContactPosition - Position, Rotation.Down) > .5) { // object is below us
+                            move = Vector3d.Transform(move, (Matrix3x3)Rotation);
+                            move *= 2.6;
+                            if (Input.ks.IsPressed(DInput.Key.LeftShift))
+                                move *= 3;
 
-                        if (Input.ks.IsPressed(DInput.Key.Space))
-                            AddForce(c.ContactNormal * Mass * 250, Vector3.Zero);
+                            Vector3d delta = move - Velocity;
+                            delta -= (Vector3d)o.Up * Vector3d.Dot(delta, c.ContactNormal);
+                            if (delta.LengthSquared() > .1)
+                                AddForce(delta * 3.0 * Mass, Vector3.Zero);
 
-                        break;
+                            if (Input.ks.IsPressed(DInput.Key.Space))
+                                AddForce((c.BodyA == this ? -c.ContactNormal : c.ContactNormal) * Mass * 250, Vector3.Zero);
+                            
+                            break;
+                        }
                     }
                 }
             }
@@ -119,64 +120,6 @@ namespace Planetary_Terrain {
                     CameraEuler += new Vector3(Input.MousePos.Y - Input.LastMousePos.Y, Input.MousePos.X - Input.LastMousePos.X, 0) * .003f;
             }
             CameraEuler.X = MathUtil.Clamp(CameraEuler.X, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
-
-            // Teleport to double right click
-            if (!Input.MouseBlocked && !FirstPerson) {
-                if (Input.ms.Buttons[1]) {
-                    double t = -1;
-                    CelestialBody hit = null;
-                    foreach (CelestialBody cb in StarSystem.ActiveSystem.bodies) {
-                        double r = cb.Radius;
-                        if (cb is Planet) r = cb.Radius + (cb as Planet).TerrainHeight * (cb as Planet).OceanHeight;
-
-                        Vector3d m = Input.MouseRayOrigin - cb.Position;
-                        double b = Vector3d.Dot(m, Input.MouseRayDirection);
-                        double c = Vector3d.Dot(m, m) - r * r;
-
-                        if (c > 0 && b > 0) continue;
-                        double discr = b * b - c;
-                        if (discr < 0) continue;
-                        
-                        double f = Math.Max(0, -b - Math.Sqrt(discr));
-                        if (f < t || t < 0) {
-                            t = f;
-                            hit = cb;
-                        }
-                    }
-                    if (hit != null) {
-                        Vector3d p = Input.MouseRayOrigin + Input.MouseRayDirection * t;
-                        Debug.DrawLine(Color.Red, p, p + Vector3d.Normalize(p - hit.Position) * hit.Radius);
-                    }
-                } else if (!Input.ms.Buttons[1] && Input.lastms.Buttons[1]) {
-                    double t = -1;
-                    CelestialBody hit = null;
-                    foreach (CelestialBody cb in StarSystem.ActiveSystem.bodies) {
-                        double r = cb.Radius;
-                        if (cb is Planet) r = cb.Radius + (cb as Planet).TerrainHeight * (cb as Planet).OceanHeight;
-
-                        Vector3d m = Input.MouseRayOrigin - cb.Position;
-                        double b = Vector3d.Dot(m, Input.MouseRayDirection);
-                        double c = Vector3d.Dot(m, m) - r * r;
-
-                        if (c > 0 && b > 0) continue;
-                        double discr = b * b - c;
-                        if (discr < 0) continue;
-
-                        // Ray now found to intersect sphere, compute smallest t value of intersection
-                        double f = Math.Max(0, -b - Math.Sqrt(discr));
-                        if (f < t || t < 0) {
-                            t = f;
-                            hit = cb;
-                        }
-                    }
-                    if (hit != null) {
-                        if (Vehicle != null)
-                            Vehicle.Velocity = hit.Velocity;
-                        Velocity = hit.Velocity;
-                        MoveTo(Input.MouseRayOrigin + Input.MouseRayDirection * t);
-                    }
-                }
-            }
         }
 
         public override void PostUpdate() {
@@ -200,14 +143,50 @@ namespace Planetary_Terrain {
             } else
                 Camera.Position = Position + (Vector3d)Camera.Rotation.Forward * CameraDistance;
 
-            CelestialBody b = StarSystem.ActiveSystem.GetNearestBody(Camera.Position);
-            if (b != null) {
-                Vector3d dir = Camera.Position - b.Position;
-                double h = dir.Length();
-                dir /= h;
-                double t = b.GetHeight(dir) + .2;
-                if (h < t)
-                    Camera.Position = b.Position + dir * t;
+            CelestialBody cb = StarSystem.ActiveSystem.GetCurrentSOI(Camera.Position);
+
+            Vector3d dir = Camera.Position - cb.Position;
+            double h = dir.Length();
+            dir /= h;
+            double ch = cb.GetHeight(dir);
+            if (h + .2 < ch)
+                Camera.Position = cb.Position + dir * ch;
+
+            Vector3d v = Velocity - cb.Velocity;
+            if (h < ch + 10000)
+                v = Velocity - (cb.VelocityOnPoint(Position - cb.Position) + cb.Velocity);
+            Debug.DrawLine(Color.Blue, Position, Position + v); // relative velocity line
+            
+            foreach (Contact c in Contacts)
+                Debug.DrawLine(Color.Red, Position - c.ContactNormal * 10, Position + c.ContactNormal * 10);
+            
+            // Teleport to right click
+            if (!Input.MouseBlocked && !FirstPerson &&
+                (Input.ms.Buttons[1] || (!Input.ms.Buttons[1] && Input.lastms.Buttons[1]))) {
+
+                double r = cb.Radius;
+                if (cb is Planet) r = cb.Radius + (cb as Planet).TerrainHeight * (cb as Planet).OceanHeight;
+
+                Vector3d m = Input.MouseRayOrigin - cb.Position;
+                double b = Vector3d.Dot(m, Input.MouseRayDirection);
+                double c = Vector3d.Dot(m, m) - r * r;
+
+                if (!(c > 0 && b > 0)) {
+                    double discr = b * b - c;
+                    if (discr > 0) {
+                        double t = Math.Max(0, -b - Math.Sqrt(discr));
+                        Vector3d p = Vector3d.Normalize(Input.MouseRayOrigin + Input.MouseRayDirection * t - cb.Position);
+                        double h1 = cb.GetHeight(p);
+
+                        if (Input.ms.Buttons[1]) // holding right click
+                            Debug.DrawLine(Color.Red, cb.Position + p * h1, cb.Position + p * (h1+cb.Radius));
+                        else { // released right click
+                            MoveTo(cb.Position + p * (h1 + Hull.SphereRadius));
+                            Velocity = cb.Velocity + cb.VelocityOnPoint(Position - cb.Position);
+                            if (Vehicle != null) Vehicle.Velocity = Velocity;
+                        }
+                    }
+                }
             }
         }
 
@@ -222,8 +201,7 @@ namespace Planetary_Terrain {
         }
         
         public void Dispose() {
-            Vehicle?.Dispose();
-            Vehicle = null;
+
         }
     }
 }
