@@ -7,6 +7,7 @@ namespace Planetary_Terrain {
     class Camera {
         private Vector3d _position;
         private float _fov, _fovy, _aspect, _near = 1f, _far = 1000000;
+        private double _cosfov2;
         private float _orthoSize;
         private bool _ortho = false;
         private Matrix _rotation = Matrix.Identity, _view, _proj;
@@ -45,6 +46,7 @@ namespace Planetary_Terrain {
             {
                 _fov = value;
                 _fovy = (float)(2 * Math.Atan(Math.Tan(_fov * .5) * _aspect));
+                _cosfov2 = 1.0 - Math.Cos(_fov * .5);
 
                 makeProjection();
             }
@@ -124,7 +126,7 @@ namespace Planetary_Terrain {
             BoundingBox bbox = new BoundingBox(-oob.Extents, oob.Extents);
             return frustum.Intersects(ref bbox);
         }
-
+        
         public void GetScaledSpace(Vector3d location, out Vector3d pos, out double scale) {
             double d;
             GetScaledSpace(location, out pos, out scale, out d);
@@ -135,7 +137,7 @@ namespace Planetary_Terrain {
 
             distance = pos.Length();
 
-            double f = zFar * (1.0 - Math.Cos(_fov * .5));
+            double f = zFar * _cosfov2;
             double p = .5 * f;
 
             if (distance > p) {

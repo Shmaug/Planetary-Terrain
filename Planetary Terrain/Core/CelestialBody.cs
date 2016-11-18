@@ -4,6 +4,7 @@ using SharpDX.Mathematics.Interop;
 using D3D11 = SharpDX.Direct3D11;
 using D2D1 = SharpDX.Direct2D1;
 using DWrite = SharpDX.DirectWrite;
+using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     abstract class CelestialBody : PhysicsBody, IDisposable {
@@ -13,7 +14,8 @@ namespace Planetary_Terrain {
         /// <summary>
         /// The 6 base quadtrees composing the planet
         /// </summary>
-        public QuadNode[] BaseQuads;
+        public QuadNode[] BaseNodes;
+        public List<QuadNode> VisibleNodes;
 
         public CelestialBody OrbitalParent;
         
@@ -40,25 +42,33 @@ namespace Planetary_Terrain {
         void InitializeQuadTree() {
             double s = 1.41421356237 * Radius;
 
-            BaseQuads = new QuadNode[6];
-            BaseQuads[0] = new QuadNode(this, 0, s, 0, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
-            BaseQuads[1] = new QuadNode(this, 1, s, 0, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
-            BaseQuads[2] = new QuadNode(this, 2, s, 0, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
-            BaseQuads[3] = new QuadNode(this, 3, s, 0, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
-            BaseQuads[4] = new QuadNode(this, 4, s, 0, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
-            BaseQuads[5] = new QuadNode(this, 5, s, 0, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
+            VisibleNodes = new List<QuadNode>();
+            
+            BaseNodes = new QuadNode[6];
+            BaseNodes[0] = new QuadNode(this, 0, s, 0, null, s * .5f * (Vector3d)Vector3.Up, MathTools.RotationXYZ(0, 0, 0));
+            BaseNodes[1] = new QuadNode(this, 1, s, 0, null, s * .5f * (Vector3d)Vector3.Down, MathTools.RotationXYZ(MathUtil.Pi, 0, 0));
+            BaseNodes[2] = new QuadNode(this, 2, s, 0, null, s * .5f * (Vector3d)Vector3.Left, MathTools.RotationXYZ(0, 0, MathUtil.PiOverTwo));
+            BaseNodes[3] = new QuadNode(this, 3, s, 0, null, s * .5f * (Vector3d)Vector3.Right, MathTools.RotationXYZ(0, 0, -MathUtil.PiOverTwo));
+            BaseNodes[4] = new QuadNode(this, 4, s, 0, null, s * .5f * (Vector3d)Vector3.ForwardLH, MathTools.RotationXYZ(MathUtil.PiOverTwo, 0, 0));
+            BaseNodes[5] = new QuadNode(this, 5, s, 0, null, s * .5f * (Vector3d)Vector3.BackwardLH, MathTools.RotationXYZ(-MathUtil.PiOverTwo, 0, 0));
 
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Generate();
+            for (int i = 0; i < BaseNodes.Length; i++)
+                BaseNodes[i].Generate();
         }
 
+        public void UpdateVisibleNodes() {
+            VisibleNodes.Clear();
+            for (int i = 0; i < BaseNodes.Length; i++)
+                BaseNodes[i].GetVisible(ref VisibleNodes);
+        }
+        
         public virtual void UpdateLOD(D3D11.Device device, Camera camera) {
             Vector3d dir = camera.Position - Position;
             double height = dir.Length();
             dir /= height;
             double alt = height - GetHeight(dir);
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].SplitDynamic(dir, height, alt, device);
+            for (int i = 0; i < BaseNodes.Length; i++)
+                BaseNodes[i].SplitDynamic(dir, height, alt, device);
         }
         public void DrawHUDIcon(Renderer renderer, double playerSpeed, Vector2 hudDir) {
             double h = (Position - renderer.MainCamera.Position).Length();

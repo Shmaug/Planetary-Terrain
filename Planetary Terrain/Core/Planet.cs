@@ -119,7 +119,7 @@ namespace Planetary_Terrain {
             base.UpdateLOD(device, camera);
             Atmosphere?.UpdateLOD(device, camera);
         }
-
+        
         public override void Draw(Renderer renderer) {
             Profiler.Begin(Name + " Draw");
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
@@ -142,16 +142,13 @@ namespace Planetary_Terrain {
                 renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
             if (Atmosphere != null){
-                Profiler.Begin(Name + " Atmosphere Draw");
+                Profiler.Begin("Atmosphere Draw");
                 // draw atmosphere behind planet
                 Atmosphere?.Draw(renderer, pos, scale);
                 Profiler.End();
             }
 
-            Profiler.Begin(Name + " Draw Prepare");
-            List<QuadNode> nodesToDraw = new List<QuadNode>();
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].GetRenderLevelNodes(renderer, ref nodesToDraw);
+            Profiler.Begin("Resource/Buffer Set");
             
             Shaders.Planet.Set(renderer);
 
@@ -174,8 +171,13 @@ namespace Planetary_Terrain {
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
             Profiler.End();
 
-            Profiler.Begin(Name + " Ground Draw");
-            foreach (QuadNode n in nodesToDraw)
+            Profiler.Begin("Node Prepare");
+            foreach (QuadNode n in VisibleNodes)
+                n.PrepareDraw(renderer);
+            Profiler.End();
+
+            Profiler.Begin("Ground Draw");
+            foreach (QuadNode n in VisibleNodes)
                 n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
             Profiler.End();
 
@@ -193,7 +195,7 @@ namespace Planetary_Terrain {
                     renderer.Context.PixelShader.SetConstantBuffers(3, Atmosphere.constBuffer);
                 }
 
-                foreach (QuadNode n in nodesToDraw)
+                foreach (QuadNode n in VisibleNodes)
                     n.Draw(renderer, QuadNode.QuadRenderPass.Water, pos, scale);
 
                 Profiler.End();
@@ -204,8 +206,8 @@ namespace Planetary_Terrain {
                 
                 List<QuadNode> trees = new List<QuadNode>();
                 List<QuadNode> imposters = new List<QuadNode>();
-                for (int i = 0; i < BaseQuads.Length; i++)
-                    BaseQuads[i].GetTreeNodes(renderer, ref trees, ref imposters);
+                for (int i = 0; i < BaseNodes.Length; i++)
+                    BaseNodes[i].GetTreeNodes(renderer, ref trees, ref imposters);
 
                 if (trees.Count > 0) {
                     Shaders.ModelInstanced.Set(renderer);
@@ -237,8 +239,8 @@ namespace Planetary_Terrain {
 
             constBuffer?.Dispose();
             
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Dispose();
+            for (int i = 0; i < BaseNodes.Length; i++)
+                BaseNodes[i].Dispose();
             
             Atmosphere?.Dispose();
         }

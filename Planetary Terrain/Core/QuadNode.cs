@@ -232,7 +232,7 @@ namespace Planetary_Terrain {
                 IndexCache[i] = MakeIndicies(i);
         }
     }
-    class QuadNode : IDisposable {
+    class QuadNode {
         public const int GridSize = 16;
         const double WaterDetailDistance = 1000;
         static double TreeLODLevel { get { return Properties.Settings.Default.TreeLODLevel; } }
@@ -250,7 +250,7 @@ namespace Planetary_Terrain {
                 GenerateQueue = GenerateQueue.OrderByDescending(o => o.LODlevel).ToList(); // prioritize high-lod nodes
 
                 while (Generating.Count < MaxGenerationCount && GenerateQueue.Count > 0) {
-                    QuadNode q = GenerateQueue[GenerateQueue.Count - 1];
+                    QuadNode q = GenerateQueue[GenerateQueue.Count - 1]; // Prioritize recently added nodes
                     GenerateQueue.Remove(q);
                     if (!q.Disposed)
                         Generating.Add(q);
@@ -260,16 +260,15 @@ namespace Planetary_Terrain {
                     });
                 }
             }
-            for (int i = 0; i < RemoveQueue.Count; i++)
-                Generating.Remove(RemoveQueue[i]);
-            RemoveQueue.Clear();
 
             // cleanup the Generating queue
             foreach (QuadNode n in Generating)
                 if (n.Disposed || !n.generating)
                     RemoveQueue.Add(n);
-            for (int i = 0; i < RemoveQueue.Count; i++)
+            for (int i = 0; i < RemoveQueue.Count; i++) {
+                RemoveQueue[i].Body.UpdateVisibleNodes();
                 Generating.Remove(RemoveQueue[i]);
+            }
             RemoveQueue.Clear();
         }
         #endregion
@@ -389,13 +388,7 @@ namespace Planetary_Terrain {
         {
             get
             {
-                bool childrenReady = true;
-                if (Children != null) {
-                    for (int i = 0; i < Children.Length; i++)
-                        if (!Children[i].Ready)
-                            childrenReady = false;
-                }
-                return (Children != null && childrenReady) || (vertexDirty || vertexBuffer != null);
+                return !Disposed && (vertexDirty || vertexBuffer != null);
             }
         }
         
@@ -603,9 +596,12 @@ namespace Planetary_Terrain {
         
         #region Index/Neighbor Calculations
         public void GetIndicies(bool recurse = true) {
-            if (recurse && Children != null)
-                for (int i = 0; i < Children.Length; i++)
-                    Children[i].GetIndicies();
+            if (recurse && Children != null) {
+                Children[0].GetIndicies();
+                Children[1].GetIndicies();
+                Children[2].GetIndicies();
+                Children[3].GetIndicies();
+            }
 
             if (verticies == null)
                 return;
@@ -808,9 +804,10 @@ namespace Planetary_Terrain {
         public void UnSplit() {
             if (Children == null) return;
 
-            for (int i = 0; i < Children.Length; i++)
-                Children[i]?.Dispose();
-
+            Children[0]?.Dispose();
+            Children[1]?.Dispose();
+            Children[2]?.Dispose();
+            Children[3]?.Dispose();
             Children = null;
 
             if (vertexBuffer == null && !generating)
@@ -819,6 +816,11 @@ namespace Planetary_Terrain {
                 GetIndicies();
 
             UpdateNeighborIndicies();
+            
+            if (!Ready && !generating)
+                Generate();
+
+            Body.UpdateVisibleNodes();
         }
         public void SplitDynamic(Vector3d dir, double height, double altitude, D3D11.Device device) {
             double dist;
@@ -962,7 +964,7 @@ namespace Planetary_Terrain {
         }
 
         #region Rendering
-        public void GetRenderLevelNodes(Renderer renderer, ref List<QuadNode> list) {
+        public void GetVisible(ref List<QuadNode> list) {
             bool draw = true;
 
             if (Children != null) {
@@ -974,54 +976,52 @@ namespace Planetary_Terrain {
 
                 if (!draw)
                     for (int i = 0; i < Children.Length; i++)
-                        Children[i].GetRenderLevelNodes(renderer, ref list);
+                        Children[i].GetVisible(ref list);
             }
 
-            if (draw) {
-                if (IsAboveHorizon(renderer.ActiveCamera.Position)) {
-
-
-                    list.Add(this);
-                }
-            }
+            if (draw)
+                list.Add(this);
         }
         public enum QuadRenderPass { Ground, Water }
-        public void Draw(Renderer renderer, QuadRenderPass pass, Vector3d planetPos, double planetScale) {
+
+        Vector3d scaledPos;
+        double scaledScale;
+        public void PrepareDraw(Renderer renderer) {
             if (vertexDirty || indexdirty)
                 SetData(renderer.Device, renderer.Context);
+            renderer.ActiveCamera.GetScaledSpace(MeshPosition, out scaledPos, out scaledScale);
+            scaledScale *= Size;
+        }
+        public void Draw(Renderer renderer, QuadRenderPass pass, Vector3d planetPos, double planetScale) {
             // early exits
             if (vertexBuffer == null || indexBuffer == null) return;
             if (pass == QuadRenderPass.Water && !hasWaterVerticies) return;
+            if (!IsAboveHorizon(renderer.ActiveCamera.Position)) return;
 
             double camHeight = (renderer.ActiveCamera.Position - Body.Position).Length();
             if (pass == QuadRenderPass.Ground && hasWaterVerticies && !hasVerticiesAboveWater && camHeight > oceanLevel + WaterDetailDistance) return;
             
-            // get scaled space
-            double scale;
-            Vector3d pos;
-            if (pass == QuadRenderPass.Water)
-                renderer.ActiveCamera.GetScaledSpace(WaterMeshPosition, out pos, out scale);
-            else
-                renderer.ActiveCamera.GetScaledSpace(MeshPosition, out pos, out scale);
-            scale *= Size;
-            
-            OOB.Transformation = WaterOOB.Transformation = Matrix.Scaling((float)scale) * Body.Rotation * NodeOrientation * Matrix.Translation(pos);
             if (pass == QuadRenderPass.Ground || pass == QuadRenderPass.Water) {
-                // frustum culling
-                if (pass == QuadRenderPass.Ground && !renderer.ActiveCamera.Intersects(OOB)) return;
-                if (pass == QuadRenderPass.Water && !renderer.ActiveCamera.Intersects(WaterOOB)) return;
-                
-                constants.World = Matrix.Scaling((float)scale) * Body.Rotation * Matrix.Translation(pos);
+                // get scaled space
+                double wscale;
+                Vector3d wpos;
+                if (pass == QuadRenderPass.Water) {
+                    renderer.ActiveCamera.GetScaledSpace(WaterMeshPosition, out wpos, out wscale);
+                    wscale *= Size;
+                    WaterOOB.Transformation = Matrix.Scaling((float)wscale) * Body.Rotation * NodeOrientation * Matrix.Translation(wpos);
+                    if (!renderer.ActiveCamera.Intersects(WaterOOB)) return;
+                    constants.World = Matrix.Scaling((float)wscale) * Body.Rotation * Matrix.Translation(wpos);
+                    constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (WaterMeshPosition - Body.Position) * planetScale);
+                } else {
+                    OOB.Transformation = Matrix.Scaling((float)scaledScale) * Body.Rotation * NodeOrientation * Matrix.Translation(scaledPos);
+                    if (!renderer.ActiveCamera.Intersects(OOB)) return;
+                    constants.World = Matrix.Scaling((float)scaledScale) * Body.Rotation * Matrix.Translation(scaledPos);
+                    constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (MeshPosition - Body.Position) * planetScale);
+                }
                 constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(constants.World));
                 constants.NodeOrientation = Body.Rotation * NodeOrientation;
-                constants.NodeScale = (float)scale;
+                constants.NodeScale = (float)scaledScale;
                 constants.LightDirection = Vector3d.Normalize(MeshPosition - StarSystem.ActiveSystem.GetStar().Position);
-
-                // adjust NodeToPlanet (used for atmosphere) for water mesh
-                if (pass == QuadRenderPass.Water)
-                    constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (WaterMeshPosition - Body.Position) * planetScale);
-                else
-                    constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (MeshPosition - Body.Position) * planetScale);
                 
                 // constant buffer
                 if (constantBuffer == null)
@@ -1057,8 +1057,8 @@ namespace Planetary_Terrain {
                     foreach (Camera c in renderer.Cameras) {
                         renderer.SetCamera(c);
                         renderer.Context.DrawIndexed(waterIndexCount, 0, 0);
-                        Debug.TrianglesDrawn += waterIndexCount / 3;
                     }
+                    Debug.TrianglesDrawn += waterIndexCount / 3;
                     break;
                 case QuadRenderPass.Ground:
                     if (Debug.DrawBoundingBoxes) {
@@ -1068,7 +1068,8 @@ namespace Planetary_Terrain {
                         else
                             Debug.DrawBox(Color.Red, OOB);
                     }
-                    // draw the triangles above the water if we're far away
+
+                    // only draw the triangles above the water if we're far away
                     if (hasWaterVerticies && hasVerticiesAboveWater && camHeight > oceanLevel + WaterDetailDistance)
                         renderer.Context.InputAssembler.SetIndexBuffer(farIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
                     else
@@ -1081,6 +1082,7 @@ namespace Planetary_Terrain {
                         renderer.Context.DrawIndexed(indexCount, 0, 0);
                     }
                     Debug.TrianglesDrawn += indexCount / 3;
+                    Debug.NodesDrawn++;
                     break;
             }
         }
@@ -1139,16 +1141,12 @@ namespace Planetary_Terrain {
                 TreeBuffer?.Dispose();
                 TreeBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, data);
             }
-
-            Vector3d pos;
-            double scale;
-            renderer.ActiveCamera.GetScaledSpace(MeshPosition, out pos, out scale);
             
             renderer.Context.InputAssembler.SetVertexBuffers(1, new D3D11.VertexBufferBinding(TreeBuffer, Matrix.SizeInBytes, 0));
             Resources.TreeModel.DrawInstanced(
                 renderer,
                 constants.LightDirection,
-                Body.Rotation * Matrix.Translation(pos),
+                Body.Rotation * Matrix.Translation(scaledPos),
                 Trees.Length);
 
             Debug.TreesDrawn += Trees.Length;
@@ -1191,8 +1189,8 @@ namespace Planetary_Terrain {
             foreach (Camera c in renderer.Cameras) {
                 renderer.SetCamera(c);
                 renderer.Context.DrawIndexedInstanced(6, Trees.Length, 0, 0, 0);
-                Debug.TrianglesDrawn += Trees.Length * 2;
             }
+            Debug.TrianglesDrawn += Trees.Length * 2;
             Debug.ImposterDrawn += Trees.Length;
         }
         #endregion
@@ -1205,7 +1203,7 @@ namespace Planetary_Terrain {
                 vertexDirty = false;
                 GenerateQueue.Remove(this);
             }
-
+            
             vertexBuffer?.Dispose();
             constantBuffer?.Dispose();
             indexBuffer?.Dispose();

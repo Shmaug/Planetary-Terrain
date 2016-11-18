@@ -16,7 +16,7 @@ namespace Planetary_Terrain {
         public static Shader ModelInstanced;
         public static Shader Imposter;
         public static Shader AeroFX;
-        public static Shader Bllur;
+        public static Shader Blur;
         public static Shader Depth;
 
         public static void Load(D3D11.Device device, D3D11.DeviceContext context) {
@@ -66,7 +66,7 @@ namespace Planetary_Terrain {
                 shaderDirectory + "AeroFX",
                 device, context, VertexNormal.InputElements);
 
-            Bllur = new Shader(
+            Blur = new Shader(
                 shaderDirectory + "Blur",
                 device, context,
                 new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, D3D11.InputClassification.PerVertexData, 0),
@@ -96,7 +96,7 @@ namespace Planetary_Terrain {
             ModelInstanced.Dispose();
             Imposter.Dispose();
             AeroFX.Dispose();
-            Bllur.Dispose();
+            Blur.Dispose();
             Depth.Dispose();
         }
     }

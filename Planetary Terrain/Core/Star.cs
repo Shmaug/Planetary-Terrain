@@ -67,7 +67,8 @@ namespace Planetary_Terrain {
             // create/update constant buffer
             if (constBuffer == null)
                 constBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
-            renderer.Context.UpdateSubresource(ref constants, constBuffer);
+            else
+                renderer.Context.UpdateSubresource(ref constants, constBuffer);
 
             Shaders.Star.Set(renderer);
             // set constant buffer
@@ -78,12 +79,10 @@ namespace Planetary_Terrain {
             renderer.Context.PixelShader.SetShaderResource(1, colorMapView);
             
             renderer.Context.OutputMerger.SetBlendState(renderer.blendStateTransparent);
-
-            List<QuadNode> nodesToDraw = new List<QuadNode>();
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].GetRenderLevelNodes(renderer, ref nodesToDraw);
-            foreach (QuadNode n in nodesToDraw)
+            
+            foreach (QuadNode n in VisibleNodes)
                 n.Draw(renderer, QuadNode.QuadRenderPass.Ground, pos, scale);
+            
             Profiler.End();
         }
 
@@ -93,8 +92,8 @@ namespace Planetary_Terrain {
 
             constBuffer?.Dispose();
 
-            for (int i = 0; i < BaseQuads.Length; i++)
-                BaseQuads[i].Dispose();
+            for (int i = 0; i < BaseNodes.Length; i++)
+                BaseNodes[i].Dispose();
         }
     }
 }

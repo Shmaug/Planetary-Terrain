@@ -25,6 +25,8 @@ namespace Planetary_Terrain {
         public string Name;
         public List<Profiler> Children;
         public Profiler Parent;
+        public long ParentTickOffset = 0;
+
         public Profiler(string name) {
             Name = name;
             Children = new List<Profiler>();
@@ -32,19 +34,25 @@ namespace Planetary_Terrain {
         }
 
         public static Profiler Begin(string name = "") {
+#if DEBUG
             if (ActiveProfiler == null) {
                 ActiveProfiler = new Profiler(name);
                 ActiveProfiler.Stopwatch.Start();
             }else {
                 Profiler p = new Profiler(name);
+                p.ParentTickOffset = ActiveProfiler.Stopwatch.Elapsed.Ticks;
                 p.Parent = ActiveProfiler;
                 ActiveProfiler.Children.Add(p);
                 ActiveProfiler = p;
                 p.Stopwatch.Start();
             }
             return ActiveProfiler;
+#else
+            return null;
+#endif
         }
         public static bool Resume(string name) {
+#if DEBUG
             ActiveProfiler?.Stopwatch.Start();
             foreach (Profiler p in ActiveProfiler.Children) {
                 if (p.Name == name) {
@@ -54,10 +62,15 @@ namespace Planetary_Terrain {
                 }
             }
             return false;
+#else
+            return true;
+#endif
         }
         public static void End() {
+#if DEBUG
             ActiveProfiler?.Stopwatch.Stop();
             ActiveProfiler = ActiveProfiler.Parent;
+#endif
         }
 
         public void Draw(Renderer renderer, RawRectangleF rect) {
@@ -80,6 +93,9 @@ namespace Planetary_Terrain {
             int x = 0;
             foreach (Profiler p in Children) {
                 c++;
+
+                //if (p.ParentTickOffset > 0)
+                //    x += (int)((p.ParentTickOffset / (double)Stopwatch.Elapsed.Ticks) * (rect.Right - rect.Left));
 
                 int w = (int)((p.Stopwatch.Elapsed.Ticks / (double)Stopwatch.Elapsed.Ticks) * (rect.Right - rect.Left));
                 p.Draw(renderer, new RawRectangleF(rect.Left + x, rect.Top, rect.Left + x + w, rect.Bottom), c, textx + 10, ref texty);
@@ -125,7 +141,10 @@ namespace Planetary_Terrain {
             double t = 0;
             foreach (Profiler p in Children) {
                 col++;
-                
+
+                //if (p.ParentTickOffset > 0)
+                //    t += (p.ParentTickOffset / (double)Stopwatch.Elapsed.Ticks) * (b - a);
+
                 double f = (p.Stopwatch.Elapsed.Ticks / (double)Stopwatch.Elapsed.Ticks) * (b - a);
                 p.DrawCircle(renderer, center, radius - step, step, a + t, a + t + f, col, txt);
                 t += f;
@@ -163,6 +182,7 @@ namespace Planetary_Terrain {
         public static int TrianglesDrawn;
         public static int TreesDrawn;
         public static int ImposterDrawn;
+        public static int NodesDrawn;
         public static int FPS;
 
         static int frameGraphSize = 200;
@@ -189,33 +209,44 @@ namespace Planetary_Terrain {
             immediateTrack[name] = l?.ToString() ?? "null";
         }
 
-        public static void MarkFrame() {
-            frameMarked = true;
-        }
         public static void BeginFrame() {
+#if DEBUG
             TrianglesDrawn = 0;
             TreesDrawn = 0;
             ImposterDrawn = 0;
+            NodesDrawn = 0;
             immediateTrack.Clear();
             frameMarked = false;
             lines.Clear();
             boxes.Clear();
+#endif
         }
         public static void EndFrame(double frameTime) {
+#if DEBUG
             frameGraph.Add(new FrameSnapshot() { RealFPS = FPS, FrameTimeMS = (float)(frameTime * 1000), FPS = (float)(1.0 / frameTime), mark = frameMarked });
             if (frameGraph.Count > frameGraphSize)
                 frameGraph.RemoveAt(0);
+#endif
+        }
+        public static void MarkFrame() {
+            frameMarked = true;
         }
         
         public static void DrawLine(Color color, params Vector3d[] points) {
+#if DEBUG
             lines.Add(new Line() { color = color, points = points });
+#endif
         }
         public static void DrawBox(Color color, OrientedBoundingBox oob) {
+#if DEBUG
             boxes.Add(new Box() { oob = oob, color = color });
+#endif
         }
-        
+
         public static void Draw3D(Renderer renderer) {
             if (!DrawDebug) return;
+            Profiler.Begin("Debug 3d Draw");
+
             Matrix m = Matrix.Identity;
             float[] b = new float[20] {
                     1,0,0,0, // Matrix
@@ -249,6 +280,7 @@ namespace Planetary_Terrain {
                         
                         double d = (sp1 - sp2).Length();
                         if (d > 10) {
+                            d = Math.Min(d, 100);
                             double s2;
                             Vector3d p2;
                             renderer.ActiveCamera.GetScaledSpace(line.points[i + 1], out p2, out s2);
@@ -264,6 +296,7 @@ namespace Planetary_Terrain {
                 renderer.Context.InputAssembler.SetVertexBuffers(0, new D3D11.VertexBufferBinding(vbuffer, Utilities.SizeOf<VertexColor>(), 0));
 
                 renderer.Context.Draw(verts.Count, 0);
+
             }
 
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
@@ -286,17 +319,20 @@ namespace Planetary_Terrain {
 
                 renderer.Context.Draw(24, 0);
             }
+
+            Profiler.End();
         }
-        public static void Draw2D(Renderer renderer, Profiler frameProfiler) {
+        public static void Draw2D(Renderer renderer) {
             if (!DrawDebug) return;
-            
+            Profiler.Begin("Debug 2d Draw");
+
             renderer.Consolas14.TextAlignment = DWrite.TextAlignment.Leading;
             renderer.Consolas14.ParagraphAlignment = DWrite.ParagraphAlignment.Center;
 
             float line = 1;
             renderer.D2DContext.DrawText(
-                string.Format("{0} triangles, {1} trees/{2} imposters [{3} waiting / {4} generating]",
-                TrianglesDrawn.ToString("N0"), TreesDrawn.ToString("N0"), ImposterDrawn.ToString("N0"), QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
+                string.Format("{0} triangles, {1} nodes, {2} trees/{3} imposters [{4} waiting / {5} generating]",
+                TrianglesDrawn.ToString("N0"), NodesDrawn.ToString("N0"), TreesDrawn.ToString("N0"), ImposterDrawn.ToString("N0"), QuadNode.GenerateQueue.Count, QuadNode.Generating.Count),
                 renderer.Consolas14, new RawRectangleF(10, renderer.Viewport.Height - line * 25, 300, renderer.Viewport.Height - (line - 1) * 25), renderer.Brushes["White"]);
             line++;
 
@@ -336,14 +372,6 @@ namespace Planetary_Terrain {
 
                 ly -= lh + 5;
             }
-            #endregion
-
-            #region profiler
-            //int py = frameProfiler.TotalChildren()*Profiler.lineHeight + Profiler.lineHeight;
-            //renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
-            //frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
-            float r = renderer.ResolutionX * .075f;
-            frameProfiler.DrawCircle(renderer, new Vector2(renderer.ResolutionX - r - 10, renderer.ResolutionY - r - 10), r, r * .05f, 0, Math.PI * 2);
             #endregion
 
             #region graph
@@ -411,10 +439,12 @@ namespace Planetary_Terrain {
             renderer.D2DContext.DrawText("Draw+Update Time (ms)", renderer.Consolas14, // y axis label
                 new RawRectangleF(grect.Left + 30, grect.Top, grect.Right, grect.Top), renderer.Brushes["White"]);
             #endregion
+            
+            Profiler.End();
         }
 
         public static void DrawTexture(Renderer renderer, Vector4 pos, D3D11.ShaderResourceView texture) {
-            Shaders.Bllur.Set(renderer);
+            Shaders.Blur.Set(renderer);
             
             cbuffer?.Dispose();
             cbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref pos);

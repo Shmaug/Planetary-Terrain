@@ -110,16 +110,24 @@ namespace Planetary_Terrain {
                 Draw();
                 Profiler.End();
                 
-                Profiler.End();
-
+#if DEBUG
                 Debug.EndFrame(p.Stopwatch.Elapsed.TotalSeconds);
 
-                if (renderer.DrawGUI) {
+                if (Debug.DrawDebug) {
                     renderer.D2DContext.BeginDraw();
-                    Debug.Draw2D(renderer, p);
+                    Debug.Draw2D(renderer);
+                    Profiler.End();
+
+                    // Draw profiler
+                    //int py = frameProfiler.TotalChildren()*Profiler.lineHeight + Profiler.lineHeight;
+                    //renderer.D2DContext.FillRectangle(new RawRectangleF(renderer.ResolutionX - 360, 5, renderer.ResolutionX, 40 + py + 5), renderer.Brushes["TransparentBlack"]);
+                    //frameProfiler.Draw(renderer, new RawRectangleF(renderer.ResolutionX - 350, 10, renderer.ResolutionX - 10, 40));
+                    float r = renderer.ResolutionX * .075f;
+                    p.DrawCircle(renderer, new Vector2(renderer.ResolutionX - r - 10, renderer.ResolutionY - r - 10), r, r * .05f, 0, Math.PI * 2);
                     renderer.D2DContext.EndDraw();
-                }
-                
+                } else
+                    Profiler.End();
+#endif
                 renderer.Present();
             });
         }
@@ -245,8 +253,10 @@ namespace Planetary_Terrain {
             skybox.Draw(renderer);
             StarSystem.ActiveSystem.physics.Draw(renderer);
             Profiler.End();
-            
-            Debug.Draw3D(renderer); // act like debug draws don't take a toll on performance
+
+#if DEBUG
+            Debug.Draw3D(renderer);
+#endif
 
             //renderer.SetCamera(renderer.MainCamera);
             //Debug.DrawTexture(
@@ -259,10 +269,16 @@ namespace Planetary_Terrain {
                 Profiler.Begin("2d Draw");
                 renderer.D2DContext.BeginDraw();
 
+                Profiler.Begin("Planet HUD Draw");
                 StarSystem.ActiveSystem.DrawPlanetHudIcons(renderer, player.Velocity.Length());
+                Profiler.End();
+                Profiler.Begin("HUD Draw");
                 DrawHUD(renderer);
+                Profiler.End();
+                Profiler.Begin("Control Panel Draw");
                 ControlPanel.Draw(renderer);
-                
+                Profiler.End();
+
                 renderer.D2DContext.EndDraw();
                 Profiler.End();
             }

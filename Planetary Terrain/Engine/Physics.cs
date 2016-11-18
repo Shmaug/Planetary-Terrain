@@ -262,6 +262,7 @@ namespace Planetary_Terrain {
         public static bool CelestialSphereCollision(CelestialBody a, PhysicsBody b, out Contact contact) {
             contact = new Contact();
             // TODO: turn celestial bodies into triangle meshes for collision
+            // TODO: height of body not properly calculated or something
 
             // check collision
             Vector3d dir = b.Position - a.Position;
