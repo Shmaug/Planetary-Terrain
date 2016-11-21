@@ -98,6 +98,7 @@ namespace Planetary_Terrain {
         public D3D11.DepthStencilView depthStencilView;
         public D3D11.ShaderResourceView renderTargetResource;
         public D3D11.ShaderResourceView depthStencilResource;
+        // TODO: Deferred rendering
 
         public static Camera CreatePerspective(float fieldOfView, float aspectRatio) {
             Camera c = new Camera();
