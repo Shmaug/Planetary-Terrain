@@ -8,6 +8,7 @@ using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     abstract class CelestialBody : PhysicsBody, IDisposable {
+        // TODO: allow vertex spacing to go higher, but when we're really far away
         public double MaxVertexSpacing = 10000000; // m/vertex
         public double MinVertexSpacing = 1;       // m/vertex
         

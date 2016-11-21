@@ -836,7 +836,7 @@ namespace Planetary_Terrain {
             }
 
             double x = (arcDist + dist) * .5;
-            
+            // TODO: Better split function, that allows for higher vertex spacing from exponentially farther distances, and decreases cracks when LOD transitions are large
             if (x * x < ArcSize * ArcSize || Size / GridSize > Body.MaxVertexSpacing) {
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
