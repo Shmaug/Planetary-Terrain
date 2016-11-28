@@ -43,7 +43,8 @@ namespace Planetary_Terrain {
                 };
             earth.Velocity = new Vector3d(30000, 0, 0);
             earth.SetColormap("Data/Textures/Earth.dds", device);
-            earth.AngularVelocity.Y = 0.00007272205;
+            earth.Rotation = Matrix.RotationX(MathUtil.DegreesToRadians(23.5f));
+            earth.AngularVelocity.Y = 2 * Math.PI / (24 * 60 * 60);
             bodies.Add(earth);
 
             Planet moon = new Planet(
@@ -59,6 +60,7 @@ namespace Planetary_Terrain {
             };
             moon.Velocity = earth.Velocity + new Vector3d(1022, 0, 0);
             moon.SetColormap("Data/Textures/moon.dds", device);
+            moon.AngularVelocity.Y = 2 * Math.PI / (27 * 24 * 60 * 60);
             bodies.Add(moon);
 
             //Planet mars = new Planet("Mars", new Vector3d(0, 0, 227940000000), 3397000, 6.39e23, 10000,
@@ -97,19 +99,11 @@ namespace Planetary_Terrain {
                 physics.AddBody(b);
         }
 
-        public Atmosphere GetNearestAtmosphere(Vector3d pos) {
-            double near = double.MaxValue;
-            Atmosphere n = null;
-            foreach (CelestialBody b in bodies) {
-                if (b is Planet && (b as Planet).Atmosphere != null) {
-                    double d = (b.Position - pos).LengthSquared();
-                    if (d < near) {
-                        near = d;
-                        n = (b as Planet).Atmosphere;
-                    }
-                }
-            }
-            return n;
+        public Atmosphere GetCurrentAtmosphere(Vector3d pos) {
+            CelestialBody b = GetCurrentSOI(pos);
+            if (b is Planet)
+                return (b as Planet).Atmosphere;
+            return null;
         }
         public CelestialBody GetCurrentSOI(Vector3d pos) {
             double near = double.MaxValue;

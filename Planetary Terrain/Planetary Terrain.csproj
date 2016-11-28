@@ -195,6 +195,7 @@
     </Content>
     <Content Include="ShaderCompilation\d3dcompiler_47.dll" />
     <Content Include="ShaderCompilation\fxc.exe" />
+    <Content Include="Shaders\skybox.hlsl" />
     <Content Include="Shaders\imposter.hlsl" />
     <None Include="Data\Models\blender\tree.blend" />
     <None Include="Data\Models\Cruiser\ship.fbx">

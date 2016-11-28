@@ -23,7 +23,7 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0) {
 	wp.xyz *= (1 + Step) * Size * .25;
 
 	v.position = mul(wp, mul(View, Projection));
-	v.position.z = LogDepth(v.position.w);
+	LogDepth(v.position);
 	v.worldPos = wp.xyz;
 	return v;
 }

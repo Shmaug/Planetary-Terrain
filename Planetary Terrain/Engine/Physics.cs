@@ -216,7 +216,7 @@ namespace Planetary_Terrain {
 
             // drag
             if (!(this is CelestialBody) && Drag > 0) {
-                Atmosphere a = StarSystem.ActiveSystem.GetNearestAtmosphere(Position);
+                Atmosphere a = StarSystem.ActiveSystem.GetCurrentAtmosphere(Position);
                 if (a != null) {
                     Vector3d dir = (Position - a.Planet.Position);
                     double h = dir.Length();
@@ -266,7 +266,7 @@ namespace Planetary_Terrain {
             // check collision
             Vector3d dir = b.Position - a.Position;
             double h = dir.Length();
-            if (h > a.SOI + b.Hull.SphereRadius) return false;
+            if (h > a.BoundingRadius + b.Hull.SphereRadius) return false;
             dir /= h;
             double f = a.GetHeight(dir);
             if (h < f + b.Hull.SphereRadius) {

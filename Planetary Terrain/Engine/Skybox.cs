@@ -9,7 +9,7 @@ namespace Planetary_Terrain {
         
         public D3D11.ShaderResourceView[] TextureViews;
         public Matrix[] sides;
-
+        
         public Skybox(string dir, D3D11.Device device) {
             TextureViews = new D3D11.ShaderResourceView[6];
             ResourceUtil.LoadFromFile(device, dir + "/NegativeX.png", out TextureViews[0]);
@@ -30,11 +30,19 @@ namespace Planetary_Terrain {
             Matrix m = Matrix.Identity;
             constBuffer = D3D11.Buffer.Create(device, D3D11.BindFlags.ConstantBuffer, ref m);
         }
-        
+
         public void Draw(Renderer renderer) {
             if (renderer.DrawWireframe) return;
+            Profiler.Begin("Skybox Draw");
 
-            Shaders.Textured.Set(renderer);
+            Shaders.Skybox.Set(renderer);
+
+            Atmosphere a = StarSystem.ActiveSystem.GetCurrentAtmosphere(renderer.ActiveCamera.Position);
+            if (a != null && a.Planet.WasDrawnLastFrame) {
+                a.SetConstantBuffer(renderer);
+            } else
+                renderer.Context.PixelShader.SetConstantBuffer(3, null);
+
             renderer.Context.Rasterizer.State = renderer.rasterizerStateSolidNoCull;
             renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateNoDepth);
             
@@ -42,15 +50,26 @@ namespace Planetary_Terrain {
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
             renderer.Context.InputAssembler.SetIndexBuffer(Resources.QuadIndexBuffer, SharpDX.DXGI.Format.R16_UInt, 0);
 
+            Vector3 lightDir = Vector3d.Normalize(renderer.ActiveCamera.Position - StarSystem.ActiveSystem.GetStar().Position);
             for (int i = 0; i < 6; i++) {
+                Matrix m = sides[i];
+                float[] buffer = new float[]{
+                    m.M11,m.M12,m.M13,m.M14,
+                    m.M21,m.M22,m.M23,m.M24,
+                    m.M31,m.M32,m.M33,m.M34,
+                    m.M41,m.M42,m.M43,m.M44,
+                    lightDir.X, lightDir.Y, lightDir.Z,0
+                };
                 renderer.Context.PixelShader.SetShaderResource(1, TextureViews[i]);
-                renderer.Context.UpdateSubresource(ref sides[i], constBuffer);
+                renderer.Context.UpdateSubresource(buffer, constBuffer);
                 renderer.Context.VertexShader.SetConstantBuffer(1, constBuffer);
                 renderer.Context.DrawIndexed(6, 0, 0);
             }
 
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
             renderer.Context.OutputMerger.SetDepthStencilState(renderer.depthStencilStateDefault);
+
+            Profiler.End();
         }
 
         public void Dispose() {

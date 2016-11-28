@@ -29,7 +29,7 @@ v2f modelvs(float4 vertex, float3 normal, float3 tangent, float2 uv, float4 colo
 	v2f v;
 	float4 wp = mul(vertex, world);
 	v.position = mul(wp, mul(View, Projection));
-	v.position.z = LogDepth(v.position.w);
+	LogDepth(v.position);
 	v.normal = normalize(mul(normal, normWorld));
 	v.tangent = normalize(mul(tangent, normWorld));
 	v.uv = uv;

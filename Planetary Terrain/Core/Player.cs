@@ -110,7 +110,7 @@ namespace Planetary_Terrain {
             }
 
             // Mouse look
-            camDist = Math.Max(camDist + camDist * -Input.ms.Z / 120, 30);
+            camDist = Math.Max(camDist + camDist * -Input.ms.Z / 120, 20);
             CameraDistance = MathUtil.Lerp(CameraDistance, camDist, 10*deltaTime);
 
             if (FirstPerson)
@@ -129,7 +129,8 @@ namespace Planetary_Terrain {
                 AngularVelocity = Vehicle.AngularVelocity;
                 Rotation = Vehicle.Rotation;
             }
-            
+            // TODO: Camera offset position
+            // TODO: Skybox atmosphere color with light
             if (Vehicle != null) {
                 Camera.Rotation = Rotation * Matrix.RotationAxis(Rotation.Up, CameraEuler.Y);
                 Camera.Rotation *= Matrix.RotationAxis(Camera.Rotation.Right, CameraEuler.X);
@@ -149,8 +150,8 @@ namespace Planetary_Terrain {
             double h = dir.Length();
             dir /= h;
             double ch = cb.GetHeight(dir);
-            if (h + .2 < ch)
-                Camera.Position = cb.Position + dir * ch;
+            if (h < ch + .2)
+                Camera.Position = cb.Position + dir * (ch + .2);
 
             Vector3d v = Velocity - cb.Velocity;
             if (h < ch + 10000)

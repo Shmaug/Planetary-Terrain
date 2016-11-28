@@ -5,6 +5,8 @@ using D3D11 = SharpDX.Direct3D11;
 
 namespace Planetary_Terrain {
     class Camera {
+        public Vector3d offsetPosition;
+
         private Vector3d _position;
         private float _fov, _fovy, _aspect, _near = 1f, _far = 1000000;
         private double _cosfov2;
@@ -20,13 +22,25 @@ namespace Planetary_Terrain {
                     OrthographicSize * AspectRatio * .5f,
                     -OrthographicSize * .5f,
                     OrthographicSize * .5f,
-                    _near, _far);
-            else
-                _proj = Matrix.PerspectiveFovLH(_fov, _aspect, _near, _far);
+                    _near, 1000000);
+            else {
+                // experimental infinite far distance (too imprecise at distance)
+                //float scale = (float)(1.0 / Math.Tan(_fovy * .5));
+                //float q = 1;
+                //_proj = new Matrix(
+                //    scale / _aspect, 0, 0, 0,
+                //    0, scale, 0, 0,
+                //    0, 0, q, 1,
+                //    0, 0, -q * _near, 0
+                //    );
+
+                _proj = Matrix.PerspectiveFovLH(_fovy, _aspect, _near, 1000000);
+            }
             _frustum = new BoundingFrustum(_view * _proj);
         }
         private void makeView() {
-            _view = Matrix.LookAtLH(Vector3.Zero, _rotation.Backward, _rotation.Up);
+            //_view = Matrix.LookAtLH(Vector3.Zero, _rotation.Backward, _rotation.Up);
+            _view = Matrix.LookAtLH(offsetPosition, offsetPosition + _rotation.Backward, _rotation.Up);
             _frustum = new BoundingFrustum(_view * _proj);
         }
 
@@ -137,16 +151,16 @@ namespace Planetary_Terrain {
             pos = location - Position;
 
             distance = pos.Length();
-
+            
             double f = zFar * _cosfov2;
-            double p = .5 * f;
-
+            double p = .75 * f;
+            
             if (distance > p) {
                 double s = 1.0 - Math.Exp(-p / (distance - p));
                 double dist = p + (f - p) * s;
-
+            
                 scale = dist / distance;
-                pos = Vector3d.Normalize(pos) * dist;
+                pos = pos / distance * dist;
             }
         }
 

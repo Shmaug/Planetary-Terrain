@@ -40,7 +40,7 @@ v2f vsmain(float4 vertex : POSITION0, float2 uv : TEXCOORD0, float3 pos : TEXCOO
 		pos.x, pos.y, pos.z, 1);
 
 	v.position = mul(vertex, mul(billboard, mul(View, Projection)));
-	v.position.z = LogDepth(v.position.w);
+	LogDepth(v.position);
 	v.uv = float2(uv.x, 1 - uv.y);
 
 	v.normal = mul(float3(0,0,1), (float3x3)billboard);

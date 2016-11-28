@@ -23,7 +23,7 @@ namespace Planetary_Terrain {
         }
 
         public void Normalize() {
-            double l = 1 / Length();
+            double l = 1.0 / Length();
             X *= l;
             Y *= l;
             Z *= l;

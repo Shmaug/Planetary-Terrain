@@ -19,7 +19,7 @@ v2f vsmain(float4 vertex : POSITION0) {
 
 	float4 worldPosition = mul(vertex, World);
 	o.position = mul(worldPosition, mul(View, Projection));
-	o.position.z = LogDepth(o.position.w);
+	LogDepth(o.position);
 	float3 v3CameraPos = -planetPos;
 
 	// Get the ray from the camera to the vertex and its length (which is the far point of the ray passing through the atmosphere)

@@ -25,8 +25,8 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float height : TE
 	float4 wp = mul(vertex, World);
 
 	v.position = mul(wp, mul(View, Projection));
-	v.position.z = LogDepth(v.position.w);
-	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
+	LogDepth(v.position);
+	v.normal = mul(float4(normal, 1), (float3x3)World).xyz;
 
 	v.height = height;
 

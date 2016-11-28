@@ -219,6 +219,8 @@ namespace Planetary_Terrain {
             immediateTrack[name] = l?.ToString() ?? "null";
         }
 
+        public static Stopwatch sw = new Stopwatch();
+
         public static void BeginFrame() {
 #if DEBUG
             TrianglesDrawn = 0;
@@ -229,6 +231,8 @@ namespace Planetary_Terrain {
             frameMarked = false;
             lines.Clear();
             boxes.Clear();
+            Track(sw.Elapsed.TotalMilliseconds, "sw");
+            sw.Reset();
 #endif
         }
         public static void EndFrame(double frameTime) {
@@ -251,6 +255,34 @@ namespace Planetary_Terrain {
 #if DEBUG
             boxes.Add(new Box() { oob = oob, color = color });
 #endif
+        }
+
+        static Color[] lcs = new Color[] {
+            Color.Red,
+            Color.Blue,
+            Color.Yellow,
+            Color.White,
+            Color.Cyan,
+            Color.Black
+        };
+        static void DivideLine(Renderer renderer, Color c, Vector3d a, Vector3d b, ref List<VertexColor> verts, int t = 0) {
+            Vector2 sa = (Vector2)renderer.WorldToScreen(a, renderer.MainCamera);
+            Vector2 sb = (Vector2)renderer.WorldToScreen(b, renderer.MainCamera);
+
+            if ((sa - sb).Length() > 10 && t < 15) {
+                t++;
+                DivideLine(renderer, c, a, (a + b) * .5, ref verts, t);
+                DivideLine(renderer, c, (a + b) * .5, b, ref verts, t);
+            } else {
+                Vector3d p;
+                double s;
+
+                renderer.ActiveCamera.GetScaledSpace(a, out p, out s);
+                verts.Add(new VertexColor(p, c));
+                
+                renderer.ActiveCamera.GetScaledSpace(b, out p, out s);
+                verts.Add(new VertexColor(p, c));
+            }
         }
 
         public static void Draw3D(Renderer renderer) {
@@ -276,29 +308,8 @@ namespace Planetary_Terrain {
             Random r = new Random();
             foreach (Line line in lines) {
                 List<VertexColor> verts = new List<VertexColor>();
-                for (int i = 0; i < line.points.Length; i++) {
-                    double s;
-                    Vector3d p;
-                    renderer.ActiveCamera.GetScaledSpace(line.points[i], out p, out s);
-                    
-                    verts.Add(new VertexColor(p, line.color));
-
-                    // tesselate line if its got gaps (to reduce depth error from logarithmic depth buffer)
-                    if (i + 1 < line.points.Length) {
-                        Vector2 sp1 = (Vector2)renderer.WorldToScreen(line.points[i], renderer.MainCamera);
-                        Vector2 sp2 = (Vector2)renderer.WorldToScreen(line.points[i + 1], renderer.MainCamera);
-                        
-                        double d = (sp1 - sp2).Length();
-                        if (d > 10) {
-                            d = Math.Min(d, 100);
-                            double s2;
-                            Vector3d p2;
-                            renderer.ActiveCamera.GetScaledSpace(line.points[i + 1], out p2, out s2);
-                            for (double t = 0; t < 1; t += 10 / d)
-                                verts.Add(new VertexColor(Vector3d.Lerp(p, p2, t), line.color));
-                        }
-                    }
-                }
+                for (int i = 0; i < line.points.Length - 1; i++)
+                    DivideLine(renderer, line.color, line.points[i], line.points[i + 1], ref verts);
 
                 vbuffer?.Dispose();
                 vbuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.VertexBuffer, verts.ToArray());

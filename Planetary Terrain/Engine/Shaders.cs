@@ -12,6 +12,7 @@ namespace Planetary_Terrain {
         public static Shader Water;
         public static Shader Atmosphere;
         public static Shader Star;
+        public static Shader Skybox;
         public static Shader Model;
         public static Shader ModelInstanced;
         public static Shader Imposter;
@@ -54,6 +55,13 @@ namespace Planetary_Terrain {
                 shaderDirectory + "InstancedModel",
                 device, context,
                 ime.ToArray());
+
+            Skybox = new Shader(
+                shaderDirectory + "Skybox",
+                device, context,
+                new D3D11.InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+                new D3D11.InputElement("TEXCOORD", 0, Format.R32G32_Float, 12, 0)
+            );
 
             Textured = new Shader(
                 shaderDirectory + "Textured",

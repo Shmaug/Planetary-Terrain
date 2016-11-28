@@ -23,7 +23,7 @@ namespace Planetary_Terrain {
         public AtmosphereQuadNode[] BaseQuads;
 
         [StructLayout(LayoutKind.Explicit, Size = 96)]
-        struct Constants {
+        public struct Constants {
             [FieldOffset(0)]
             public float InnerRadius;
             [FieldOffset(4)]
@@ -66,7 +66,7 @@ namespace Planetary_Terrain {
             [FieldOffset(80)]
             public Vector3 InvWavelength;
         }
-        Constants constants;
+        public Constants constants;
         public D3D11.Buffer constBuffer { get; private set; }
 
         public Atmosphere(double radius) {

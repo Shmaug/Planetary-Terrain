@@ -247,23 +247,23 @@ namespace Planetary_Terrain {
         static List<QuadNode> RemoveQueue = new List<QuadNode>();
         public static void Update() {
             if (GenerateQueue.Count > 0) {
-                GenerateQueue = GenerateQueue.OrderByDescending(o => o.LODlevel).ToList(); // prioritize high-lod nodes
+                GenerateQueue = GenerateQueue.OrderByDescending(o => o.LODlevel).ToList(); // prioritize most recent (high lod) nodes
 
                 while (Generating.Count < MaxGenerationCount && GenerateQueue.Count > 0) {
-                    QuadNode q = GenerateQueue[GenerateQueue.Count - 1]; // Prioritize recently added nodes
+                    QuadNode q = GenerateQueue[GenerateQueue.Count - 1]; // prioritize most recent (high lod) nodes
                     GenerateQueue.Remove(q);
-                    if (!q.Disposed)
+                    if (!q.Disposed) {
                         Generating.Add(q);
-                    ThreadPool.QueueUserWorkItem((object ctx) => {
-                        q.generate();
-                        RemoveQueue.Add(q);
-                    });
+                        ThreadPool.QueueUserWorkItem((object ctx) => {
+                            q.generate();
+                        });
+                    }
                 }
             }
 
             // cleanup the Generating queue
             foreach (QuadNode n in Generating)
-                if (n.Disposed || !n.generating)
+                if (n != null && (n.Disposed || !n.generating))
                     RemoveQueue.Add(n);
             for (int i = 0; i < RemoveQueue.Count; i++) {
                 RemoveQueue[i].Body.UpdateVisibleNodes();
@@ -337,21 +337,17 @@ namespace Planetary_Terrain {
         D3D11.Buffer indexBuffer;
         D3D11.Buffer farIndexBuffer; // triangles below water are removed
         D3D11.Buffer constantBuffer;
-        [StructLayout(LayoutKind.Explicit, Size = 288)]
+        [StructLayout(LayoutKind.Explicit, Size = 160)]
         struct Constants {
             [FieldOffset(0)]
             public Matrix World;
             [FieldOffset(64)]
-            public Matrix WorldInverseTranspose;
-            [FieldOffset(128)]
             public Matrix NodeToPlanetMatrix;
-            [FieldOffset(192)]
-            public Matrix NodeOrientation;
-            [FieldOffset(256)]
+            [FieldOffset(128)]
             public Vector3 LightDirection;
-            [FieldOffset(272)]
+            [FieldOffset(144)]
             public Vector3 Color;
-            [FieldOffset(284)]
+            [FieldOffset(156)]
             public float NodeScale;
         }
         Constants constants;
@@ -835,9 +831,10 @@ namespace Planetary_Terrain {
                 dist = Math.Min(dist, (d2 * wh - dir * height).Length());
             }
 
-            double x = (arcDist + dist) * .5;
+            double x = arcDist * .75 + dist * .25;
+
             // TODO: Better split function, that allows for higher vertex spacing from exponentially farther distances, and decreases cracks when LOD transitions are large
-            if (x * x < ArcSize * ArcSize || Size / GridSize > Body.MaxVertexSpacing) {
+            if (arcDist * dist < ArcSize * Size) {
                 if (Children != null) {
                     for (int i = 0; i < Children.Length; i++)
                         Children[i].SplitDynamic(dir, height, altitude, device);
@@ -887,7 +884,7 @@ namespace Planetary_Terrain {
             dist = Math.Sqrt(dist);
         }
         public bool IsAboveHorizon(Vector3d camera) {
-            Vector3d planetToCam = Vector3d.Normalize(camera - Body.Position);
+            Vector3d planetToCam = Vector3d.Normalize(camera - Body.Position); // OPTIMIZE
             double horizonAngle = Math.Acos(Body.Radius / (Body.Position - camera).Length());
 
             for (int i = 0; i < VertexSamples.Length; i++) {
@@ -989,24 +986,35 @@ namespace Planetary_Terrain {
             if (vertexDirty || indexdirty)
                 SetData(renderer.Device, renderer.Context);
             renderer.ActiveCamera.GetScaledSpace(MeshPosition, out scaledPos, out scaledScale);
-            scaledScale *= Size;
         }
         public void Draw(Renderer renderer, Vector3d planetPos, double planetScale, double camHeight) {
-            if (!Profiler.Resume("Node Data Set")) Profiler.Begin("Node Data Set");
+            if (!Profiler.Resume("Node Math")) Profiler.Begin("Node Math");
             // early exits
             if (hasWaterVerticies && !hasVerticiesAboveWater && camHeight > oceanLevel + WaterDetailDistance) { Profiler.End(); return; }
             if (vertexBuffer == null || indexBuffer == null) { Profiler.End(); return; }
             if (!IsAboveHorizon(renderer.ActiveCamera.Position)) { Profiler.End(); return; }
+
+            double scale = scaledScale;
+            Vector3d pos = scaledPos;
+
+            // when we're far away, keep the planet's spherical shape instead of flattening it closer to the camera
+            if (scaledScale < .9) {
+                pos = planetPos + (MeshPosition - Body.Position) * planetScale;
+                scale = planetScale;
+            }
+            scale *= Size;
+
+            Matrix mscl = Matrix.Scaling((float)scale);
             
-            OOB.Transformation = Matrix.Scaling((float)scaledScale) * Body.Rotation * NodeOrientation * Matrix.Translation(scaledPos);
+            OOB.Transformation = mscl * NodeOrientation * Body.Rotation * Matrix.Translation(pos);
             if (!renderer.ActiveCamera.Intersects(OOB)) { Profiler.End(); return; }
-            constants.World = Matrix.Scaling((float)scaledScale) * Body.Rotation * Matrix.Translation(scaledPos);
+
+            constants.World = mscl * Body.Rotation * Matrix.Translation(pos);
             constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (MeshPosition - Body.Position) * planetScale);
-            constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(constants.World));
-            constants.NodeOrientation = Body.Rotation * NodeOrientation;
-            constants.NodeScale = (float)scaledScale;
+            constants.NodeScale = (float)scale;
             constants.LightDirection = Vector3d.Normalize(MeshPosition - StarSystem.ActiveSystem.GetStar().Position);
-                
+
+            if (!Profiler.Resume("Node Data Set")) Profiler.Begin("Node Data Set");
             // constant buffer
             if (constantBuffer == null)
                 constantBuffer = D3D11.Buffer.Create(renderer.Device, D3D11.BindFlags.ConstantBuffer, ref constants);
@@ -1015,6 +1023,7 @@ namespace Planetary_Terrain {
 
             renderer.Context.VertexShader.SetConstantBuffer(1, constantBuffer);
             renderer.Context.PixelShader.SetConstantBuffer(1, constantBuffer);
+            Profiler.End();
 
             renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
             Profiler.End();
@@ -1052,17 +1061,22 @@ namespace Planetary_Terrain {
             if (!IsAboveHorizon(renderer.ActiveCamera.Position)) { Profiler.End(); return; }
             
             // get scaled space
-            double wscale;
-            Vector3d wpos;
-            renderer.ActiveCamera.GetScaledSpace(WaterMeshPosition, out wpos, out wscale);
-            wscale *= Size;
-            WaterOOB.Transformation = Matrix.Scaling((float)wscale) * Body.Rotation * NodeOrientation * Matrix.Translation(wpos);
+            double scale;
+            Vector3d pos;
+            renderer.ActiveCamera.GetScaledSpace(WaterMeshPosition, out pos, out scale);
+            // when we're far away, keep the planet's spherical shape instead of flattening it closer to the camera
+            if (scale < .9) {
+                pos = planetPos + (WaterMeshPosition - Body.Position) * planetScale;
+                scale = planetScale;
+            }
+            // TODO: Make planet spherical again
+            scale *= Size;
+            WaterOOB.Transformation = Matrix.Scaling((float)scale) * NodeOrientation * Body.Rotation * Matrix.Translation(pos);
             if (!renderer.ActiveCamera.Intersects(WaterOOB)) { Profiler.End(); return; }
 
-            constants.World = Matrix.Scaling((float)wscale) * Body.Rotation * Matrix.Translation(wpos);
+
+            constants.World = Matrix.Scaling((float)scale) * Body.Rotation * Matrix.Translation(pos);
             constants.NodeToPlanetMatrix = Matrix.Scaling((float)(planetScale * Size)) * Body.Rotation * Matrix.Translation(planetPos + (WaterMeshPosition - Body.Position) * planetScale);
-            constants.WorldInverseTranspose = Matrix.Invert(Matrix.Transpose(constants.World));
-            constants.NodeOrientation = Body.Rotation * NodeOrientation;
             constants.NodeScale = (float)scaledScale;
             constants.LightDirection = Vector3d.Normalize(WaterMeshPosition - StarSystem.ActiveSystem.GetStar().Position);
 

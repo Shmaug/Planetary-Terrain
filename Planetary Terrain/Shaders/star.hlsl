@@ -15,7 +15,7 @@ struct v2f {
 v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float2 tempHumid : TEXCOORD0) {
 	v2f v;
 	v.position = mul(vertex, mul(World, mul(View, Projection)));
-	v.position.z = LogDepth(v.position.w);
+	LogDepth(v.position);
 	v.normal = mul(normal, (float3x3)World);
 	v.tempHumid = tempHumid;
 	return v;

@@ -52,8 +52,9 @@ namespace Planetary_Terrain {
             TerrainHeight = terrainHeight;
             Atmosphere = atmosphere;
 
-            if (atmosphere != null)
-                atmosphere.Planet = this;
+            BoundingRadius = radius + terrainHeight;
+
+            if (atmosphere != null) atmosphere.Planet = this;
             
             OceanHeight = .5;
             OceanColor = new Color(35, 90, 200);
@@ -86,9 +87,16 @@ namespace Planetary_Terrain {
         }
         public override double GetHeight(Vector3d direction, bool transformDirection = true) {
             if (transformDirection)
-                direction = Vector3d.Transform(direction, (Matrix3x3)Matrix.Invert(Rotation));
+                direction = Vector3d.Transform(direction, Matrix3x3.Invert((Matrix3x3)Rotation)); // TODO: This is way off
 
-            return Radius + height(direction) * TerrainHeight;
+            double h = Radius + height(direction) * TerrainHeight;
+
+            if (transformDirection) {
+                direction = Vector3d.Transform(direction, (Matrix3x3)Rotation);
+                Debug.DrawLine(Color.Black, Position + direction * h, Position + direction * (h + 100));
+            }
+
+            return h;
         }
 
         double temperature(Vector3d dir) {
@@ -122,6 +130,7 @@ namespace Planetary_Terrain {
         
         public override void Draw(Renderer renderer) {
             Profiler.Begin(Name + " Draw");
+            WasDrawnLastFrame = false;
             renderer.Context.Rasterizer.State = renderer.DrawWireframe ? renderer.rasterizerStateWireframeCullBack : renderer.rasterizerStateSolidCullBack;
 
             // Get the entire planet's scale and scaled position
@@ -129,9 +138,11 @@ namespace Planetary_Terrain {
             double scale;
             double dist;
             renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale, out dist);
-            if (scale * Radius < 1)
-                return;
-            
+            if (scale * Radius < 1) { Profiler.End(); return; }
+
+            BoundingSphere bs = new BoundingSphere(pos, (float)(BoundingRadius * scale));
+            if (!renderer.ActiveCamera.Frustum.Intersects(ref bs)) { Profiler.End(); return; }
+
             constants.oceanLevel = (float)OceanHeight;
             constants.oceanColor = OceanColor.ToVector3();
 
@@ -230,6 +241,7 @@ namespace Planetary_Terrain {
                 Profiler.End();
             }
 
+            WasDrawnLastFrame = true;
             Profiler.End();
         }
 

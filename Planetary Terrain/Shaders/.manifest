@@ -58,6 +58,12 @@ Shader
 	PixelShader blurps
 /Shader
 Shader
+	Path skybox.hlsl
+	Name Skybox
+	VertexShader vsmain
+	PixelShader psmain
+/Shader
+Shader
 	Path star.hlsl
 	Name Star
 	VertexShader vsmain

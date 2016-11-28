@@ -8,8 +8,7 @@ using System.Collections.Generic;
 
 namespace Planetary_Terrain {
     abstract class CelestialBody : PhysicsBody, IDisposable {
-        // TODO: allow vertex spacing to go higher, but when we're really far away
-        public double MaxVertexSpacing = 10000000; // m/vertex
+        //public double MaxVertexSpacing = 10000000; // m/vertex
         public double MinVertexSpacing = 1;       // m/vertex
         
         /// <summary>
@@ -25,7 +24,10 @@ namespace Planetary_Terrain {
         /// </summary>
         public double SOI;
         public double Radius;
+        public double BoundingRadius;
         public string Name;
+
+        public bool WasDrawnLastFrame = false;
 
         Vector2 hudDir;
 
@@ -33,8 +35,9 @@ namespace Planetary_Terrain {
             Position = pos;
             Radius = radius;
             SOI = Math.Sqrt(Physics.G * Mass / .1); // SOI is defined as point where acceleration due to gravity is less than .1 m/s^2
+            BoundingRadius = radius;
 
-            MaxVertexSpacing = radius*.5 / QuadNode.GridSize;
+            //MaxVertexSpacing = radius*.5 / QuadNode.GridSize;
             
             InitializeQuadTree();
 
@@ -117,14 +120,6 @@ namespace Planetary_Terrain {
             p3 *= GetHeight(p3, transformDirection);
 
             return Vector3d.Cross(Vector3d.Normalize(p2 - p1), Vector3d.Normalize(p3 - p1));
-        }
-        /// <summary>
-        /// Returns the point on the surface of the planet, along the line from the planet's position to the given point
-        /// </summary>
-        public Vector3d GetPointOnSurface(Vector3d p) {
-            p -= Position;
-            p.Normalize();
-            return p * Radius;
         }
 
         /// <summary>

@@ -56,14 +56,16 @@ namespace Planetary_Terrain {
         
         public override void Draw(Renderer renderer) {
             Profiler.Begin(Name + " Draw");
+            WasDrawnLastFrame = false;
             // Get the entire planet's scale and scaled position
             // This ensures the planet is always within the clipping planes
             Vector3d pos;
             double scale;
             double dist;
             renderer.ActiveCamera.GetScaledSpace(Position, out pos, out scale, out dist);
-            if (scale * Radius < 1)
-                return;
+            if (scale * Radius < 1) { Profiler.End(); return; }
+            BoundingSphere bs = new BoundingSphere(pos, (float)(BoundingRadius * scale));
+            if (!renderer.ActiveCamera.Frustum.Intersects(ref bs)) { Profiler.End(); return; }
 
             // create/update constant buffer
             if (constBuffer == null)
@@ -83,7 +85,8 @@ namespace Planetary_Terrain {
             
             foreach (QuadNode n in VisibleNodes)
                 n.Draw(renderer, pos, scale, dist);
-            
+
+            WasDrawnLastFrame = true;
             Profiler.End();
         }
 

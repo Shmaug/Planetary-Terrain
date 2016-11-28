@@ -20,9 +20,9 @@ v2f vsmain(float4 vertex : POSITION0, float3 normal : NORMAL0, float4 color : CO
 	v2f v;
 	float4 worldPosition = mul(vertex, World);
 	v.position = mul(worldPosition, mul(View, Projection));
-	v.position.z = LogDepth(v.position.w);
+	LogDepth(v.position);
 	v.worldPos = worldPosition.xyz;
-	v.normal = mul(float4(normal, 1), WorldInverseTranspose).xyz;
+	v.normal = mul(float4(normal, 1), (float3x3)World).xyz;
 	v.tempHumid = tempHumid;
 	v.color = color;
 	
