@@ -14,13 +14,14 @@ Shaders are compiled with my very own batch script that reads .manifest and runs
 * When a node is neighbored by a lower-detail node, and the lower-detail node is two or more detail levels lower, cracks still appear. This is due to the function that tells nodes when to split creating situations where nodes are neighbored by much lower level modes.
 * Planet rotation causes the GetHeight method to return wrong, I suspect due to the innacuracy of inverting a matrix of floats.
 * The atmosphere is very dark... I have no idea what causes this but my solution will eventually include either using a different atmosphere model, or making the skybox turn blue when in an atmosphere (currently working on the skybox method)
+* Cubemaps seem to not work... I've ignored this for now and separated the skybox into 6 images, but a cubemap is ideal
 
-##WIP:
+##WIP
 * Physics is simulated with euler integration
 * Make orbits simulated via keplerian math instead of cartesian math when no external forces are applied (more accurate, and can handle time warp!)
 * Friction
 
-##TODO:
+##TODO
 * Networked multiplayer
 * Optimizations!
 * Fix/complete physics
