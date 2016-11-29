@@ -8,6 +8,8 @@ Bodies are rendered using a quadtree LOD system, mapping the sphere to a cube of
 
 The atmosphere is rendered using Sean Oneal's amospheric scattering, from [here](http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html)
 
+Shaders are compiled with my very own batch script that reads .manifest and runs fxc based off what is read in .manifest
+
 #Problems
 * When a node is neighbored by a lower-detail node, and the lower-detail node is two or more detail levels lower, cracks still appear. This is due to the function that tells nodes when to split creating situations where nodes are neighbored by much lower level modes.
 * Planet rotation causes the GetHeight method to return wrong, I suspect due to the innacuracy of inverting a matrix of floats.
